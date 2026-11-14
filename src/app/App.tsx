@@ -9,7 +9,7 @@ import { HomeScreen } from './components/HomeScreen';
 import { RestaurantMapScreen } from './components/RestaurantMapScreen';
 import { ScanScreen } from './components/ScanScreen';
 import { ScanHistoryScreen } from './components/ScanHistoryScreen';
-import { useDemoValue, writeDemo } from './demo/storage';
+import { readDemo, useDemoValue, writeDemo } from './demo/storage';
 import type { VisitRecord } from './demo/records';
 import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingFixtures';
 import { AnalyzingScreen } from './components/AnalyzingScreen';
@@ -180,20 +180,48 @@ const formatHistoryTitle = (language: Language, date: Date) => {
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [demoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true' || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
+  const [demoMode, setDemoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true'
+    || sessionStorage.getItem('han-spoon-demo-session') === '1'
+    || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
   const [language, setLanguage] = useState<Language>(() => {
     const requested = new URLSearchParams(window.location.search).get('lang');
     if (isLanguage(requested)) return requested;
     const saved = localStorage.getItem('han-spoon-language');
     return isLanguage(saved) ? saved : 'ko';
   });
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => demoMode ? RESULT_PREVIEW_PROFILE : null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => demoMode
+    ? window.location.pathname === '/dev/results-preview' ? RESULT_PREVIEW_PROFILE : readDemo<UserProfile | null>('profile', null)
+    : null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [consentAccepted, setConsentAccepted] = useState<boolean | null>(demoMode ? true : null);
   const [currentAnalysis, setCurrentAnalysis] = useState<MenuAnalysis[]>([]);
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
+
+  const startDemo = () => {
+    clearAuthData();
+    sessionStorage.setItem('han-spoon-demo-session', '1');
+    writeDemo('profile', null);
+    writeDemo('records', []);
+    writeDemo('selected-restaurant', null);
+    setDemoMode(true);
+    setUserProfile(null);
+    setCurrentUser(null);
+    setAnalysisHistory([]);
+    setCurrentAnalysis([]);
+    setSelectedStore(null);
+    setConsentAccepted(false);
+    navigate('/terms?demo=1');
+  };
+
+  const exitDemo = () => {
+    sessionStorage.removeItem('han-spoon-demo-session');
+    setDemoMode(false);
+    setUserProfile(null);
+    setConsentAccepted(null);
+    navigate('/login');
+  };
 
   useEffect(() => {
     document.title = translateText(language, {
@@ -385,7 +413,7 @@ export default function App() {
   };
 
   const handleProfileSave = async (profile: UserProfile) => {
-    if (demoMode) { setUserProfile(profile); setLanguage(profile.languageCode); navigate('/home'); return; }
+    if (demoMode) { writeDemo('profile', profile); setUserProfile(profile); setLanguage(profile.languageCode); navigate('/home'); return; }
     const payload: UserProfilePayload = {
       nationality: profile.nationality.toUpperCase(),
       languageCode: toBackendLanguage(profile.languageCode),
@@ -452,7 +480,8 @@ export default function App() {
   const handleConsentComplete = async () => {
     setConsentAccepted(true);
     if (demoMode) {
-      navigate('/onboarding');
+      const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
+      navigate(returnTo === '/mypage' ? '/mypage' : '/onboarding');
       return;
     }
     const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
@@ -482,7 +511,7 @@ export default function App() {
         <Routes>
           <Route
             path="/"
-            element={<LandingScreen language={language} setLanguage={setLanguage} />}
+            element={<LandingScreen language={language} setLanguage={setLanguage} onTryDemo={startDemo} />}
           />
           <Route
             path="/login"
@@ -491,6 +520,9 @@ export default function App() {
                 language={language}
                 setLanguage={setLanguage}
                 onLogin={handleLogin}
+                demoMode={demoMode}
+                onTryDemo={startDemo}
+                onExitDemo={exitDemo}
               />
             }
           />
@@ -561,7 +593,7 @@ export default function App() {
                 onComplete={(_scanId, menus, store) => {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
-                  setHistoryProfile(_scanId === null ? { ...RESULT_PREVIEW_PROFILE, languageCode: language } : undefined);
+                  setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : undefined);
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
                   setActiveScanRecord(null);

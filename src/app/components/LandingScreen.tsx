@@ -11,9 +11,11 @@ const HERO_IMAGE =
 export function LandingScreen({
   language,
   setLanguage,
+  onTryDemo,
 }: {
   language: Language;
   setLanguage: (language: Language) => void;
+  onTryDemo: () => void;
 }) {
   const navigate = useNavigate();
   const t = createTranslator(language);
@@ -109,11 +111,18 @@ export function LandingScreen({
               <ArrowRight className="size-5 rtl:rotate-180" aria-hidden="true" />
             </span>
           </button>
+          <button
+            type="button"
+            onClick={onTryDemo}
+            className="mt-3 min-h-12 w-full rounded-full border border-white/45 bg-white/10 px-5 text-sm font-bold text-white backdrop-blur-md"
+          >
+            {t('로그인 없이 시연하기', 'Explore the demo without signing in', 'جرّب العرض دون تسجيل الدخول')}
+          </button>
           <p className="mt-3 text-center text-[11px] font-medium text-white/55">
             {t(
-              '계속하면 Google 계정으로 로그인할 수 있어요.',
-              'Continue to sign in securely with Google.',
-              'تابع لتسجيل الدخول بأمان باستخدام Google.',
+              '계정 없이 시연하거나 Google 계정으로 시작할 수 있어요.',
+              'Explore without an account or start with Google.',
+              'استكشف دون حساب أو ابدأ باستخدام Google.',
             )}
           </p>
         </footer>

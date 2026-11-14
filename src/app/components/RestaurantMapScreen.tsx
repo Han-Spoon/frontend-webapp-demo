@@ -76,7 +76,7 @@ function DemoRestaurantMapScreen({
     (restaurant) => restaurant.id === searchParams.get('restaurant'),
   );
   const initialArea: AreaId = initialRestaurant?.area
-    ?? (isAreaId(requestedArea) ? requestedArea : 'nearby');
+    ?? (isAreaId(requestedArea) ? requestedArea : 'seongsu');
   const initialCandidates = restaurantsInArea(initialArea);
   const area = initialArea;
   const [selectedId, setSelectedId] = useState(
@@ -159,6 +159,7 @@ function DemoRestaurantMapScreen({
         <StoreMap
           language={language}
           stores={mapStores}
+          demoMode
           center={area === 'nearby' ? location ?? undefined : undefined}
           selectedId={selected?.id}
           onSelect={(store) => {

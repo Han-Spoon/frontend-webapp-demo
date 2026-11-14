@@ -14,9 +14,12 @@ interface LoginScreenProps {
   onLogin: (hasProfile: boolean) => Promise<void> | void;
   language: Language;
   setLanguage: (language: Language) => void;
+  demoMode: boolean;
+  onTryDemo: () => void;
+  onExitDemo: () => void;
 }
 
-export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps) {
+export function LoginScreen({ onLogin, language, setLanguage, demoMode, onTryDemo, onExitDemo }: LoginScreenProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -152,14 +155,18 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
           </div>
 
           <p className="text-sm leading-6 text-text-secondary">
-            {t(
+            {demoMode ? t(
+              '시연 모드에서는 계정 없이 약관과 온보딩을 거쳐 주요 화면을 체험할 수 있어요.',
+              'Explore the terms, onboarding, and main app screens without an account in demo mode.',
+              'استكشف الشروط والتهيئة وشاشات التطبيق دون حساب في وضع العرض.',
+            ) : t(
               '별도 회원가입 없이 Google 계정 하나로 시작할 수 있어요.',
               'Start with one Google account—no separate sign-up required.',
               'ابدأ بحساب Google واحد دون إنشاء حساب منفصل.',
             )}
           </p>
 
-          <fieldset className="mt-5 space-y-2">
+          {!demoMode && <fieldset className="mt-5 space-y-2">
             <legend className="mb-2 text-sm font-bold text-soy-ink">{t('연령을 확인해 주세요', 'Confirm your age group', 'أكد فئتك العمرية')}</legend>
             <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold ${ageGroup === 'OVER_14' ? 'border-brand-green-700 bg-brand-green-50' : 'border-border-warm bg-rice-white'}`}>
               <input type="radio" name="age-group" value="OVER_14" checked={ageGroup === 'OVER_14'} onChange={() => setAgeGroup('OVER_14')} className="size-4 accent-brand-green-700" />
@@ -169,9 +176,9 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
               <input type="radio" name="age-group" value="UNDER_14" checked={ageGroup === 'UNDER_14'} onChange={() => setAgeGroup('UNDER_14')} className="size-4 accent-brand-green-700" />
               {t('만 14세 미만입니다', 'I am under 14', 'عمري أقل من 14 عامًا')}
             </label>
-          </fieldset>
+          </fieldset>}
 
-          {ageGroup === 'UNDER_14' && <div className="mt-4 rounded-2xl border border-brand-green-700/30 bg-brand-green-50 p-4 text-sm leading-6 text-soy-ink">
+          {!demoMode && ageGroup === 'UNDER_14' && <div className="mt-4 rounded-2xl border border-brand-green-700/30 bg-brand-green-50 p-4 text-sm leading-6 text-soy-ink">
             <p className="font-bold">{t('보호자 동의가 먼저 필요해요.', 'A legal guardian must consent first.', 'يجب الحصول على موافقة ولي الأمر أولاً.')}</p>
             <p className="mt-1 text-sesame-gray">{t('보호자가 약관 전문을 요청하고 답장으로 명시적으로 동의하면, 운영팀이 확인 후 승인 코드를 전달합니다.', 'Your guardian can request the full terms and explicitly consent by email reply. Our team provides an approval code after verification.', 'يمكن لولي أمرك طلب الشروط الكاملة والموافقة عليها برد صريح عبر البريد الإلكتروني. سيرسل فريقنا رمز الموافقة بعد التحقق.')}</p>
             <a className="mt-2 inline-block font-bold text-brand-green-700 underline" href="mailto:support@han-spoon.com">support@han-spoon.com</a>
@@ -181,7 +188,7 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
             <p className="mt-1 text-xs text-sesame-gray">{t('코드는 보호자에게 전달됩니다. 보호자와 함께 입력해 주세요.', 'The code is sent to your guardian. Enter it together.', 'يُرسل الرمز إلى ولي أمرك. أدخله معه.')}</p>
           </div>}
 
-          <div className="my-6 rounded-[22px] bg-brand-primary-soft p-4">
+          {!demoMode && <div className="my-6 rounded-[22px] bg-brand-primary-soft p-4">
             <div className="flex items-start gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rice-white text-brand-primary shadow-sm">
                 <ShieldCheck className="size-4" aria-hidden="true" />
@@ -199,9 +206,9 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
                 </p>
               </div>
             </div>
-          </div>
+          </div>}
 
-          {(ageGroup === 'OVER_14' || (ageGroup === 'UNDER_14' && /^hs-[A-Za-z0-9_-]{40,60}$/.test(guardianCode.trim()))) && <div className="flex min-h-14 w-full items-center justify-center">
+          {!demoMode && (ageGroup === 'OVER_14' || (ageGroup === 'UNDER_14' && /^hs-[A-Za-z0-9_-]{40,60}$/.test(guardianCode.trim()))) && <div className="flex min-h-14 w-full items-center justify-center">
             {isLoading ? (
               <button
                 disabled
@@ -227,6 +234,13 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
             )}
           </div>}
 
+          <button type="button" onClick={onTryDemo} className="mt-5 min-h-14 w-full rounded-full bg-brand-primary px-5 text-sm font-extrabold text-white shadow-[0_10px_26px_rgba(23,100,73,.15)]">
+            {t('로그인 없이 시연하기', 'Explore the demo without signing in', 'جرّب العرض دون تسجيل الدخول')}
+          </button>
+          {demoMode && <button type="button" onClick={onExitDemo} className="mt-3 min-h-11 w-full text-sm font-bold text-brand-green-700 underline">
+            {t('Google 로그인으로 전환', 'Switch to Google sign-in', 'التبديل إلى تسجيل الدخول باستخدام Google')}
+          </button>}
+
           {errorMessage && (
             <p className="mt-3 text-center text-xs font-semibold text-destructive" role="alert">
               {errorMessage}
@@ -235,7 +249,11 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
 
           <p className="mt-5 flex items-start justify-center gap-1.5 text-center text-[11px] leading-5 text-text-tertiary">
             <LockKeyhole className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-            {t(
+            {demoMode ? t(
+              '시연 설정과 기록은 이 브라우저에만 저장되며 서버 계정은 만들지 않아요.',
+              'Demo settings and records stay in this browser; no server account is created.',
+              'تبقى إعدادات العرض وسجلاته في هذا المتصفح دون إنشاء حساب على الخادم.',
+            ) : t(
               '로그인 후 개인정보와 식단 정보는 내 프로필에서 관리할 수 있어요.',
               'Manage your personal and dietary information from your profile after signing in.',
               'يمكنك إدارة معلوماتك الشخصية والغذائية من ملفك بعد تسجيل الدخول.',

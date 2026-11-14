@@ -34,6 +34,7 @@ const words = {
   agree: { ko: '동의', en: 'Agree', ar: 'موافق', 'zh-CN': '同意', ja: '同意', 'zh-TW': '同意', es: 'Aceptar' },
   effective: { ko: '시행일', en: 'Effective', ar: 'تاريخ السريان', 'zh-CN': '生效日期', ja: '施行日', 'zh-TW': '生效日期', es: 'Vigente desde' },
   source: { ko: '한국어 원문', en: 'Korean legal original · translation pending', ar: 'النص القانوني الكوري · الترجمة قيد الإعداد', 'zh-CN': '韩语法律原文 · 翻译待完成', ja: '韓国語の原文 · 翻訳準備中', 'zh-TW': '韓語法律原文 · 翻譯待完成', es: 'Original legal en coreano · traducción pendiente' },
+  demo: { ko: '시연 모드 · 동의 결정은 서버에 저장되지 않아요.', en: 'Demo mode · consent choices are not sent to the server.', ar: 'وضع العرض · لا تُرسل اختيارات الموافقة إلى الخادم.', 'zh-CN': '演示模式 · 同意选择不会发送到服务器。', ja: 'デモモード · 同意の選択はサーバーに送信されません。', 'zh-TW': '示範模式 · 同意選擇不會傳送至伺服器。', es: 'Modo demo · las decisiones de consentimiento no se envían al servidor.' },
   error: { ko: '약관을 불러오거나 저장하지 못했습니다. 다시 시도해 주세요.', en: 'Could not load or save terms. Please retry.', ar: 'تعذر تحميل الشروط أو حفظها. أعد المحاولة.', 'zh-CN': '无法加载或保存条款，请重试。', ja: '規約の読み込みまたは保存に失敗しました。再試行してください。', 'zh-TW': '無法載入或儲存條款，請重試。', es: 'No se pudieron cargar o guardar los términos. Reinténtalo.' },
   retry: { ko: '다시 시도', en: 'Retry', ar: 'إعادة المحاولة', 'zh-CN': '重试', ja: '再試行', 'zh-TW': '重試', es: 'Reintentar' },
   view: { ko: '보기', en: 'View', ar: 'عرض', 'zh-CN': '查看', ja: '見る', 'zh-TW': '查看', es: 'Ver' },
@@ -155,6 +156,7 @@ export function ConsentScreen({ language, demoMode, onComplete, onBack }: Props)
     {bundle && !document && <>
       <main className="consent-overview">
         <h1>{viewOnly ? translateText(language, { ko: '약관 보기', en: 'View terms', ar: 'عرض الشروط', 'zh-CN': '查看条款', ja: '規約を見る', 'zh-TW': '查看條款', es: 'Ver los términos' }) : t('title')}</h1><p className="consent-subtitle">{viewOnly ? translateText(language, { ko: '각 문서를 열어 전문을 확인할 수 있어요.', en: 'Open each document to read the full text.', ar: 'افتح كل مستند لقراءة النص الكامل.', 'zh-CN': '打开各文档阅读完整内容。', ja: '各文書を開いて全文を確認できます。', 'zh-TW': '開啟各文件閱讀全文。', es: 'Abre cada documento para leer el texto completo.' }) : t('subtitle')}</p>
+        {demoMode && <p className="consent-overview-source">{t('demo')}</p>}
         {language !== 'ko' && <p className="consent-overview-source">{t('source')}</p>}
         <div className="consent-list">
           {!viewOnly && <button className="consent-all" onClick={clickAll} aria-pressed={ALL.every(id => decisions[id])}>

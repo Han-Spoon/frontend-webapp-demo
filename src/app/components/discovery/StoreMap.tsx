@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { createTranslator, type Language } from '../../locales';
 import { loadNaverMaps, onNaverMapsAuthFailure } from '../../../lib/naverMap';
 import { useMapLanguage } from '../../../lib/mapLanguage';
@@ -19,6 +20,7 @@ export function StoreMap({
   onSelect,
   onCenterChange,
   fitStores = true,
+  demoMode = false,
   className = 'h-56 w-full overflow-hidden rounded-2xl',
 }: {
   language: Language;
@@ -31,6 +33,8 @@ export function StoreMap({
   onCenterChange?: (center: { lat: number; lng: number }) => void;
   /** false이면 후보가 바뀌어도 사용자가 보고 있는 지도 영역을 유지한다. */
   fitStores?: boolean;
+  /** 시연 모드에서는 외부 지도 키 없이 fixture 위치를 선택할 수 있는 개요를 그린다. */
+  demoMode?: boolean;
   className?: string;
 }) {
   const t = createTranslator(language);
@@ -74,6 +78,7 @@ export function StoreMap({
   };
 
   useEffect(() => {
+    if (demoMode) return;
     let cancelled = false;
     setStatus('loading');
 
@@ -116,7 +121,7 @@ export function StoreMap({
     };
     // 지도 생성 시 중심 좌표만 사용한다. 이후 변경은 아래 effect에서 필요한 경우에만 반영한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapLanguage]);
+  }, [mapLanguage, demoMode]);
 
   // 현재 위치로 돌아가기처럼 호출부가 명시적으로 중심을 바꿀 때만 지도를 이동한다.
   // 사용자의 dragend가 전달한 좌표는 이미 지도 중심과 같으므로 재이동하지 않는다.
@@ -170,6 +175,10 @@ export function StoreMap({
 
   // key 를 달아 에러/지도 전환 시 DOM 을 새로 만든다.
   // 같은 div 를 재사용하면 네이버가 컨테이너에 직접 주입한 노드(에러 화면·타일)가 남아 겹친다.
+  if (demoMode) {
+    return <DemoStoreMap language={language} stores={stores} selectedId={selectedId} onSelect={onSelect} className={className} />;
+  }
+
   if (status === 'error') {
     return (
       <div
@@ -187,6 +196,39 @@ export function StoreMap({
   }
 
   return <div key="store-map" ref={containerRef} className={className} aria-busy={status === 'loading'} />;
+}
+
+function DemoStoreMap({ language, stores, selectedId, onSelect, className }: {
+  language: Language;
+  stores: MapStore[];
+  selectedId?: string | null;
+  onSelect?: (store: MapStore) => void;
+  className: string;
+}) {
+  const t = createTranslator(language);
+  const coordinates = useMemo(() => {
+    const latitudes = stores.map(store => store.lat);
+    const longitudes = stores.map(store => store.lng);
+    const minLat = Math.min(...latitudes);
+    const maxLat = Math.max(...latitudes);
+    const minLng = Math.min(...longitudes);
+    const maxLng = Math.max(...longitudes);
+    const latSpan = Math.max(maxLat - minLat, 0.0005);
+    const lngSpan = Math.max(maxLng - minLng, 0.0005);
+    return stores.map((store, index) => ({
+      store,
+      x: stores.length === 1 ? 50 : 50 + ((store.lng - (minLng + maxLng) / 2) / lngSpan) * 55 + (index % 2 ? 2 : -2),
+      y: stores.length === 1 ? 50 : 48 - ((store.lat - (minLat + maxLat) / 2) / latSpan) * 42 + (index % 3 - 1) * 2,
+    }));
+  }, [stores]);
+
+  return <div className={`${className} relative isolate overflow-hidden bg-[#dce9df]`} role="group" aria-label={t('시연용 식당 위치 개요', 'Demo restaurant location overview', 'نظرة عامة على مواقع المطاعم التجريبية')}>
+    <div className="absolute inset-0" aria-hidden="true" style={{ backgroundImage: 'linear-gradient(26deg, transparent 46%, #f9f7ed 46%, #f9f7ed 50%, transparent 50%), linear-gradient(111deg, transparent 44%, #f9f7ed 44%, #f9f7ed 49%, transparent 49%), linear-gradient(90deg, transparent 68%, #c8dece 68%, #c8dece 71%, transparent 71%)', backgroundSize: '140px 120px, 170px 130px, 100% 100%' }} />
+    <span className="absolute start-3 top-3 z-10 rounded-full bg-rice-white/90 px-3 py-1.5 text-[10px] font-bold text-brand-green-900 shadow-sm">{t('시연용 위치 개요', 'Demo location overview', 'خريطة مواقع تجريبية')}</span>
+    {coordinates.map(({ store, x, y }) => <button key={store.id} type="button" disabled={!onSelect} onClick={() => onSelect?.(store)} aria-pressed={store.id === selectedId} aria-label={store.name} className={`absolute z-10 flex max-w-[120px] -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-extrabold shadow-md ${store.id === selectedId ? 'bg-brand-primary text-white' : 'bg-rice-white text-soy-ink'}`} style={{ left: `${Math.min(85, Math.max(15, x))}%`, top: `${Math.min(73, Math.max(28, y))}%` }}>
+      <MapPin className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{store.name}</span>
+    </button>)}
+  </div>;
 }
 
 /** 마커 라벨은 우리 데이터라 사용자 언어로 그대로 렌더링한다(지도 라벨과 별개). */
