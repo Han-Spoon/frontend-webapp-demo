@@ -174,7 +174,7 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
           {ageGroup === 'UNDER_14' && <div className="mt-4 rounded-2xl border border-brand-green-700/30 bg-brand-green-50 p-4 text-sm leading-6 text-soy-ink">
             <p className="font-bold">{t('보호자 동의가 먼저 필요해요.', 'A legal guardian must consent first.', 'يجب الحصول على موافقة ولي الأمر أولاً.')}</p>
             <p className="mt-1 text-sesame-gray">{t('보호자가 약관 전문을 요청하고 답장으로 명시적으로 동의하면, 운영팀이 확인 후 승인 코드를 전달합니다.', 'Your guardian can request the full terms and explicitly consent by email reply. Our team provides an approval code after verification.', 'يمكن لولي أمرك طلب الشروط الكاملة والموافقة عليها برد صريح عبر البريد الإلكتروني. سيرسل فريقنا رمز الموافقة بعد التحقق.')}</p>
-            <a className="mt-2 inline-block font-bold text-brand-green-700 underline" href="mailto:support@han-sppon.com">support@han-sppon.com</a>
+            <a className="mt-2 inline-block font-bold text-brand-green-700 underline" href="mailto:support@han-spoon.com">support@han-spoon.com</a>
             <button type="button" className="ms-3 font-bold text-brand-green-700 underline" onClick={() => navigate('/terms')}>{t('약관 보기', 'View terms', 'عرض الشروط')}</button>
             <label className="mt-4 block font-bold" htmlFor="guardian-code">{t('보호자 승인 코드', 'Guardian approval code', 'رمز موافقة ولي الأمر')}</label>
             <input id="guardian-code" type="text" value={guardianCode} onChange={(event) => setGuardianCode(event.target.value)} autoComplete="off" spellCheck={false} dir="ltr" placeholder="hs-…" className="mt-2 min-h-12 w-full rounded-xl border border-border-warm bg-rice-white px-3 font-mono text-sm outline-brand-green-700" />
