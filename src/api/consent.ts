@@ -16,6 +16,8 @@ export interface ConsentStatus {
   version: string;
   decisions: Partial<Record<DocumentId, boolean>>;
   hasRequiredConsents: boolean;
+  guardianManaged: boolean;
+  guardianApprovalRequired: boolean;
 }
 
 async function parse<T>(response: Response): Promise<T> {

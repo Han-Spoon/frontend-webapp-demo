@@ -20,7 +20,7 @@ import { CurationDetailScreen } from './components/CurationDetailScreen';
 import { CardsScreen } from './components/CardsScreen';
 import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
 import { getConsentStatus } from '../api/consent';
-import { getAccessToken } from '../api/auth';
+import { clearAuthData, getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
 import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { ScanRecordResponse } from '../api/scan';
@@ -349,6 +349,12 @@ export default function App() {
     if (getAccessToken()) {
       loadCurrentUser();
       getConsentStatus().then(status => {
+        if (status.guardianApprovalRequired) {
+          clearAuthData();
+          setConsentAccepted(null);
+          navigate('/login', { replace: true });
+          return;
+        }
         setConsentAccepted(status.hasRequiredConsents);
         if (status.hasRequiredConsents) {
           loadUserProfile();
@@ -422,6 +428,12 @@ export default function App() {
   const handleLogin = async (hasProfile: boolean) => {
     await loadCurrentUser();
     const status = await getConsentStatus();
+    if (status.guardianApprovalRequired) {
+      clearAuthData();
+      setConsentAccepted(null);
+      navigate('/login', { replace: true });
+      return;
+    }
     setConsentAccepted(status.hasRequiredConsents);
     if (!status.hasRequiredConsents) {
       navigate('/terms');
@@ -484,7 +496,7 @@ export default function App() {
           />
           <Route
             path="/terms"
-            element={<ConsentScreen language={language} demoMode={demoMode} onComplete={handleConsentComplete} onBack={() => navigate('/login')} />}
+            element={<ConsentScreen language={language} demoMode={demoMode} onComplete={handleConsentComplete} onBack={() => navigate((location.state as { returnTo?: string } | null)?.returnTo ?? '/login')} />}
           />
           <Route
             path="/onboarding"

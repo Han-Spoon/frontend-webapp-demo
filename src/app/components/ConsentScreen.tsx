@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, ChevronRight } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { getConsentStatus, getLegalDocuments, saveConsent } from '../../api/consent';
+import { getAccessToken } from '../../api/auth';
 import type { DocumentId, LegalDocumentBundle } from '../../api/consent';
 import demoDocuments from '../demo/legalDocuments.json';
 import type { Language } from '../App';
@@ -57,6 +58,7 @@ export function ConsentScreen({ language, demoMode, onComplete, onBack }: Props)
   const [bulk, setBulk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const [viewOnly, setViewOnly] = useState(false);
   const reader = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -67,8 +69,10 @@ export function ConsentScreen({ language, demoMode, onComplete, onBack }: Props)
         return;
       }
       const documents = await getLegalDocuments();
-      const status = await getConsentStatus();
       setBundle(documents);
+      if (!getAccessToken()) { setViewOnly(true); return; }
+      const status = await getConsentStatus();
+      setViewOnly(status.guardianManaged);
       if (documents.version === status.version) setDecisions({ ...emptyDecisions(), ...status.decisions });
     } catch {
       setError(true);
@@ -150,24 +154,24 @@ export function ConsentScreen({ language, demoMode, onComplete, onBack }: Props)
     {error && !bundle ? <div className="consent-load-error" role="alert"><p>{t('error')}</p><button onClick={() => void load()}>{t('retry')}</button></div> : null}
     {bundle && !document && <>
       <main className="consent-overview">
-        <h1>{t('title')}</h1><p className="consent-subtitle">{t('subtitle')}</p>
+        <h1>{viewOnly ? translateText(language, { ko: '약관 보기', en: 'View terms', ar: 'عرض الشروط', 'zh-CN': '查看条款', ja: '規約を見る', 'zh-TW': '查看條款', es: 'Ver los términos' }) : t('title')}</h1><p className="consent-subtitle">{viewOnly ? translateText(language, { ko: '각 문서를 열어 전문을 확인할 수 있어요.', en: 'Open each document to read the full text.', ar: 'افتح كل مستند لقراءة النص الكامل.', 'zh-CN': '打开各文档阅读完整内容。', ja: '各文書を開いて全文を確認できます。', 'zh-TW': '開啟各文件閱讀全文。', es: 'Abre cada documento para leer el texto completo.' }) : t('subtitle')}</p>
         {language !== 'ko' && <p className="consent-overview-source">{t('source')}</p>}
         <div className="consent-list">
-          <button className="consent-all" onClick={clickAll} aria-pressed={ALL.every(id => decisions[id])}>
+          {!viewOnly && <button className="consent-all" onClick={clickAll} aria-pressed={ALL.every(id => decisions[id])}>
             <span className={`consent-check ${ALL.every(id => decisions[id]) ? 'is-checked' : ''}`}>{ALL.every(id => decisions[id]) && <Check size={16} />}</span>
             <span><strong>{t('all')}</strong><small>{t('includingOptional')}</small></span>
-          </button>
+          </button>}
           <div className="consent-divider" />
           {bundle.documents.map(item => <div key={item.id} className="consent-row">
-            <button className="consent-row-main" onClick={() => item.required ? setActive(item.id) : setDecisions(prev => ({ ...prev, [item.id]: !prev[item.id] }))} aria-pressed={decisions[item.id]}>
-              <span className={`consent-check ${decisions[item.id] ? 'is-checked' : ''}`}>{decisions[item.id] && <Check size={16} />}</span>
+            <button className="consent-row-main" onClick={() => viewOnly || item.required ? setActive(item.id) : setDecisions(prev => ({ ...prev, [item.id]: !prev[item.id] }))} aria-pressed={viewOnly ? undefined : decisions[item.id]}>
+              {!viewOnly && <span className={`consent-check ${decisions[item.id] ? 'is-checked' : ''}`}>{decisions[item.id] && <Check size={16} />}</span>}
               <span className="consent-row-label"><b className={item.required ? 'is-required' : ''}>{item.required ? t('required') : t('optional')}</b><strong>{titles[item.id][language]}</strong></span>
             </button>
-            {item.required ? <ChevronRight size={16} aria-hidden="true" /> : <button className="consent-optional-detail" onClick={() => setActive(item.id)} aria-label={`${titles[item.id][language]} ${t('view')}`}><ChevronRight size={16} /></button>}
+            {item.required || viewOnly ? <ChevronRight size={16} aria-hidden="true" /> : <button className="consent-optional-detail" onClick={() => setActive(item.id)} aria-label={`${titles[item.id][language]} ${t('view')}`}><ChevronRight size={16} /></button>}
           </div>)}
         </div>
       </main>
-      <footer className="consent-footer"><button className="consent-primary" disabled={!REQUIRED.every(id => decisions[id]) || busy} onClick={() => void submit()}>{busy ? '...' : reviewing ? translateText(language, { ko: '동의 설정 저장', en: 'Save consent settings', ar: 'حفظ إعدادات الموافقة', 'zh-CN': '保存同意设置', ja: '同意設定を保存', 'zh-TW': '儲存同意設定', es: 'Guardar preferencias' }) : t('start')}</button>{error && <p role="alert">{t('error')}</p>}</footer>
+      <footer className="consent-footer"><button className="consent-primary" disabled={!viewOnly && (!REQUIRED.every(id => decisions[id]) || busy)} onClick={() => viewOnly ? onBack() : void submit()}>{viewOnly ? translateText(language, { ko: '돌아가기', en: 'Go back', ar: 'عودة', 'zh-CN': '返回', ja: '戻る', 'zh-TW': '返回', es: 'Volver' }) : busy ? '...' : reviewing ? translateText(language, { ko: '동의 설정 저장', en: 'Save consent settings', ar: 'حفظ إعدادات الموافقة', 'zh-CN': '保存同意设置', ja: '同意設定を保存', 'zh-TW': '儲存同意設定', es: 'Guardar preferencias' }) : t('start')}</button>{error && <p role="alert">{t('error')}</p>}</footer>
     </>}
     {bundle && document && <>
       <div className="consent-progress" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
@@ -176,7 +180,7 @@ export function ConsentScreen({ language, demoMode, onComplete, onBack }: Props)
         {language !== 'ko' && <p className="consent-source-note">{t('source')}</p>}
         <div lang="ko" dir="ltr">{document.sections.map((section, index) => <section key={index}><h2>{section.heading}</h2><p>{section.body}</p></section>)}</div>
       </main>
-      <footer className="consent-document-footer"><p>{readEnd ? '' : t('reading')}</p><div><button onClick={decline} disabled={!readEnd}>{t('reject')}</button><button onClick={agree} disabled={!readEnd}>{t('agree')}</button></div></footer>
+      <footer className="consent-document-footer">{viewOnly ? <div><button onClick={() => setActive(null)}>{translateText(language, { ko: '목록으로', en: 'Back to list', ar: 'العودة إلى القائمة', 'zh-CN': '返回列表', ja: '一覧へ戻る', 'zh-TW': '返回列表', es: 'Volver a la lista' })}</button></div> : <><p>{readEnd ? '' : t('reading')}</p><div><button onClick={decline} disabled={!readEnd}>{t('reject')}</button><button onClick={agree} disabled={!readEnd}>{t('agree')}</button></div></>}</footer>
     </>}
   </div>;
 }

@@ -42,14 +42,14 @@ export function getRefreshToken() {
   return localStorage.getItem('refreshToken');
 }
 
-export async function googleLogin(idToken: string): Promise<AuthData> {
+export async function googleLogin(idToken: string, ageGroup: 'OVER_14' | 'UNDER_14', guardianCode?: string): Promise<AuthData> {
   const response = await fetch('/api/v1/auth/google', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ idToken, ageGroup, guardianCode: guardianCode || null }),
   });
 
   const responseText = await response.text();

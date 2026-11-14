@@ -20,6 +20,8 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [ageGroup, setAgeGroup] = useState<'OVER_14' | 'UNDER_14' | null>(null);
+  const [guardianCode, setGuardianCode] = useState('');
   const [googleButtonWidth, setGoogleButtonWidth] = useState(() =>
     Math.min(336, Math.max(240, window.innerWidth - 48)),
   );
@@ -48,7 +50,11 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
         );
       }
 
-      const data = await googleLogin(idToken);
+      if (!ageGroup) throw new Error(t('연령 구간을 먼저 선택해 주세요.', 'Choose your age group first.', 'اختر فئتك العمرية أولاً.'));
+      if (ageGroup === 'UNDER_14' && !/^hs-[A-Za-z0-9_-]{40,60}$/.test(guardianCode.trim())) {
+        throw new Error(t('보호자 승인 코드를 입력해 주세요.', 'Enter the guardian approval code.', 'أدخل رمز موافقة ولي الأمر.'));
+      }
+      const data = await googleLogin(idToken, ageGroup, ageGroup === 'UNDER_14' ? guardianCode.trim() : undefined);
       await onLogin(Boolean(data.hasProfile));
     } catch (error) {
       setErrorMessage(
@@ -153,6 +159,28 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
             )}
           </p>
 
+          <fieldset className="mt-5 space-y-2">
+            <legend className="mb-2 text-sm font-bold text-soy-ink">{t('연령을 확인해 주세요', 'Confirm your age group', 'أكد فئتك العمرية')}</legend>
+            <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold ${ageGroup === 'OVER_14' ? 'border-brand-green-700 bg-brand-green-50' : 'border-border-warm bg-rice-white'}`}>
+              <input type="radio" name="age-group" value="OVER_14" checked={ageGroup === 'OVER_14'} onChange={() => setAgeGroup('OVER_14')} className="size-4 accent-brand-green-700" />
+              {t('만 14세 이상입니다', 'I am 14 or older', 'عمري 14 عامًا أو أكثر')}
+            </label>
+            <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold ${ageGroup === 'UNDER_14' ? 'border-brand-green-700 bg-brand-green-50' : 'border-border-warm bg-rice-white'}`}>
+              <input type="radio" name="age-group" value="UNDER_14" checked={ageGroup === 'UNDER_14'} onChange={() => setAgeGroup('UNDER_14')} className="size-4 accent-brand-green-700" />
+              {t('만 14세 미만입니다', 'I am under 14', 'عمري أقل من 14 عامًا')}
+            </label>
+          </fieldset>
+
+          {ageGroup === 'UNDER_14' && <div className="mt-4 rounded-2xl border border-brand-green-700/30 bg-brand-green-50 p-4 text-sm leading-6 text-soy-ink">
+            <p className="font-bold">{t('보호자 동의가 먼저 필요해요.', 'A legal guardian must consent first.', 'يجب الحصول على موافقة ولي الأمر أولاً.')}</p>
+            <p className="mt-1 text-sesame-gray">{t('보호자가 약관 전문을 요청하고 답장으로 명시적으로 동의하면, 운영팀이 확인 후 승인 코드를 전달합니다.', 'Your guardian can request the full terms and explicitly consent by email reply. Our team provides an approval code after verification.', 'يمكن لولي أمرك طلب الشروط الكاملة والموافقة عليها برد صريح عبر البريد الإلكتروني. سيرسل فريقنا رمز الموافقة بعد التحقق.')}</p>
+            <a className="mt-2 inline-block font-bold text-brand-green-700 underline" href="mailto:support@han-sppon.com">support@han-sppon.com</a>
+            <button type="button" className="ms-3 font-bold text-brand-green-700 underline" onClick={() => navigate('/terms')}>{t('약관 보기', 'View terms', 'عرض الشروط')}</button>
+            <label className="mt-4 block font-bold" htmlFor="guardian-code">{t('보호자 승인 코드', 'Guardian approval code', 'رمز موافقة ولي الأمر')}</label>
+            <input id="guardian-code" type="text" value={guardianCode} onChange={(event) => setGuardianCode(event.target.value)} autoComplete="off" spellCheck={false} dir="ltr" placeholder="hs-…" className="mt-2 min-h-12 w-full rounded-xl border border-border-warm bg-rice-white px-3 font-mono text-sm outline-brand-green-700" />
+            <p className="mt-1 text-xs text-sesame-gray">{t('코드는 보호자에게 전달됩니다. 보호자와 함께 입력해 주세요.', 'The code is sent to your guardian. Enter it together.', 'يُرسل الرمز إلى ولي أمرك. أدخله معه.')}</p>
+          </div>}
+
           <div className="my-6 rounded-[22px] bg-brand-primary-soft p-4">
             <div className="flex items-start gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rice-white text-brand-primary shadow-sm">
@@ -173,7 +201,7 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
             </div>
           </div>
 
-          <div className="flex min-h-14 w-full items-center justify-center">
+          {(ageGroup === 'OVER_14' || (ageGroup === 'UNDER_14' && /^hs-[A-Za-z0-9_-]{40,60}$/.test(guardianCode.trim()))) && <div className="flex min-h-14 w-full items-center justify-center">
             {isLoading ? (
               <button
                 disabled
@@ -197,7 +225,7 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
                 />
               </div>
             )}
-          </div>
+          </div>}
 
           {errorMessage && (
             <p className="mt-3 text-center text-xs font-semibold text-destructive" role="alert">

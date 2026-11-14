@@ -8,12 +8,12 @@
 
 | 요청 | 용도 |
 | --- | --- |
-| POST `/api/v1/auth/google` | Google 로그인 |
+| POST `/api/v1/auth/google` | `{ idToken, ageGroup, guardianCode? }` Google 로그인. `UNDER_14`는 현재 문서 버전의 유효한 보호자 승인 코드 필수; 코드 확인 전 Google 토큰 미검증 |
 | POST `/api/v1/auth/refresh` | 세션 갱신 |
 | POST `/api/v1/auth/logout` | 로그아웃 |
 | GET `/api/v1/consents/documents` | 공개된 현재 약관 원문·버전·시행일·필수 여부 조회 |
 | GET `/api/v1/consents/me` | 현재 버전의 사용자별 동의 결정과 필수 동의 완료 여부 조회 |
-| POST `/api/v1/consents/me` | `{ version, decisions: { service, privacy, sensitive, marketing } }` 저장. 필수 3개는 `true`, 선택 마케팅은 `true/false` |
+| POST `/api/v1/consents/me` | 만 14세 이상만 `{ version, decisions: { service, privacy, sensitive, marketing } }` 저장. 필수 3개는 `true`, 선택 마케팅은 `true/false`. 아동은 보호자 승인으로만 필수 동의 기록 |
 | GET/PATCH `/api/v1/users/me` | 사용자 조회·변경 |
 | GET/POST/PATCH `/api/v1/users/me/profile` | 식단 프로필 |
 | POST `/api/v1/stores/candidates` | 현재 위치·선택적 상호명으로 가게 후보 조회 |
