@@ -39,7 +39,7 @@ import { useStoreCandidates } from '../hooks/useStoreCandidates';
 import { getStoreReviews, reportReview, type RestaurantReview } from '../../api/reviews';
 import { listDemoStoreReviews, reportDemoReview } from '../demo/reviews';
 import { MealReviewSheet } from './reviews/MealReviewSheet';
-import { ReviewCards } from './reviews/ReviewCards';
+import { RestaurantReviewList } from './reviews/RestaurantReviewList';
 
 function isAreaId(value: string | null): value is AreaId {
   return AREAS.some((area) => area.id === value);
@@ -422,7 +422,7 @@ function DemoRestaurantMapScreen({
                   )}
             </p>
           )}
-          <div className="mt-5 border-t border-border-warm pt-4"><button type="button" onClick={() => setReviewing(true)} className="min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-extrabold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button><h3 className="mb-3 mt-5 font-extrabold">{t('식당 후기', 'Restaurant reviews', 'مراجعات المطعم')}</h3><ReviewCards language={language} profile={userProfile} reviews={listDemoStoreReviews(detail.id)} onReport={async (review, reason) => { reportDemoReview(review.id, reason); setReviewVersion(reviewVersion + 1); }} /></div>
+          <div className="mt-5 border-t border-border-warm pt-4"><button type="button" onClick={() => setReviewing(true)} className="mb-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-extrabold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button><RestaurantReviewList key={detail.id} language={language} profile={userProfile} reviews={listDemoStoreReviews(detail.id)} onReport={async (review, reason) => { reportDemoReview(review.id, reason); setReviewVersion(reviewVersion + 1); }} /></div>
         </BottomSheet>
       )}
       {reviewing && detail && <MealReviewSheet language={language} profile={userProfile} store={{ id: detail.id, name: localizeMenuText(detail.name, language) }} demoMode onClose={() => setReviewing(false)} onSaved={() => setReviewVersion(value => value + 1)} />}
@@ -455,6 +455,8 @@ function LiveRestaurantMapScreen({
   const [showReviews, setShowReviews] = useState(false);
   const [reviews, setReviews] = useState<RestaurantReview[]>([]);
   const [reviewsError, setReviewsError] = useState('');
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewRefresh, setReviewRefresh] = useState(0);
   const {
     candidates,
     error,
@@ -473,10 +475,14 @@ function LiveRestaurantMapScreen({
   useEffect(() => {
     if (!selected || !showReviews) return;
     let active = true;
-    getStoreReviews(selected.storeId).then(items => { if (active) { setReviews(items); setReviewsError(''); } })
-      .catch(() => { if (active) setReviewsError(t('후기를 불러오지 못했어요.', 'Could not load reviews.', 'تعذر تحميل المراجعات.')); });
+    setReviews([]);
+    setReviewsError('');
+    setReviewsLoading(true);
+    getStoreReviews(selected.storeId).then(items => { if (active) setReviews(items); })
+      .catch(() => { if (active) setReviewsError(t('후기를 불러오지 못했어요.', 'Could not load reviews.', 'تعذر تحميل المراجعات.')); })
+      .finally(() => { if (active) setReviewsLoading(false); });
     return () => { active = false; };
-  }, [selected?.storeId, showReviews]);
+  }, [selected?.storeId, showReviews, reviewRefresh]);
 
   const storeName = (store: StoreCandidate) =>
     store.branchName ? `${store.name} ${store.branchName}` : store.name;
@@ -607,8 +613,8 @@ function LiveRestaurantMapScreen({
       )}
 
       <div className="absolute inset-x-0 bottom-0 z-30"><BottomNav language={language} /></div>
-      {selected && showReviews && <BottomSheet language={language} title={t('식당 후기', 'Restaurant reviews', 'مراجعات المطعم')} description={storeName(selected)} onClose={() => setShowReviews(false)}><button type="button" onClick={() => { setShowReviews(false); setReviewing(true); }} className="mb-4 min-h-11 w-full rounded-xl border border-brand-primary text-sm font-bold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button>{reviewsError && <p role="alert" className="mb-3 text-xs text-status-danger-text">{reviewsError}</p>}{reviews.length ? <ReviewCards language={language} profile={userProfile} reviews={reviews} onReport={async (review, reason) => { await reportReview(review.id, reason); }} /> : !reviewsError && <p className="text-sm text-text-secondary">{t('아직 후기가 없어요.', 'No reviews yet.', 'لا توجد مراجعات بعد.')}</p>}</BottomSheet>}
-      {selected && reviewing && <MealReviewSheet language={language} profile={userProfile} store={{ id: selected.storeId, name: storeName(selected) }} demoMode={false} onClose={() => setReviewing(false)} onSaved={review => { setReviews(current => [review, ...current]); }} />}
+      {selected && showReviews && <BottomSheet language={language} title={storeName(selected)} description={selected.roadAddress ?? selected.categoryName ?? ''} onClose={() => setShowReviews(false)}><button type="button" onClick={() => selectAndScan(selected)} className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-brand-primary text-sm font-extrabold text-white"><Camera className="size-4" />{t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}</button><div className="border-t border-border-warm pt-5"><RestaurantReviewList key={selected.storeId} language={language} profile={userProfile} reviews={reviews} loading={reviewsLoading} error={reviewsError} onRetry={() => setReviewRefresh(value => value + 1)} onReport={async (review, reason) => { await reportReview(review.id, reason); }} /></div><button type="button" onClick={() => { setShowReviews(false); setReviewing(true); }} className="mt-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button></BottomSheet>}
+      {selected && reviewing && <MealReviewSheet language={language} profile={userProfile} store={{ id: selected.storeId, name: storeName(selected) }} demoMode={false} onClose={() => setReviewing(false)} onSaved={() => { setShowReviews(true); setReviewRefresh(value => value + 1); if (searchLocation) searchAt(searchLocation); }} />}
     </div>
   );
 }
