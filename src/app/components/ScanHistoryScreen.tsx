@@ -4,6 +4,7 @@ import type { HistoryItem, Language } from '../App';
 import { createTranslator } from '../locales';
 import { ScanHistoryList } from './ScanHistoryList';
 import { BottomNav } from './BottomNav';
+import { OfflineBanner } from './OfflineBanner';
 
 export function ScanHistoryScreen({
   language,
@@ -34,6 +35,7 @@ export function ScanHistoryScreen({
           {t('스캔 기록', 'Scan journal', 'سجل المسح')}
         </h1>
       </header>
+      <OfflineBanner language={language} />
       <main className="flex-1 overflow-y-auto p-5">
         <p className="mb-5 text-sm leading-6 text-text-secondary">
           {t(

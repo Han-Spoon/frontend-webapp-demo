@@ -6,6 +6,7 @@ import { BottomNav } from './BottomNav';
 import { createTranslator, translateText } from '../locales';
 import { CURATION_TAGS, CURATION_ARTICLES, tagLabel, type CurationTag } from '../constants/curation';
 import { StoryImage } from './curation/StoryImage';
+import { OfflineBanner } from './OfflineBanner';
 
 export function CurationScreen({ language, onMyPage }: { language: Language; onMyPage: () => void }) {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export function CurationScreen({ language, onMyPage }: { language: Language; onM
   const filtered = useMemo(() => CURATION_ARTICLES.filter(a => (tag === 'all' || a.tag === tag) && (translateText(language, a.title) + ' ' + translateText(language, a.excerpt)).toLowerCase().includes(query.trim().toLowerCase())), [query, tag, language]);
   return <div className="flex h-dvh flex-col bg-[#13231c] text-rice-white">
     <header className="flex shrink-0 items-center justify-between px-5 pb-3 pt-5"><div><p className="text-[10px] font-bold tracking-[.23em] text-[#afd1bf]">{t('HAN SPOON JOURNAL', 'HAN SPOON JOURNAL', 'مجلة HAN SPOON')}</p><h1 className="mt-2 text-[30px] font-extrabold tracking-tight">{t('한 입 더, 한국', 'A taste of Korea', 'مذاق كوريا')}</h1></div><button onClick={onMyPage} aria-label={t('마이페이지', 'My page', 'صفحتي')} className="flex size-11 items-center justify-center rounded-full border border-white/15 bg-white/5"><User className="size-5" /></button></header>
+    <OfflineBanner language={language} />
     <main className="flex-1 overflow-y-auto px-5 pb-8">
       <p className="mb-5 max-w-[290px] text-sm leading-6 text-white/65">{t('식탁의 이야기부터 여행의 작은 요령까지.', 'Stories from the table. Little discoveries for the journey.', 'قصص من المائدة واكتشافات صغيرة للرحلة.')}</p>
       <label className="flex h-12 items-center gap-3 rounded-full border border-white/10 bg-white/[.07] px-4"><Search className="size-4 shrink-0 text-white/60" /><input aria-label={t('큐레이션 검색', 'Search stories', 'البحث في المقالات')} value={query} onChange={e => setQuery(e.target.value)} placeholder={t('어떤 이야기가 궁금하세요?', 'What would you like to discover?', 'ماذا تود أن تكتشف؟')} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-white/45" /></label>
