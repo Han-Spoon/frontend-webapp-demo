@@ -4,13 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { clearAuthData, logout } from '../../api/auth';
 import { deleteMe } from '../../api/user';
 import type { CurrentUser } from '../../api/user';
-import type { Language, UserAllergy, UserProfile } from '../App';
-import { getAllergyName, translate } from '../i18n';
+import type { Language, UserProfile } from '../App';
 import { createTranslator, LANGUAGE_OPTIONS } from '../locales';
+import { getProfileSummary } from '../results/resultViewModel';
 import { MAP_LANGUAGE_OPTIONS, setMapLanguage, useMapLanguage } from '../../lib/mapLanguage';
 import {
-  RELIGION_OPTIONS,
-  VEGETARIAN_OPTIONS,
   getCountryFlag,
   getCountryName,
 } from '../constants/onboarding';
@@ -37,7 +35,7 @@ interface MyPageScreenProps {
   /** section 미지정 시 전체 온보딩(신규 생성), 지정 시 해당 단위만 수정 */
   onEditProfile: (section?: ProfileSection) => void;
   onHistoryClick: (item: HistoryItem) => void;
-  onEditHistoryTitle: (id: string, title: string) => void;
+  onEditHistoryTitle: (id: string, title: string) => Promise<void>;
   onDeleteHistory: (id: string) => void;
   onTerms: () => void;
   onLogout: () => void;
@@ -67,45 +65,20 @@ export function MyPageScreen({
   const t = createTranslator(language);
   const mapLanguage = useMapLanguage();
 
-  const getAllergyDisplayName = (allergy: string | UserAllergy) => getAllergyName(allergy, language);
-
-  const getVeganLabel = (code?: string | null) => {
-    const option = VEGETARIAN_OPTIONS.find((item) => item.value === code);
-    return option ? translate(language, option.label) : code ?? '';
-  };
-
-  const getReligionLabel = (code?: string | null) => {
-    const option = RELIGION_OPTIONS.find((item) => item.value === code);
-    return option ? translate(language, option.label) : code ?? '';
-  };
-
   const currentLanguageLabel = LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;
+  const profileSummary = getProfileSummary(userProfile, language);
 
   const sectionHeader = (title: string, section: ProfileSection) => (
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-sm font-bold text-soy-ink">{title}</h3>
+    <div className="flex min-h-11 items-center justify-between">
+      <h3 className="text-base font-extrabold text-text-primary">{title}</h3>
       <button
+        type="button"
         onClick={() => onEditProfile(section)}
-        className="flex min-h-9 items-center gap-0.5 text-xs font-bold text-brand-green-700 hover:text-brand-green-900 transition-colors"
+        className="flex min-h-11 items-center gap-1 px-2 text-sm font-bold text-brand-primary"
       >
         {t('수정', 'Edit', 'تعديل')}
-        <ChevronRight className="size-3.5 rtl:rotate-180" />
+        <ChevronRight className="size-4 rtl:rotate-180" />
       </button>
-    </div>
-  );
-
-  // 해당되면 흰색 배경, 아니면 회색 배경으로 표시.
-  const dietRow = (active: boolean, emoji: string, label: string, detail?: string) => (
-    <div
-      className={`flex min-h-13 items-center gap-3 rounded-2xl px-4 py-3 border ${
-        active ? 'bg-rice-white border-brand-green-100' : 'bg-muted/70 border-transparent'
-      }`}
-    >
-      <span className="text-lg leading-none">{emoji}</span>
-      <span className={`text-sm ${active ? 'font-semibold text-soy-ink' : 'text-sesame-gray/65'}`}>
-        {label}
-        {active && detail ? ` · ${detail}` : ''}
-      </span>
     </div>
   );
 
@@ -147,12 +120,12 @@ export function MyPageScreen({
 
       <div className="border-b border-border-warm bg-surface-subtle px-5 py-6">
         <div className="flex items-center gap-4">
-          <div className="size-16 rounded-[1.5rem] bg-brand-green-700 flex items-center justify-center shadow-sm">
-            <User className="w-8 h-8 text-white" />
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-[18px] bg-brand-primary-soft">
+            <User className="size-6 text-brand-primary" aria-hidden="true" />
           </div>
-          <div>
-            <div className="font-extrabold text-soy-ink mb-1">{currentUser?.nickname ?? t('사용자', 'User', 'مستخدم')}</div>
-            <div className="text-sm text-sesame-gray break-all">{currentUser?.email ?? 'user@example.com'}</div>
+          <div className="min-w-0">
+            <div className="text-lg font-extrabold text-text-primary">{currentUser?.nickname ?? t('사용자', 'User', 'مستخدم')}</div>
+            {currentUser?.email && <div className="break-all text-sm text-text-secondary">{currentUser.email}</div>}
           </div>
         </div>
       </div>
@@ -180,89 +153,40 @@ export function MyPageScreen({
 
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'profile' && (
-          <div className="px-5 py-6 space-y-6">
-            <button type="button" onClick={() => navigate('/mypage/saved-menus')} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><Heart className="size-5" />{t('저장한 메뉴', 'Saved menus', 'الأطباق المحفوظة')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
-            <button type="button" onClick={() => navigate('/mypage/reviews')} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><MessageSquare className="size-5" />{t('내가 작성한 후기', 'My reviews', 'مراجعاتي')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
+          <div className="space-y-4 px-5 py-5 pb-8">
             {userProfile ? (
               <>
-                {/* 언어 */}
-                <section>
+                <section className="rounded-[20px] border border-border-warm bg-surface-raised px-4 py-1">
                   {sectionHeader(t('언어', 'Language', 'اللغة'), 'language')}
-                  <div className="flex items-center gap-3 rounded-2xl px-4 py-3 border bg-rice-white border-border-warm">
-                    <span className="text-sm font-semibold text-soy-ink">{currentLanguageLabel}</span>
+                  <div className="flex min-h-11 items-center justify-between gap-3 border-t border-border-warm py-3 text-sm">
+                    <span className="font-semibold text-text-secondary">{t('앱 언어', 'App language', 'لغة التطبيق')}</span>
+                    <span className="font-bold text-text-primary">{currentLanguageLabel}</span>
                   </div>
                 </section>
 
-                {/* 나라 */}
-                <section>
+                <section className="rounded-[20px] border border-border-warm bg-surface-raised px-4 py-1">
                   {sectionHeader(t('나라', 'Country', 'البلد'), 'country')}
-                  <div className="flex items-center gap-3 rounded-2xl px-4 py-3 border bg-rice-white border-border-warm">
+                  <div className="flex min-h-11 items-center justify-between gap-3 border-t border-border-warm py-3 text-sm">
+                    <span className="font-semibold text-text-secondary">{t('국가', 'Country', 'البلد')}</span>
                     {userProfile.nationality ? (
-                      <>
-                        <span className="text-lg leading-none">{getCountryFlag(userProfile.nationality)}</span>
-                        <span className="text-sm font-semibold text-soy-ink">
+                      <span className="flex items-center gap-1.5 font-bold text-text-primary">
+                        <span aria-hidden="true">{getCountryFlag(userProfile.nationality)}</span>
+                        <span>
                           {getCountryName(userProfile.nationality, language)}
                         </span>
-                      </>
+                      </span>
                     ) : (
-                      <span className="text-sm text-sesame-gray">{t('없음', 'None', 'لا شيء')}</span>
+                      <span className="text-text-secondary">{t('없음', 'None', 'لا شيء')}</span>
                     )}
                   </div>
                 </section>
 
-                {/* 식단 */}
-                <section>
+                <section className="rounded-[20px] border border-border-warm bg-surface-raised px-4 py-1">
                   {sectionHeader(t('식단', 'Diet', 'النظام الغذائي'), 'diet')}
-                  <div className="space-y-2">
-                    {dietRow(!!userProfile.noSpicy, '🌶️', t('매운 음식 비선호', 'Avoid spicy food', 'تجنب الطعام الحار'))}
-                    {dietRow(
-                      !!userProfile.isVegan,
-                      '🥗',
-                      t('채식·비건', 'Vegetarian/Vegan', 'نباتي/نباتي صارم'),
-                      getVeganLabel(userProfile.veganType),
-                    )}
-                    {dietRow(
-                      !!userProfile.hasReligion,
-                      '🙏',
-                      t('종교 식단', 'Religious diet', 'نظام غذائي ديني'),
-                      getReligionLabel(userProfile.religionType),
-                    )}
-                    {dietRow(!!userProfile.noAlcohol, '🍺', t('금주', 'No alcohol', 'بدون كحول'))}
-
-                    {/* 알레르기 */}
-                    <div
-                      className={`rounded-2xl px-4 py-3 border ${
-                        userProfile.hasAllergies && userProfile.allergies.length > 0
-                          ? 'bg-rice-white border-brand-green-100'
-                          : 'bg-muted/70 border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-lg leading-none">🥜</span>
-                        <span
-                          className={`text-sm ${
-                            userProfile.hasAllergies && userProfile.allergies.length > 0
-                              ? 'font-semibold text-soy-ink'
-                              : 'text-sesame-gray/65'
-                          }`}
-                        >
-                          {t('음식 알레르기', 'Food allergies', 'حساسية الطعام')}
-                        </span>
-                      </div>
-                      {userProfile.hasAllergies && userProfile.allergies.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 ps-8">
-                          {userProfile.allergies.map((allergy) => (
-                            <span
-                              key={getAllergyDisplayName(allergy)}
-                              className="px-2.5 py-1 bg-brand-green-50 border border-brand-green-100 rounded-lg text-xs font-semibold text-brand-green-700"
-                            >
-                              {getAllergyDisplayName(allergy)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-sesame-gray ps-8">{t('없음', 'None', 'لا شيء')}</span>
-                      )}
+                  <div className="flex min-h-11 items-start justify-between gap-3 border-t border-border-warm py-3 text-sm">
+                    <span className="shrink-0 font-semibold text-text-secondary">{t('고른 항목', 'Selected', 'المحدد')}</span>
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {profileSummary.length ? profileSummary.map(item => <span key={item} className="rounded-[14px] border border-border-warm bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">{item}</span>) : <span className="font-bold text-text-primary">{t('특별히 가리는 음식 없어요', 'No food restrictions', 'لا توجد قيود غذائية')}</span>}
                     </div>
                   </div>
                 </section>
@@ -280,6 +204,8 @@ export function MyPageScreen({
                 </button>
               </div>
             )}
+            <button type="button" onClick={() => navigate('/mypage/saved-menus')} className="flex min-h-14 w-full items-center gap-3 rounded-[20px] border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><Heart className="size-5" />{t('저장한 메뉴', 'Saved menus', 'الأطباق المحفوظة')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
+            <button type="button" onClick={() => navigate('/mypage/reviews')} className="flex min-h-14 w-full items-center gap-3 rounded-[20px] border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><MessageSquare className="size-5" />{t('내가 작성한 후기', 'My reviews', 'مراجعاتي')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -16,6 +17,7 @@ import {
   ImageOff,
   Image as ImageIcon,
   Sparkles,
+  X,
 } from 'lucide-react';
 import type { Language, MenuAnalysis, UserProfile } from '../App';
 import { createTranslator, translateText } from '../locales';
@@ -59,6 +61,7 @@ interface ResultsScreenProps {
   store?: StoreSummary | null;
   record?: ScanRecordResponse | null;
   demoMode?: boolean;
+  menuPhotoUrl?: string | null;
 }
 
 interface MenuImageProps {
@@ -101,7 +104,7 @@ export function MenuImage({ menu, translatedName, t }: MenuImageProps) {
   );
 }
 
-export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, record, demoMode = false }: ResultsScreenProps) {
+export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, record, demoMode = false, menuPhotoUrl }: ResultsScreenProps) {
   const userProfile = menus.some(menu => menu.demoScenario === 'bunsik-vegan-shrimp')
     ? { ...FILMING_PROFILE, languageCode: language } : suppliedProfile;
   const navigate = useNavigate();
@@ -116,6 +119,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const [serverSavedMenus, setServerSavedMenus] = useState<SavedMenu[]>([]);
   const [favoritePending, setFavoritePending] = useState<string | null>(null);
   const [favoriteError, setFavoriteError] = useState('');
+  const [photoOpen, setPhotoOpen] = useState(false);
   const [selectedRestaurantId] = useDemoValue<string | null>('selected-restaurant', null);
   const restaurantId = partnerRestaurantId ?? (demoMode || !sourceScanId ? selectedRestaurantId : null);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -218,7 +222,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             <h2 className="text-[27px] font-extrabold leading-[1.25] tracking-[-0.03em]">{t('나를 위한 메뉴 가이드', 'Your menu, understood.', 'قائمتك، بكل وضوح.')}</h2>
           </>}
           <p className="mt-1.5 text-sm text-text-secondary">{t(`메뉴 ${menuList.length}개를 내 식단 기준으로 살펴봤어요.`, `${menuList.length} dishes, checked against your dietary needs.`, `تم فحص ${menuList.length} أطباق حسب احتياجاتك الغذائية.`)}</p>
-          {storeName && <div className="mt-4"><button type="button" disabled className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-border-warm px-4 text-sm font-bold opacity-40"><ImageIcon className="size-4" />{t('메뉴판 사진 보기', 'View menu photo', 'عرض صورة القائمة')}</button><p className="mt-1 text-xs text-text-secondary">{t('사진은 아직 제공되지 않아요.', 'Menu photo is not available yet.', 'صورة القائمة غير متاحة بعد.')}</p></div>}
+          {storeName && <div className="mt-4"><button type="button" disabled={!menuPhotoUrl} onClick={() => setPhotoOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-border-warm px-4 text-sm font-bold disabled:opacity-40"><ImageIcon className="size-4" />{t('메뉴판 사진 보기', 'View menu photo', 'عرض صورة القائمة')}</button>{!menuPhotoUrl && <p className="mt-1 text-xs text-text-secondary">{t('사진은 아직 제공되지 않아요.', 'Menu photo is not available yet.', 'صورة القائمة غير متاحة بعد.')}</p>}</div>}
           <div className="mt-4 rounded-xl border border-border-warm bg-surface-subtle px-3.5 py-3">
             <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-text-secondary">
               <ShieldCheck className="size-4 text-brand-primary" aria-hidden="true" />
@@ -301,7 +305,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                   </div>
 
                   <div className="space-y-3 p-3">
-                    {causeItems.length > 0 && <div className="flex gap-1.5 overflow-hidden whitespace-nowrap">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`shrink-0 rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
+                    {causeItems.length > 0 && <div className="flex flex-wrap gap-1.5">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`min-h-8 max-w-full break-words rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="min-h-8 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
                     {!profileSummary.length && (viewModel.ingredients.length > 0 || isSpicy) && <div className="flex gap-1.5 overflow-hidden whitespace-nowrap">{viewModel.ingredients.slice(0, 4).map(item => <span key={item.localizedName} className="rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">{item.localizedName}</span>)}{isSpicy && <span className="inline-flex items-center gap-1 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary"><Flame className="size-3" />{t('매운 음식', 'Spicy', 'حار')}</span>}</div>}
                     <div className="flex items-center gap-2"><button type="button" onClick={() => openSheet(menu, profileSummary.length && menu.riskLevel !== 'safe' ? 'ingredient' : 'order')} className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-3 py-2.5 text-sm font-extrabold ${menu.riskLevel === 'danger' && profileSummary.length ? 'border border-brand-primary text-brand-primary' : 'bg-brand-primary text-white'}`}><MessageSquareText className="size-4 shrink-0" />{profileSummary.length && menu.riskLevel !== 'safe' ? causeItems.length ? t(`재료 ${causeItems.length}개 확인하기`, `Check ${causeItems.length} ingredients`, `تحقق من ${causeItems.length} مكونات`) : t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات') : t('주문 카드', 'Order card', 'بطاقة الطلب')}</button><button type="button" onClick={() => toggleExpanded(menu.id)} aria-expanded={expanded} aria-controls={cardDetailsId} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[18px] px-2 text-sm font-bold text-brand-primary">{expanded ? t('접기', 'Hide', 'إخفاء') : t('근거 보기', 'Evidence', 'الأدلة')}<ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button></div>
                   </div>
@@ -338,6 +342,16 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
 
       {sheetType && selectedMenu && <OwnerCommunicationSheet menu={selectedMenu} type={sheetType} userProfile={userProfile} language={language} initialResponse={getStoredResponse(selectedMenu, sheetType)} onResponseSelect={handleOwnerResponseSelect} onClose={closeSheet} />}
       {profileSheetOpen && <ProfileCommunicationSheet items={profileCommunicationItems} language={language} onClose={() => setProfileSheetOpen(false)} />}
+      <Dialog.Root open={photoOpen && Boolean(menuPhotoUrl)} onOpenChange={setPhotoOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-soy-ink/80" />
+          <Dialog.Content aria-describedby={undefined} className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <Dialog.Title className="sr-only">{t('스캔한 메뉴판 사진', 'Scanned menu photo', 'صورة القائمة الممسوحة')}</Dialog.Title>
+            <Dialog.Close aria-label={t('닫기', 'Close', 'إغلاق')} className="absolute end-4 top-4 flex size-11 items-center justify-center rounded-full bg-surface-raised text-text-primary"><X className="size-5" /></Dialog.Close>
+            {menuPhotoUrl && <img src={menuPhotoUrl} alt={t('스캔한 메뉴판 사진', 'Scanned menu photo', 'صورة القائمة الممسوحة')} className="max-h-[85dvh] max-w-full rounded-xl object-contain" />}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

@@ -198,6 +198,7 @@ export default function App() {
   const [consentAccepted, setConsentAccepted] = useState<boolean | null>(demoMode ? true : null);
   const [currentAnalysis, setCurrentAnalysis] = useState<MenuAnalysis[]>([]);
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
+  const [resultPhotoUrl, setResultPhotoUrl] = useState<string | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
 
@@ -255,6 +256,9 @@ export default function App() {
   const [activeScanStore, setActiveScanStore] = useState<StoreSummary | null>(null);
   const [activeScanRecord, setActiveScanRecord] = useState<ScanRecordResponse | null>(null);
   const [historyProfile, setHistoryProfile] = useState<UserProfile | null | undefined>();
+  useEffect(() => () => {
+    if (resultPhotoUrl?.startsWith('blob:')) URL.revokeObjectURL(resultPhotoUrl);
+  }, [resultPhotoUrl]);
   const combinedHistory = [...localRecords, ...analysisHistory.filter(item => !localRecords.some(record => record.sourceScanId === item.id))];
 
   useEffect(() => {
@@ -326,6 +330,7 @@ export default function App() {
 
   // 기록 열기: 상세를 백엔드에서 가져와 결과화면으로.
   const openHistory = async (item: HistoryItem) => {
+    setResultPhotoUrl(null);
     const local = localRecords.find(record => record.id === item.id);
     if (local) {
       setCurrentAnalysis(local.menus);
@@ -366,12 +371,12 @@ export default function App() {
 
   const handleRenameHistory = async (id: string, title: string) => {
     if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title } : record)); return; }
-    setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)));
     try {
       await updateScanTitle(id, title);
+      setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)));
     } catch (error) {
       console.error('Rename scan failed:', error);
-      loadHistory();
+      throw error;
     }
   };
 
@@ -600,7 +605,7 @@ export default function App() {
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
                   setActiveScanRecord(null);
-                  if (analysisImage?.previewUrl.startsWith('blob:')) URL.revokeObjectURL(analysisImage.previewUrl);
+                  setResultPhotoUrl(analysisImage?.previewUrl ?? null);
                   setAnalysisImage(null);
                   navigate('/results');
                   // 백엔드에 영속된 최신 기록으로 목록 갱신.
@@ -631,8 +636,9 @@ export default function App() {
                 record={activeScanRecord}
                 savedRecordId={activeRecordId}
                 demoMode={demoMode}
-                onBack={() => navigate('/home')}
-                onRescan={() => navigate('/scan')}
+                menuPhotoUrl={resultPhotoUrl}
+                onBack={() => { setResultPhotoUrl(null); navigate('/home'); }}
+                onRescan={() => { setResultPhotoUrl(null); navigate('/scan'); }}
               />
             }
           />

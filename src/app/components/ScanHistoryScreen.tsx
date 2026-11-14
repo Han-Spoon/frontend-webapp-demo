@@ -16,7 +16,7 @@ export function ScanHistoryScreen({
   history: HistoryItem[];
   onOpen: (item: HistoryItem) => void;
   onDelete: (id: string) => void;
-  onRename: (id: string, title: string) => void;
+  onRename: (id: string, title: string) => Promise<void>;
 }) {
   const t = createTranslator(language);
   const navigate = useNavigate();

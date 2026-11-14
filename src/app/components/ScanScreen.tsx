@@ -21,7 +21,7 @@ interface HomeScreenProps {
   onMyPage: () => void;
   history: HistoryItem[];
   onDeleteHistory: (id: string) => void;
-  onRenameHistory: (id: string, title: string) => void;
+  onRenameHistory: (id: string, title: string) => Promise<void>;
   selectedStore: StoreCandidate | null;
   onSelectStore: (store: StoreCandidate | null) => void;
 }

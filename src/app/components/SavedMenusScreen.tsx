@@ -14,14 +14,17 @@ export function SavedMenusScreen({ language, demoMode }: { language: Language; d
   const [serverMenus, setServerMenus] = useState<SavedMenu[]>([]);
   const [loading, setLoading] = useState(!demoMode);
   const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
   useEffect(() => {
     if (demoMode) return;
     let active = true;
+    setLoading(true);
+    setError('');
     getSavedMenus().then(items => { if (active) setServerMenus(items); })
       .catch(() => { if (active) setError(t('저장한 메뉴를 불러오지 못했어요.', 'Could not load saved menus.', 'تعذر تحميل الأطباق المحفوظة.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [demoMode]);
+  }, [demoMode, reload]);
   const menus = demoMode ? demoMenus : serverMenus;
   const remove = async (item: SavedMenu) => {
     try {
@@ -39,7 +42,7 @@ export function SavedMenusScreen({ language, demoMode }: { language: Language; d
     </header>
     <main className="flex-1 space-y-3 overflow-y-auto px-5 py-6">
       <p className="mb-5 text-sm text-text-secondary">{t('스캔 기록과 별도로 찜한 메뉴를 모았어요.', 'Menus you saved, separate from scan history.', 'الأطباق التي حفظتها منفصلة عن سجل المسح.')}</p>
-      {error && <p role="alert" className="rounded-xl bg-status-danger-surface p-3 text-sm text-status-danger-text">{error}</p>}
+      {error && <div role="alert" className="rounded-xl bg-status-danger-surface p-3 text-sm text-status-danger-text"><p>{error}</p>{!demoMode && <button type="button" onClick={() => setReload(value => value + 1)} className="mt-2 min-h-11 rounded-xl border border-status-danger-text px-3 font-bold">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button>}</div>}
       {loading && <p role="status" className="rounded-xl bg-surface-subtle p-4 text-sm text-text-secondary">{t('저장한 메뉴를 불러오는 중이에요.', 'Loading saved menus…', 'جارٍ تحميل الأطباق المحفوظة…')}</p>}
       {menus.map(item => <article key={item.id} className="rounded-[var(--radius-card)] border border-border-warm bg-surface-raised p-4 shadow-[var(--shadow-card)]">
         <div className="flex items-start justify-between gap-2"><div className="min-w-0"><RiskBadge level={item.riskLevel} t={t} /><h2 className="mt-2 break-words text-lg font-extrabold">{item.menuName}</h2></div>

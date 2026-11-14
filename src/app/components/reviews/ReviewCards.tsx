@@ -14,6 +14,7 @@ export function ReviewCards({ language, profile, reviews, onEdit, onDelete, onRe
   const t = createTranslator(language);
   const labels = new Map(getProfileCommunicationItems(profile ?? null).map(item => [item.id, localizeMenuText(item.label, language)]));
   const [reporting, setReporting] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState<string | null>(null);
   const [reported, setReported] = useState<string[]>([]);
   const [error, setError] = useState('');
   const reasons: [ReportReason, string][] = [
@@ -31,7 +32,7 @@ export function ReviewCards({ language, profile, reviews, onEdit, onDelete, onRe
         {onEdit && <button type="button" onClick={() => onEdit(review)} className="flex min-h-10 items-center gap-1 rounded-xl border border-border-warm px-3 text-xs font-bold"><Pencil className="size-3.5" />{t('수정', 'Edit', 'تعديل')}</button>}
         {onDelete && <button type="button" onClick={() => onDelete(review)} className="flex min-h-10 items-center gap-1 rounded-xl border border-border-warm px-3 text-xs font-bold text-status-danger-text"><Trash2 className="size-3.5" />{t('삭제', 'Delete', 'حذف')}</button>}
       </> : onReport && <button type="button" onClick={() => setReporting(reporting === review.id ? null : review.id)} disabled={reported.includes(review.id)} className="flex min-h-10 items-center gap-1 rounded-xl border border-border-warm px-3 text-xs font-bold text-text-secondary"><Flag className="size-3.5" />{reported.includes(review.id) ? t('신고 접수됨', 'Reported', 'تم الإبلاغ') : t('신고', 'Report', 'إبلاغ')}</button>}</div>
-      {reporting === review.id && <div className="mt-3 rounded-xl bg-surface-subtle p-3"><p className="mb-2 text-xs font-bold">{t('신고 사유를 선택해 주세요.', 'Choose a reason.', 'اختر سبب الإبلاغ.')}</p><div className="grid grid-cols-2 gap-1.5">{reasons.map(([reason, label]) => <button type="button" key={reason} onClick={async () => { try { await onReport?.(review, reason); setReported(current => [...current, review.id]); setReporting(null); setError(''); } catch { setError(t('신고를 접수하지 못했어요.', 'Could not submit report.', 'تعذر إرسال الإبلاغ.')); } }} className="min-h-11 rounded-lg border border-border-warm bg-surface-raised px-2 text-xs font-semibold">{label}</button>)}</div></div>}
+      {reporting === review.id && <div className="mt-3 rounded-xl bg-surface-subtle p-3"><p className="mb-2 text-xs font-bold">{t('신고 사유를 선택해 주세요.', 'Choose a reason.', 'اختر سبب الإبلاغ.')}</p><div className="grid grid-cols-2 gap-1.5">{reasons.map(([reason, label]) => <button type="button" key={reason} disabled={submitting !== null} onClick={async () => { if (submitting) return; setSubmitting(review.id); try { await onReport?.(review, reason); setReported(current => [...current, review.id]); setReporting(null); setError(''); } catch { setError(t('신고를 접수하지 못했어요. 다시 시도해 주세요.', 'Could not submit report. Please try again.', 'تعذر إرسال الإبلاغ. حاول مرة أخرى.')); } finally { setSubmitting(null); } }} className="min-h-11 rounded-lg border border-border-warm bg-surface-raised px-2 text-xs font-semibold disabled:opacity-40">{label}</button>)}</div></div>}
     </article>)}
   </div>;
 }
