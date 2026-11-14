@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Camera, ChevronDown, CircleDashed, Database, Loader2, ScanText, Search, ShieldCheck, Users } from 'lucide-react';
 import { getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
+import { ApiError } from '../../api/user';
 import type { StoreSummary } from '../../api/store';
 import type { Language, MenuAnalysis, PendingMenuImage } from '../App';
 import { createTranslator } from '../locales';
@@ -143,11 +144,15 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
         }
       } catch (error) {
         if (cancelled) return;
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : t('알 수 없는 오류가 발생했습니다. 다시 시도해 주세요.', 'An unknown error occurred. Please try again.', 'حدث خطأ غير معروف. يرجى المحاولة مرة أخرى.'),
-        );
+        console.error('Unable to complete scan analysis:', error);
+        if (!navigator.onLine) {
+          setErrorMessage(t('인터넷 연결이 끊겼어요. 연결을 확인한 뒤 다시 시도해 주세요.', 'You are offline. Check your connection and try again.', 'أنت غير متصل. تحقق من اتصالك وحاول مجدداً.'));
+        } else if (error instanceof ApiError && [400, 413, 415, 422].includes(error.status)) {
+          setRetryRequiresNewUpload(true);
+          setErrorMessage(t('이 사진으로 분석을 시작하지 못했어요. 새 사진을 선택해 주세요.', 'Could not start analysis with this photo. Please choose a new one.', 'تعذر بدء التحليل بهذه الصورة. اختر صورة جديدة.'));
+        } else {
+          setErrorMessage(t('분석 결과를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', 'Could not load the analysis result. Please try again shortly.', 'تعذر تحميل نتيجة التحليل. حاول مرة أخرى بعد قليل.'));
+        }
         setPhase('failed');
       }
     };
