@@ -330,6 +330,7 @@ export function HomeScreen({
               <StoreMap
                 language={language}
                 stores={mapStores}
+                demoMode={demoMode}
                 selectedId={selected.id}
                 onSelect={(store) => setSelectedId(store.id)}
                 className="h-[270px] w-full bg-[#e9eee5]"

@@ -1,23 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingScreen } from './components/LandingScreen';
 import { PartnerMenuScreen } from './components/PartnerMenuScreen';
 import { OnboardingScreen } from './components/OnboardingScreen';
+import { ConsentScreen } from './components/ConsentScreen';
 import { HomeScreen } from './components/HomeScreen';
 import { RestaurantMapScreen } from './components/RestaurantMapScreen';
 import { ScanScreen } from './components/ScanScreen';
 import { ScanHistoryScreen } from './components/ScanHistoryScreen';
-import { useDemoValue, writeDemo } from './demo/storage';
+import { readDemo, useDemoValue, writeDemo } from './demo/storage';
 import type { VisitRecord } from './demo/records';
 import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingFixtures';
 import { AnalyzingScreen } from './components/AnalyzingScreen';
 import { ResultsScreen } from './components/ResultsScreen';
 import { MyPageScreen } from './components/MyPageScreen';
+import { SavedMenusScreen } from './components/SavedMenusScreen';
+import { MyReviewsScreen } from './components/reviews/MyReviewsScreen';
 import { CurationScreen } from './components/CurationScreen';
 import { CurationDetailScreen } from './components/CurationDetailScreen';
 import { CardsScreen } from './components/CardsScreen';
 import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
+import { getConsentStatus } from '../api/consent';
+import { clearAuthData, getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
 import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { ScanRecordResponse } from '../api/scan';
@@ -176,19 +181,50 @@ const formatHistoryTitle = (language: Language, date: Date) => {
 
 export default function App() {
   const navigate = useNavigate();
-  const [demoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true' || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
+  const location = useLocation();
+  const [demoMode, setDemoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true'
+    || sessionStorage.getItem('han-spoon-demo-session') === '1'
+    || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
   const [language, setLanguage] = useState<Language>(() => {
     const requested = new URLSearchParams(window.location.search).get('lang');
     if (isLanguage(requested)) return requested;
     const saved = localStorage.getItem('han-spoon-language');
     return isLanguage(saved) ? saved : 'ko';
   });
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => demoMode ? RESULT_PREVIEW_PROFILE : null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => demoMode
+    ? window.location.pathname === '/dev/results-preview' ? RESULT_PREVIEW_PROFILE : readDemo<UserProfile | null>('profile', null)
+    : null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState<boolean | null>(demoMode ? true : null);
   const [currentAnalysis, setCurrentAnalysis] = useState<MenuAnalysis[]>([]);
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
+
+  const startDemo = () => {
+    clearAuthData();
+    sessionStorage.setItem('han-spoon-demo-session', '1');
+    writeDemo('profile', null);
+    writeDemo('records', []);
+    writeDemo('saved-menus', []);
+    writeDemo('selected-restaurant', null);
+    setDemoMode(true);
+    setUserProfile(null);
+    setCurrentUser(null);
+    setAnalysisHistory([]);
+    setCurrentAnalysis([]);
+    setSelectedStore(null);
+    setConsentAccepted(false);
+    navigate('/terms?demo=1');
+  };
+
+  const exitDemo = () => {
+    sessionStorage.removeItem('han-spoon-demo-session');
+    setDemoMode(false);
+    setUserProfile(null);
+    setConsentAccepted(null);
+    navigate('/login');
+  };
 
   useEffect(() => {
     document.title = translateText(language, {
@@ -341,9 +377,22 @@ export default function App() {
 
   useEffect(() => {
     if (demoMode) return;
-    loadCurrentUser();
-    loadUserProfile();
-    loadHistory();
+    if (getAccessToken()) {
+      loadCurrentUser();
+      getConsentStatus().then(status => {
+        if (status.guardianApprovalRequired) {
+          clearAuthData();
+          setConsentAccepted(null);
+          navigate('/login', { replace: true });
+          return;
+        }
+        setConsentAccepted(status.hasRequiredConsents);
+        if (status.hasRequiredConsents) {
+          loadUserProfile();
+          loadHistory();
+        }
+      }).catch(() => setConsentAccepted(false));
+    }
 
     return () => {
       if (analysisImage?.previewUrl.startsWith('blob:')) {
@@ -367,7 +416,7 @@ export default function App() {
   };
 
   const handleProfileSave = async (profile: UserProfile) => {
-    if (demoMode) { setUserProfile(profile); setLanguage(profile.languageCode); navigate('/home'); return; }
+    if (demoMode) { writeDemo('profile', profile); setUserProfile(profile); setLanguage(profile.languageCode); navigate('/home'); return; }
     const payload: UserProfilePayload = {
       nationality: profile.nationality.toUpperCase(),
       languageCode: toBackendLanguage(profile.languageCode),
@@ -409,6 +458,18 @@ export default function App() {
 
   const handleLogin = async (hasProfile: boolean) => {
     await loadCurrentUser();
+    const status = await getConsentStatus();
+    if (status.guardianApprovalRequired) {
+      clearAuthData();
+      setConsentAccepted(null);
+      navigate('/login', { replace: true });
+      return;
+    }
+    setConsentAccepted(status.hasRequiredConsents);
+    if (!status.hasRequiredConsents) {
+      navigate('/terms');
+      return;
+    }
 
     if (hasProfile) {
       await loadUserProfile();
@@ -419,13 +480,41 @@ export default function App() {
     navigate('/onboarding');
   };
 
+  const handleConsentComplete = async () => {
+    setConsentAccepted(true);
+    if (demoMode) {
+      const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
+      navigate(returnTo === '/mypage' ? '/mypage' : '/onboarding');
+      return;
+    }
+    const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
+    if (returnTo === '/mypage') {
+      navigate('/mypage');
+      return;
+    }
+    const user = await getMe();
+    setCurrentUser(user);
+    if (user.hasProfile) {
+      await loadUserProfile();
+      navigate('/home');
+    } else {
+      navigate('/onboarding');
+    }
+  };
+
+  if (!demoMode && !['/', '/login', '/terms'].includes(location.pathname)) {
+    if (!getAccessToken()) return <Navigate to="/login" replace />;
+    if (consentAccepted === null) return <div className="min-h-dvh bg-rice-cream" />;
+    if (!consentAccepted) return <Navigate to="/terms" replace />;
+  }
+
   return (
     <div className="min-h-dvh bg-[var(--shell-background)] flex items-center justify-center sm:px-6">
       <div className="mobile-container w-full max-w-[430px] min-h-dvh bg-rice-cream shadow-[0_24px_80px_rgba(41,54,46,0.16)] relative overflow-hidden sm:border-x sm:border-border-warm">
         <Routes>
           <Route
             path="/"
-            element={<LandingScreen language={language} setLanguage={setLanguage} />}
+            element={<LandingScreen language={language} setLanguage={setLanguage} onTryDemo={startDemo} />}
           />
           <Route
             path="/login"
@@ -434,13 +523,20 @@ export default function App() {
                 language={language}
                 setLanguage={setLanguage}
                 onLogin={handleLogin}
+                demoMode={demoMode}
+                onTryDemo={startDemo}
+                onExitDemo={exitDemo}
               />
             }
           />
           <Route
+            path="/terms"
+            element={<ConsentScreen language={language} demoMode={demoMode} onComplete={handleConsentComplete} onBack={() => navigate((location.state as { returnTo?: string } | null)?.returnTo ?? '/login')} />}
+          />
+          <Route
             path="/onboarding"
             element={
-              <OnboardingScreen
+              !demoMode && !getAccessToken() ? <Navigate to="/login" replace /> : consentAccepted === null ? <div className="p-6">Loading...</div> : !consentAccepted ? <Navigate to="/terms" replace /> : <OnboardingScreen
                 language={language}
                 setLanguage={setLanguage}
                 initialProfile={userProfile ?? undefined}
@@ -450,7 +546,7 @@ export default function App() {
           />
           <Route
             path="/home"
-            element={<HomeScreen language={language} userProfile={userProfile} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
+            element={!demoMode && consentAccepted === false ? <Navigate to="/terms" replace /> : <HomeScreen language={language} userProfile={userProfile} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
           />
           <Route
             path="/map"
@@ -476,6 +572,7 @@ export default function App() {
                 onMyPage={() => navigate('/mypage')}
                 history={combinedHistory}
                 onDeleteHistory={handleDeleteHistory}
+                onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
                 onRenameHistory={handleRenameHistory}
               />
             }
@@ -499,7 +596,7 @@ export default function App() {
                 onComplete={(_scanId, menus, store) => {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
-                  setHistoryProfile(_scanId === null ? { ...RESULT_PREVIEW_PROFILE, languageCode: language } : undefined);
+                  setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : undefined);
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
                   setActiveScanRecord(null);
@@ -533,6 +630,7 @@ export default function App() {
                 store={activeScanStore}
                 record={activeScanRecord}
                 savedRecordId={activeRecordId}
+                demoMode={demoMode}
                 onBack={() => navigate('/home')}
                 onRescan={() => navigate('/scan')}
               />
@@ -560,6 +658,7 @@ export default function App() {
                 onHistoryClick={openHistory}
                 onEditHistoryTitle={handleRenameHistory}
                 onDeleteHistory={handleDeleteHistory}
+                onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
                 onLogout={() => {
                   setUserProfile(null);
                   setCurrentUser(null);
@@ -568,6 +667,8 @@ export default function App() {
               />
             }
           />
+          <Route path="/mypage/saved-menus" element={<SavedMenusScreen language={language} demoMode={demoMode} />} />
+          <Route path="/mypage/reviews" element={<MyReviewsScreen language={language} profile={userProfile} demoMode={demoMode} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

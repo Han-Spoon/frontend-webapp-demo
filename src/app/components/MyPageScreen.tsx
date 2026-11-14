@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ArrowLeft, User, LogOut, ChevronRight } from 'lucide-react';
-import { logout } from '../../api/auth';
+import { ArrowLeft, User, LogOut, ChevronRight, Heart, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { clearAuthData, logout } from '../../api/auth';
 import { deleteMe } from '../../api/user';
 import type { CurrentUser } from '../../api/user';
 import type { Language, UserAllergy, UserProfile } from '../App';
@@ -38,6 +39,7 @@ interface MyPageScreenProps {
   onHistoryClick: (item: HistoryItem) => void;
   onEditHistoryTitle: (id: string, title: string) => void;
   onDeleteHistory: (id: string) => void;
+  onTerms: () => void;
   onLogout: () => void;
 }
 
@@ -53,12 +55,14 @@ export function MyPageScreen({
   onHistoryClick,
   onEditHistoryTitle,
   onDeleteHistory,
+  onTerms,
   onLogout,
 }: MyPageScreenProps) {
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const navigate = useNavigate();
 
   const t = createTranslator(language);
   const mapLanguage = useMapLanguage();
@@ -118,6 +122,7 @@ export function MyPageScreen({
   const handleDeleteAccount = async () => {
     try {
       await deleteMe();
+      clearAuthData();
       onLogout();
     } catch (error) {
       console.error('Delete account failed:', error);
@@ -176,6 +181,8 @@ export function MyPageScreen({
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'profile' && (
           <div className="px-5 py-6 space-y-6">
+            <button type="button" onClick={() => navigate('/mypage/saved-menus')} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><Heart className="size-5" />{t('저장한 메뉴', 'Saved menus', 'الأطباق المحفوظة')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
+            <button type="button" onClick={() => navigate('/mypage/reviews')} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><MessageSquare className="size-5" />{t('내가 작성한 후기', 'My reviews', 'مراجعاتي')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
             {userProfile ? (
               <>
                 {/* 언어 */}
@@ -334,6 +341,10 @@ export function MyPageScreen({
               </div>
             </section>
 
+            <button onClick={onTerms} className="w-full h-13 bg-rice-white border border-border-warm text-soy-ink text-sm font-bold rounded-2xl hover:bg-brand-green-50 transition-colors flex items-center justify-center gap-2">
+              {t('약관 및 동의 설정', 'Terms and consent', 'الشروط والموافقة')}
+              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+            </button>
             <button
               onClick={() => setShowLogoutConfirm(true)}
               className="w-full h-13 bg-rice-white border border-border-warm text-soy-ink text-sm font-bold rounded-2xl hover:bg-brand-green-50 transition-colors flex items-center justify-center gap-2"

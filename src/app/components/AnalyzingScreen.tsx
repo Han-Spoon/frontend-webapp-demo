@@ -26,8 +26,10 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
   const [attempt, setAttempt] = useState(0);
   const [retryRequiresNewUpload, setRetryRequiresNewUpload] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const t = createTranslator(language);
+  const cancelDialog = confirmCancel && <div role="dialog" aria-modal="true" aria-label={t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')} className="fixed inset-0 z-50 flex items-center justify-center bg-soy-ink/45 p-5"><div className="w-full max-w-sm rounded-2xl bg-surface-raised p-5"><h2 className="text-lg font-extrabold">{t('분석을 취소할까요?', 'Cancel the analysis?', 'هل تريد إلغاء التحليل؟')}</h2><p className="mt-2 text-sm leading-6 text-text-secondary">{t('이 사진의 분석 화면에서 나가요.', 'You will leave this photo’s analysis.', 'ستغادر تحليل هذه الصورة.')}</p><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setConfirmCancel(false)} className="min-h-12 rounded-[18px] border border-border-warm text-sm font-bold">{t('계속 분석', 'Keep analyzing', 'متابعة التحليل')}</button><button type="button" onClick={onCancel} className="min-h-12 rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')}</button></div></div></div>;
 
   const steps = [
     { icon: ScanText, label: t('메뉴 이름과 설명을 읽고 있어요', 'Reading menu names and descriptions', 'جار قراءة أسماء الأطباق وأوصافها') },
@@ -175,12 +177,13 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
         </div>
         <div className="border-t border-border-warm bg-rice-white/95 px-5 py-4 flex-shrink-0">
           <button
-            onClick={onCancel}
+            onClick={onRetryWithNewImage}
             className="min-h-12 w-full rounded-xl bg-brand-primary font-bold text-white shadow-sm hover:bg-brand-primary-hover"
           >
             {t('다시 촬영', 'Retake', 'إعادة التصوير')}
           </button>
         </div>
+        {cancelDialog}
       </div>
     );
   }
@@ -192,7 +195,7 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-6">
-        <div className="relative mx-auto mb-5 aspect-[16/9] w-full max-w-xs overflow-hidden rounded-[var(--radius-card)] border border-border-warm bg-surface-raised shadow-[var(--shadow-card)]">
+        <div className="relative mx-auto mb-5 aspect-[3/4] w-full max-w-[300px] overflow-hidden rounded-[24px] border border-border-warm bg-surface-raised shadow-[var(--shadow-card)]">
           {image ? (
             <img src={image.previewUrl} alt={t('분석 중인 메뉴판', 'Menu being analyzed', 'القائمة قيد التحليل')} className="w-full h-full object-cover" />
           ) : (
@@ -215,8 +218,8 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
               </div>
               <ol className="space-y-2 rounded-[var(--radius-card)] border border-border-warm bg-surface-raised p-3 shadow-[var(--shadow-card)]">
                 {steps.map(({ icon: Icon, label }, index) => (
-                  <li key={label} className="flex min-h-11 items-center gap-3 rounded-xl px-2 py-2">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-brand-primary"><Icon className="size-4" aria-hidden="true" /></span>
+                  <li key={label} className="flex min-h-14 items-center gap-3 rounded-xl px-3 py-2">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-text-secondary"><Icon className="size-4" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1 text-sm font-semibold leading-5 text-text-primary">{label}</span>
                     <span className="text-xs font-bold tabular-nums text-text-tertiary">{index + 1}</span>
                   </li>
@@ -256,12 +259,13 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
           </button>
         )}
         <button
-          onClick={onCancel}
-          className="min-h-11 w-full text-sm font-semibold text-text-secondary hover:text-text-primary"
+          onClick={() => setConfirmCancel(true)}
+          className="min-h-12 w-full rounded-[18px] border border-border-warm bg-surface-raised text-sm font-bold text-text-primary hover:bg-surface-subtle"
         >
           {t('취소', 'Cancel', 'إلغاء')}
         </button>
       </div>
+      {cancelDialog}
     </div>
   );
 }

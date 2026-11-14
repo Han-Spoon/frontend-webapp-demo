@@ -8,23 +8,35 @@
 
 | 요청 | 용도 |
 | --- | --- |
-| POST `/api/v1/auth/google` | Google 로그인 |
+| POST `/api/v1/auth/google` | `{ idToken, ageGroup, guardianCode? }` Google 로그인. `UNDER_14`는 현재 문서 버전의 유효한 보호자 승인 코드 필수; 코드 확인 전 Google 토큰 미검증 |
 | POST `/api/v1/auth/refresh` | 세션 갱신 |
 | POST `/api/v1/auth/logout` | 로그아웃 |
+| GET `/api/v1/consents/documents` | 공개된 현재 약관 원문·버전·시행일·필수 여부 조회 |
+| GET `/api/v1/consents/me` | 현재 버전의 사용자별 동의 결정과 필수 동의 완료 여부 조회 |
+| POST `/api/v1/consents/me` | 만 14세 이상만 `{ version, decisions: { service, privacy, sensitive, marketing } }` 저장. 필수 3개는 `true`, 선택 마케팅은 `true/false`. 아동은 보호자 승인으로만 필수 동의 기록 |
 | GET/PATCH `/api/v1/users/me` | 사용자 조회·변경 |
 | GET/POST/PATCH `/api/v1/users/me/profile` | 식단 프로필 |
+| GET `/api/v1/stores/:storeId/reviews` | 식당 후기 최신순. 각 항목에 `mine` 포함 |
+| POST `/api/v1/stores/:storeId/reviews` | `{ scanId?, menus: [{ name, answers, note }] }`로 식당 후기 작성. 연결 스캔은 본인·완료·동일 식당이어야 함 |
+| GET `/api/v1/reviews/me` | 내가 작성한 식당 후기 |
+| PATCH/DELETE `/api/v1/reviews/:reviewId` | 본인 후기 수정·삭제 |
+| POST `/api/v1/reviews/:reviewId/reports` | `{ reason }` 신고. 본인 후기 불가, 신고만으로 후기 삭제하지 않음 |
 | POST `/api/v1/stores/candidates` | 현재 위치·선택적 상호명으로 가게 후보 조회 |
 | POST `/api/v1/uploads/sas` | 업로드 URL 요청 |
 | POST `/api/v1/scans` | `{ storageKey, source, storeId?, storeMatchMethod? }`로 분석 시작 |
 | GET `/api/v1/scans/:scanId` | 상태·최종 메뉴·재촬영 사유·실패 코드(`failureCode`) |
 | PUT `/api/v1/scans/:scanId/record` | 완료된 스캔의 가게 연결·선택형 피드백 멱등 저장 |
 | GET `/api/v1/scans/:scanId/record` | 저장된 스캔 기록 단건 조회 |
+| GET `/api/v1/saved-menus` | 본인의 찜 메뉴 최신순 목록. 스캔 기록과 별도 |
+| POST `/api/v1/saved-menus` | `{ scanId, displayOrder }`로 완료된 본인 스캔의 메뉴 찜. 같은 메뉴 재요청은 멱등 |
+| DELETE `/api/v1/saved-menus/:favoriteId` | 본인 찜 해제. 다시 요청해도 성공 |
 | GET `/api/v1/scans?page=0&size=20` | 스캔 이력 |
 | PATCH/DELETE `/api/v1/scans/:scanId` | `{ title }` 변경/삭제 |
 | GET/POST `/api/v1/cards/saved` | 카드 목록/저장 |
 | DELETE `/api/v1/cards/saved/:id` | 카드 삭제 |
 
 가게 후보 요청은 `{ latitude, longitude, query?, radiusMeters?, limit? }`, 응답은 `{ items: StoreCandidate[] }`이다.
+후보마다 `reviewCount`가 포함된다. 현재 위치 기반 조회는 50m 거리 구간 안에서 후기 수를 보조 정렬로 사용한다. 지역 중심만 있는 홈 추천은 클라이언트에서 후기 수를 우선한다.
 후보의 `storeId`와 `matchMethod`는 사용자가 가게를 선택한 경우 스캔 시작 요청의 `storeId`,
 `storeMatchMethod`로 함께 전달한다. 가게 연결을 건너뛰면 두 필드를 모두 생략한다. 사용자 좌표는 후보 조회에만
 사용하고 프론트 상태나 스캔 요청에 보관하지 않는다.
@@ -41,7 +53,7 @@
 
 현재 메뉴: `menuNameKo`, `menuNameEn?`, `descriptionKo?`, `descriptionEn?`, `priceText?`, `riskLevel`, `isSpicy?`, `hits?`, `message?`, `ownerCard?`. 음식 설명은 결과 카드 가격 아래, `message`는 판정 이유에 매핑한다.
 스캔 상세·이력의 `store`는 `{ storeId, name } | null`이다. 응답은 data 래핑이 있거나 직접 전달될 수 있다.
-`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. 라이킷은 아직 서버에 보내지 않으며, 피드백은 기록 저장 시
+`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. 메뉴 찜은 완료된 서버 스캔에만 `saved-menus` API로 저장하고, 서버 리소스가 없는 명시적 시연·파트너 메뉴는 `src/app/demo/`의 브라우저 저장소를 쓴다. 찜 응답은 `id`, `scanId`, `displayOrder`, `menuName`, `riskLevel`, `store?`, `savedAt`이다. 찜과 스캔 기록은 별도 리소스다. 피드백은 기록 저장 시
 현재 프로필에 존재하는 항목만 서버에 보낸다.
 
 분석 상태는 pending/processing/analyzing → processing, completed/complete/done/succeeded → completed로 정규화한다. failed, needs_retake, unknown은 별도로 다룬다.

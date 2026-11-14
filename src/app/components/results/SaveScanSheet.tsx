@@ -130,6 +130,7 @@ export function SaveScanSheet({
         date: existing?.date ?? new Date().toISOString(),
         menuCount: menus.length,
         dangerCount: menus.filter((m) => m.riskLevel === 'danger').length,
+        store: restaurantName ? { storeId: lockedStore?.storeId ?? selectedStore?.storeId ?? 0, name: restaurantName } : null,
         menus,
         profileSnapshot: profile,
         feedback: hasRestaurant ? validFeedback : {},
@@ -262,65 +263,7 @@ export function SaveScanSheet({
               {t('식당 연결 해제', 'Remove restaurant', 'إزالة المطعم')}
             </button>
           )}
-          {hasRestaurant && items.length > 0 && (
-            <section className="mb-5">
-              <h3 className="text-sm font-extrabold">
-                {t(
-                  '내 식단을 전달하기 편했나요?',
-                  'Was it easy to share your needs?',
-                  'هل كان توضيح احتياجاتك سهلاً؟',
-                )}
-              </h3>
-              <p className="mb-3 mt-1 text-xs leading-5 text-text-secondary">
-                {t(
-                  '직접 경험한 항목만 알려주세요. 나중에 남겨도 괜찮아요.',
-                  'Share only what you experienced. You can also skip this.',
-                  'شارك ما جربته فقط. يمكنك تخطي هذه الخطوة.',
-                )}
-              </p>
-              {items.map((item) => (
-                <fieldset
-                  key={item.id}
-                  className="mb-3 rounded-xl bg-surface-subtle p-3"
-                >
-                  <legend className="px-1 text-xs font-bold">
-                    {localizeMenuText(item.label, language)}
-                  </legend>
-                  <div className="flex gap-1.5">
-                    {(
-                      [
-                        ['yes', t('편했어요', 'Easy', 'سهل')],
-                        ['no', t('어려웠어요', 'Difficult', 'صعب')],
-                        [
-                          'unknown',
-                          t('잘 모르겠어요', 'Not sure', 'لست متأكداً'),
-                        ],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <label
-                        key={value}
-                        className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border px-1 text-center text-xs font-semibold ${feedback[item.id] === value ? 'border-brand-primary bg-brand-primary text-white' : 'border-border-warm bg-rice-white'}`}
-                      >
-                        <input
-                          type="radio"
-                          className="sr-only"
-                          name={item.id}
-                          checked={feedback[item.id] === value}
-                          onChange={() =>
-                            setFeedback((current) => ({
-                              ...current,
-                              [item.id]: value,
-                            }))
-                          }
-                        />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              ))}
-            </section>
-          )}
+          <p className="mb-5 rounded-xl bg-surface-subtle p-3 text-xs leading-5 text-text-secondary">{t('스캔 기록은 비공개로 저장돼요. 식당 후기는 기록을 저장한 뒤 별도로 남길 수 있어요.', 'Your scan journal is private. You can write a restaurant review after saving it.', 'يُحفظ سجل المسح بشكل خاص. يمكنك كتابة مراجعة للمطعم بعد حفظه.')}</p>
           {saveError && (
             <p role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
               {saveError}

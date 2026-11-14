@@ -11,6 +11,7 @@ export interface StoreCandidate {
   latitude: number;
   longitude: number;
   distanceMeters: number;
+  reviewCount?: number;
   categoryCode?: string | null;
   categoryName?: string | null;
   verified: boolean;
