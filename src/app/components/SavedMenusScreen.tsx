@@ -6,6 +6,7 @@ import type { Language } from '../App';
 import { useDemoValue } from '../demo/storage';
 import { createTranslator } from '../locales';
 import { RiskBadge } from './results/ResultEvidence';
+import { OfflineBanner } from './OfflineBanner';
 
 export function SavedMenusScreen({ language, demoMode }: { language: Language; demoMode: boolean }) {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ export function SavedMenusScreen({ language, demoMode }: { language: Language; d
       <button type="button" onClick={() => navigate('/mypage')} aria-label={t('뒤로', 'Back', 'رجوع')} className="flex size-11 items-center justify-center"><ArrowLeft className="size-5 rtl:rotate-180" /></button>
       <h1 className="text-base font-extrabold">{t('저장한 메뉴', 'Saved menus', 'الأطباق المحفوظة')}</h1>
     </header>
+    <OfflineBanner language={language} onRetry={() => setReload(value => value + 1)} />
     <main className="flex-1 space-y-3 overflow-y-auto px-5 py-6">
       <p className="mb-5 text-sm text-text-secondary">{t('스캔 기록과 별도로 찜한 메뉴를 모았어요.', 'Menus you saved, separate from scan history.', 'الأطباق التي حفظتها منفصلة عن سجل المسح.')}</p>
       {error && <div role="alert" className="rounded-xl bg-status-danger-surface p-3 text-sm text-status-danger-text"><p>{error}</p>{!demoMode && <button type="button" onClick={() => setReload(value => value + 1)} className="mt-2 min-h-11 rounded-xl border border-status-danger-text px-3 font-bold">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button>}</div>}

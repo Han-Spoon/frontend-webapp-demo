@@ -13,6 +13,7 @@ import {
   getCountryName,
 } from '../constants/onboarding';
 import { ScanHistoryList } from './ScanHistoryList';
+import { OfflineBanner } from './OfflineBanner';
 
 type ProfileSection = 'language' | 'country' | 'diet';
 
@@ -117,6 +118,7 @@ export function MyPageScreen({
         </button>
         <h1 className="text-base font-bold text-soy-ink mx-auto">{t('마이페이지', 'My Page', 'صفحتي')}</h1>
       </div>
+      <OfflineBanner language={language} />
 
       <div className="border-b border-border-warm bg-surface-subtle px-5 py-6">
         <div className="flex items-center gap-4">
