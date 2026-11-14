@@ -37,7 +37,7 @@ interface MyPageScreenProps {
   /** section 미지정 시 전체 온보딩(신규 생성), 지정 시 해당 단위만 수정 */
   onEditProfile: (section?: ProfileSection) => void;
   onHistoryClick: (item: HistoryItem) => void;
-  onEditHistoryTitle: (id: string, title: string) => void;
+  onEditHistoryTitle: (id: string, title: string) => Promise<void>;
   onDeleteHistory: (id: string) => void;
   onTerms: () => void;
   onLogout: () => void;

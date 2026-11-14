@@ -371,12 +371,12 @@ export default function App() {
 
   const handleRenameHistory = async (id: string, title: string) => {
     if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title } : record)); return; }
-    setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)));
     try {
       await updateScanTitle(id, title);
+      setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)));
     } catch (error) {
       console.error('Rename scan failed:', error);
-      loadHistory();
+      throw error;
     }
   };
 
