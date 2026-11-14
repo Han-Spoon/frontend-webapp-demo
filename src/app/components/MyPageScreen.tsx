@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, User, LogOut, ChevronRight } from 'lucide-react';
-import { logout } from '../../api/auth';
+import { clearAuthData, logout } from '../../api/auth';
 import { deleteMe } from '../../api/user';
 import type { CurrentUser } from '../../api/user';
 import type { Language, UserAllergy, UserProfile } from '../App';
@@ -38,6 +38,7 @@ interface MyPageScreenProps {
   onHistoryClick: (item: HistoryItem) => void;
   onEditHistoryTitle: (id: string, title: string) => void;
   onDeleteHistory: (id: string) => void;
+  onTerms: () => void;
   onLogout: () => void;
 }
 
@@ -53,6 +54,7 @@ export function MyPageScreen({
   onHistoryClick,
   onEditHistoryTitle,
   onDeleteHistory,
+  onTerms,
   onLogout,
 }: MyPageScreenProps) {
   const [activeTab, setActiveTab] = useState<TabType>('profile');
@@ -118,6 +120,7 @@ export function MyPageScreen({
   const handleDeleteAccount = async () => {
     try {
       await deleteMe();
+      clearAuthData();
       onLogout();
     } catch (error) {
       console.error('Delete account failed:', error);
@@ -334,6 +337,10 @@ export function MyPageScreen({
               </div>
             </section>
 
+            <button onClick={onTerms} className="w-full h-13 bg-rice-white border border-border-warm text-soy-ink text-sm font-bold rounded-2xl hover:bg-brand-green-50 transition-colors flex items-center justify-center gap-2">
+              {t('약관 및 동의 설정', 'Terms and consent', 'الشروط والموافقة')}
+              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+            </button>
             <button
               onClick={() => setShowLogoutConfirm(true)}
               className="w-full h-13 bg-rice-white border border-border-warm text-soy-ink text-sm font-bold rounded-2xl hover:bg-brand-green-50 transition-colors flex items-center justify-center gap-2"

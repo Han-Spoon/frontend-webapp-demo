@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingScreen } from './components/LandingScreen';
 import { PartnerMenuScreen } from './components/PartnerMenuScreen';
 import { OnboardingScreen } from './components/OnboardingScreen';
+import { ConsentScreen } from './components/ConsentScreen';
 import { HomeScreen } from './components/HomeScreen';
 import { RestaurantMapScreen } from './components/RestaurantMapScreen';
 import { ScanScreen } from './components/ScanScreen';
@@ -18,6 +19,8 @@ import { CurationScreen } from './components/CurationScreen';
 import { CurationDetailScreen } from './components/CurationDetailScreen';
 import { CardsScreen } from './components/CardsScreen';
 import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
+import { getConsentStatus } from '../api/consent';
+import { getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
 import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { ScanRecordResponse } from '../api/scan';
@@ -176,6 +179,7 @@ const formatHistoryTitle = (language: Language, date: Date) => {
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [demoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true' || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
   const [language, setLanguage] = useState<Language>(() => {
     const requested = new URLSearchParams(window.location.search).get('lang');
@@ -185,6 +189,7 @@ export default function App() {
   });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => demoMode ? RESULT_PREVIEW_PROFILE : null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState<boolean | null>(demoMode ? true : null);
   const [currentAnalysis, setCurrentAnalysis] = useState<MenuAnalysis[]>([]);
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
@@ -341,9 +346,16 @@ export default function App() {
 
   useEffect(() => {
     if (demoMode) return;
-    loadCurrentUser();
-    loadUserProfile();
-    loadHistory();
+    if (getAccessToken()) {
+      loadCurrentUser();
+      getConsentStatus().then(status => {
+        setConsentAccepted(status.hasRequiredConsents);
+        if (status.hasRequiredConsents) {
+          loadUserProfile();
+          loadHistory();
+        }
+      }).catch(() => setConsentAccepted(false));
+    }
 
     return () => {
       if (analysisImage?.previewUrl.startsWith('blob:')) {
@@ -409,6 +421,12 @@ export default function App() {
 
   const handleLogin = async (hasProfile: boolean) => {
     await loadCurrentUser();
+    const status = await getConsentStatus();
+    setConsentAccepted(status.hasRequiredConsents);
+    if (!status.hasRequiredConsents) {
+      navigate('/terms');
+      return;
+    }
 
     if (hasProfile) {
       await loadUserProfile();
@@ -418,6 +436,33 @@ export default function App() {
 
     navigate('/onboarding');
   };
+
+  const handleConsentComplete = async () => {
+    setConsentAccepted(true);
+    if (demoMode) {
+      navigate('/onboarding');
+      return;
+    }
+    const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
+    if (returnTo === '/mypage') {
+      navigate('/mypage');
+      return;
+    }
+    const user = await getMe();
+    setCurrentUser(user);
+    if (user.hasProfile) {
+      await loadUserProfile();
+      navigate('/home');
+    } else {
+      navigate('/onboarding');
+    }
+  };
+
+  if (!demoMode && !['/', '/login', '/terms'].includes(location.pathname)) {
+    if (!getAccessToken()) return <Navigate to="/login" replace />;
+    if (consentAccepted === null) return <div className="min-h-dvh bg-rice-cream" />;
+    if (!consentAccepted) return <Navigate to="/terms" replace />;
+  }
 
   return (
     <div className="min-h-dvh bg-[var(--shell-background)] flex items-center justify-center sm:px-6">
@@ -438,9 +483,13 @@ export default function App() {
             }
           />
           <Route
+            path="/terms"
+            element={<ConsentScreen language={language} demoMode={demoMode} onComplete={handleConsentComplete} onBack={() => navigate('/login')} />}
+          />
+          <Route
             path="/onboarding"
             element={
-              <OnboardingScreen
+              !demoMode && !getAccessToken() ? <Navigate to="/login" replace /> : consentAccepted === null ? <div className="p-6">Loading...</div> : !consentAccepted ? <Navigate to="/terms" replace /> : <OnboardingScreen
                 language={language}
                 setLanguage={setLanguage}
                 initialProfile={userProfile ?? undefined}
@@ -450,7 +499,7 @@ export default function App() {
           />
           <Route
             path="/home"
-            element={<HomeScreen language={language} userProfile={userProfile} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
+            element={!demoMode && consentAccepted === false ? <Navigate to="/terms" replace /> : <HomeScreen language={language} userProfile={userProfile} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
           />
           <Route
             path="/map"
@@ -476,6 +525,7 @@ export default function App() {
                 onMyPage={() => navigate('/mypage')}
                 history={combinedHistory}
                 onDeleteHistory={handleDeleteHistory}
+                onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
                 onRenameHistory={handleRenameHistory}
               />
             }

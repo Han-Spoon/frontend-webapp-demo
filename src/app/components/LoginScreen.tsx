@@ -11,7 +11,7 @@ const LOGIN_IMAGE =
   'https://commons.wikimedia.org/wiki/Special:FilePath/Samgyeopsal%20table.jpg?width=1200';
 
 interface LoginScreenProps {
-  onLogin: (hasProfile: boolean) => void;
+  onLogin: (hasProfile: boolean) => Promise<void> | void;
   language: Language;
   setLanguage: (language: Language) => void;
 }
@@ -49,7 +49,7 @@ export function LoginScreen({ onLogin, language, setLanguage }: LoginScreenProps
       }
 
       const data = await googleLogin(idToken);
-      onLogin(Boolean(data.hasProfile));
+      await onLogin(Boolean(data.hasProfile));
     } catch (error) {
       setErrorMessage(
         error instanceof Error
