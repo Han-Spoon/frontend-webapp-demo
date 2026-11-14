@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, User, LogOut, ChevronRight, Heart } from 'lucide-react';
+import { ArrowLeft, User, LogOut, ChevronRight, Heart, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clearAuthData, logout } from '../../api/auth';
 import { deleteMe } from '../../api/user';
@@ -182,6 +182,7 @@ export function MyPageScreen({
         {activeTab === 'profile' && (
           <div className="px-5 py-6 space-y-6">
             <button type="button" onClick={() => navigate('/mypage/saved-menus')} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><Heart className="size-5" />{t('저장한 메뉴', 'Saved menus', 'الأطباق المحفوظة')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
+            <button type="button" onClick={() => navigate('/mypage/reviews')} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border-warm bg-surface-raised px-4 text-start text-sm font-extrabold text-brand-primary"><MessageSquare className="size-5" />{t('내가 작성한 후기', 'My reviews', 'مراجعاتي')}<ChevronRight className="ms-auto size-4 rtl:rotate-180" /></button>
             {userProfile ? (
               <>
                 {/* 언어 */}

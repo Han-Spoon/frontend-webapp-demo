@@ -84,8 +84,6 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, onD
       setIsStartingCamera(true);
       setCameraDenied(false);
       setErrorMessage(null);
-      setSelectedImage(null);
-      clearObjectUrl();
       stopCamera();
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -98,6 +96,8 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, onD
       });
 
       cameraStreamRef.current = stream;
+      setSelectedImage(null);
+      clearObjectUrl();
       setCameraStream(stream);
     } catch (error) {
       setCameraDenied(true);
@@ -242,10 +242,14 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, onD
       }
       onScan(imageForAnalysis);
     } catch (error) {
-      setErrorMessage(t(
+      setErrorMessage(navigator.onLine ? t(
         '이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.',
         'Image upload failed. Please try again in a moment.',
         'فشل رفع الصورة. يرجى المحاولة مرة أخرى بعد قليل.'
+      ) : t(
+        '인터넷 연결이 끊겼어요. 연결을 확인한 뒤 다시 시도해 주세요.',
+        'You are offline. Check your connection and try again.',
+        'أنت غير متصل. تحقق من اتصالك وحاول مجدداً.'
       ));
     } finally {
       setIsUploading(false);
@@ -265,32 +269,32 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, onD
 
   return (
     <div className="h-dvh flex flex-col bg-rice-cream text-soy-ink">
-      <div className="h-16 border-b border-border-warm bg-rice-white/95 flex items-center justify-between px-5 flex-shrink-0 backdrop-blur">
-        <img src={logo} alt={t('한스푼', 'Han Spoon', 'هان سبون')} className="h-auto w-[108px]" />
+      <div className="flex min-h-16 flex-shrink-0 items-center justify-between bg-surface-base px-5 pb-3 pt-4">
+        <img src={logo} alt={t('한스푼', 'Han Spoon', 'هان سبون')} className="h-9 w-auto" />
         <button
           onClick={onMyPage}
-          className="w-11 h-11 rounded-full bg-brand-green-50 flex items-center justify-center text-brand-green-700 hover:bg-brand-green-100 transition-colors"
+          className="flex size-11 items-center justify-center rounded-full bg-surface-subtle text-text-primary hover:bg-surface-interactive"
           aria-label={t('마이페이지', 'My page', 'صفحتي')}
         >
           <User className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-10 pt-7">
-        <button onClick={() => setRestaurantPicker(true)} className="mb-5 flex min-h-14 w-full items-center gap-2 rounded-2xl border border-border-warm bg-rice-white px-3 text-start text-sm"><MapPin className="size-4 shrink-0 text-brand-primary" /><span className="flex-1 font-semibold">{demoMode && restaurant ? localizeMenuText(restaurant.name, language) : !demoMode && selectedStore ? `${selectedStore.name}${selectedStore.branchName ? ` ${selectedStore.branchName}` : ''}` : t('식당 선택 · 나중에 해도 괜찮아요', 'Choose a restaurant · or do it later', 'اختر مطعماً · أو أضفه لاحقاً')}</span><ChevronRight className="size-4 rtl:rotate-180" /></button>
+      <div className="flex-1 overflow-y-auto px-5 pb-10 pt-3">
+        <button onClick={() => setRestaurantPicker(true)} className="mb-8 flex min-h-11 w-full items-center gap-2 rounded-[18px] border border-border-warm bg-surface-raised px-3.5 text-start text-sm"><MapPin className="size-4 shrink-0 text-text-secondary" /><span className="flex-1 font-semibold">{demoMode && restaurant ? localizeMenuText(restaurant.name, language) : !demoMode && selectedStore ? `${selectedStore.name}${selectedStore.branchName ? ` ${selectedStore.branchName}` : ''}` : t('식당 선택(선택) · 안 골라도 돼요', 'Restaurant (optional) · you can skip it', 'المطعم (اختياري) · يمكنك التخطي')}</span><ChevronRight className="size-4 text-text-secondary rtl:rotate-180" /></button>
         <div className="mb-6">
-          <div className="mb-3 inline-flex items-center rounded-full bg-brand-accent-soft px-3 py-1.5 text-xs font-bold text-accent-foreground">
+          <div className="mb-3 text-[10px] font-extrabold uppercase tracking-[.16em] text-brand-primary">
             {t('메뉴판 스캔', 'Menu scan', 'مسح القائمة')}
           </div>
-          <h2 className="text-[26px] font-extrabold leading-[1.3] tracking-[-0.02em] text-soy-ink">
-            {t('오늘의 메뉴를\n안심하고 골라보세요', 'Choose today’s meal\nwith confidence', 'اختر وجبتك اليوم\nبكل ثقة').split('\n').map((line, index, lines) => (
+          <h2 className="text-[30px] font-extrabold leading-[1.22] tracking-[-0.025em] text-soy-ink">
+            {t('오늘의 메뉴를\n주문 전에 살펴보세요', 'Explore today’s menu\nbefore you order', 'تعرّف على قائمة اليوم\nقبل أن تطلب').split('\n').map((line, index, lines) => (
               <span key={line}>
                 {line}
                 {index < lines.length - 1 && <br />}
               </span>
             ))}
           </h2>
-          <p className="text-sm leading-6 text-sesame-gray mt-3">
+          <p className="mt-3 text-sm leading-[22px] text-text-secondary">
             {t(
               '메뉴판 전체가 보이도록 정면에서 찍으면 더 정확해요.',
               'For better results, capture the full menu straight on.',
@@ -307,22 +311,23 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, onD
           onChange={handleFileChange}
         />
 
-        <div className="mb-4 rounded-[28px] border border-border-warm bg-rice-white p-3 shadow-[0_12px_36px_rgba(54,70,60,0.08)]">
+        <div className="relative mb-4 aspect-[3/4] overflow-hidden rounded-[24px] border border-border-warm bg-surface-subtle">
           {selectedImage ? (
-            <div className="overflow-hidden rounded-[var(--radius-control)] border border-border-warm bg-surface-subtle">
-              <img src={selectedImage.previewUrl} alt={t('선택한 메뉴판 미리보기', 'Selected menu preview', 'معاينة قائمة الطعام المحددة')} className="w-full h-64 object-cover" />
+            <div className="relative size-full overflow-hidden bg-soy-ink">
+              <img src={selectedImage.previewUrl} alt={t('선택한 메뉴판 미리보기', 'Selected menu preview', 'معاينة قائمة الطعام المحددة')} className="size-full object-cover" />
+              {isUploading && <div role="status" className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-soy-ink/45 text-sm font-bold text-white"><RotateCcw className="size-8 animate-spin motion-reduce:animate-none" />{t('사진 올리는 중', 'Uploading photo', 'جار رفع الصورة')}</div>}
             </div>
           ) : cameraStream ? (
-            <div className="relative overflow-hidden rounded-[20px] border border-brand-green-100 bg-black">
+            <div className="relative size-full overflow-hidden bg-black">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-64 object-cover"
+                className="size-full object-cover"
               />
               <div className="pointer-events-none absolute inset-0 bg-black/10" />
-              <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/90 shadow-[0_0_0_999px_rgba(0,0,0,0.18)]">
+              <div className="pointer-events-none absolute inset-5 rounded-xl border-2 border-white/90 shadow-[0_0_0_999px_rgba(0,0,0,0.18)]">
                 <div className="absolute -top-0.5 -left-0.5 h-8 w-8 rounded-tl-xl border-t-4 border-l-4 border-white" />
                 <div className="absolute -top-0.5 -right-0.5 h-8 w-8 rounded-tr-xl border-t-4 border-r-4 border-white" />
                 <div className="absolute -bottom-0.5 -left-0.5 h-8 w-8 rounded-bl-xl border-b-4 border-l-4 border-white" />
@@ -333,17 +338,18 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, onD
             <button
               onClick={handleCameraClick}
               disabled={isStartingCamera}
-              className="flex h-52 w-full flex-col items-center justify-center gap-4 rounded-[var(--radius-control)] border-2 border-dashed border-border-warm bg-surface-subtle hover:border-brand-primary hover:bg-surface-interactive disabled:opacity-60"
+              className="flex size-full flex-col items-center justify-center gap-3 bg-surface-subtle hover:bg-surface-interactive disabled:opacity-60"
             >
-              <div className="flex size-14 rotate-[-3deg] items-center justify-center rounded-2xl bg-brand-primary shadow-[0_10px_24px_rgba(23,100,73,0.18)]">
-                <Camera className="size-6 rotate-[3deg] text-white" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-brand-primary-soft">
+                <Camera className="size-6 text-brand-primary" />
               </div>
-              <span className="text-base font-bold text-brand-green-900">
+              <span className="text-base font-extrabold text-text-primary">
                 {isStartingCamera ? t('카메라 여는 중', 'Opening camera', 'جار فتح الكاميرا') : t('메뉴판 촬영하기', 'Take a menu photo', 'التقط صورة للقائمة')}
               </span>
-              <span className="text-xs text-sesame-gray">{t('카메라가 바로 열려요', 'Your camera opens right away', 'ستفتح الكاميرا مباشرة')}</span>
+              <span className="text-xs text-text-secondary">{t('카메라가 바로 열려요', 'Your camera opens right away', 'ستفتح الكاميرا مباشرة')}</span>
             </button>
           )}
+          {!selectedImage && !cameraStream && <div aria-hidden="true" className="pointer-events-none absolute inset-5"><span className="absolute start-0 top-0 size-8 rounded-ss-xl border-s-[3px] border-t-[3px] border-brand-primary" /><span className="absolute end-0 top-0 size-8 rounded-se-xl border-e-[3px] border-t-[3px] border-brand-primary" /><span className="absolute bottom-0 start-0 size-8 rounded-es-xl border-b-[3px] border-s-[3px] border-brand-primary" /><span className="absolute bottom-0 end-0 size-8 rounded-ee-xl border-b-[3px] border-e-[3px] border-brand-primary" /></div>}
         </div>
 
         {cameraStream && !selectedImage && (

@@ -16,6 +16,11 @@
 | POST `/api/v1/consents/me` | 만 14세 이상만 `{ version, decisions: { service, privacy, sensitive, marketing } }` 저장. 필수 3개는 `true`, 선택 마케팅은 `true/false`. 아동은 보호자 승인으로만 필수 동의 기록 |
 | GET/PATCH `/api/v1/users/me` | 사용자 조회·변경 |
 | GET/POST/PATCH `/api/v1/users/me/profile` | 식단 프로필 |
+| GET `/api/v1/stores/:storeId/reviews` | 식당 후기 최신순. 각 항목에 `mine` 포함 |
+| POST `/api/v1/stores/:storeId/reviews` | `{ scanId?, menus: [{ name, answers, note }] }`로 식당 후기 작성. 연결 스캔은 본인·완료·동일 식당이어야 함 |
+| GET `/api/v1/reviews/me` | 내가 작성한 식당 후기 |
+| PATCH/DELETE `/api/v1/reviews/:reviewId` | 본인 후기 수정·삭제 |
+| POST `/api/v1/reviews/:reviewId/reports` | `{ reason }` 신고. 본인 후기 불가, 신고만으로 후기 삭제하지 않음 |
 | POST `/api/v1/stores/candidates` | 현재 위치·선택적 상호명으로 가게 후보 조회 |
 | POST `/api/v1/uploads/sas` | 업로드 URL 요청 |
 | POST `/api/v1/scans` | `{ storageKey, source, storeId?, storeMatchMethod? }`로 분석 시작 |
@@ -31,6 +36,7 @@
 | DELETE `/api/v1/cards/saved/:id` | 카드 삭제 |
 
 가게 후보 요청은 `{ latitude, longitude, query?, radiusMeters?, limit? }`, 응답은 `{ items: StoreCandidate[] }`이다.
+후보마다 `reviewCount`가 포함된다. 현재 위치 기반 조회는 50m 거리 구간 안에서 후기 수를 보조 정렬로 사용한다. 지역 중심만 있는 홈 추천은 클라이언트에서 후기 수를 우선한다.
 후보의 `storeId`와 `matchMethod`는 사용자가 가게를 선택한 경우 스캔 시작 요청의 `storeId`,
 `storeMatchMethod`로 함께 전달한다. 가게 연결을 건너뛰면 두 필드를 모두 생략한다. 사용자 좌표는 후보 조회에만
 사용하고 프론트 상태나 스캔 요청에 보관하지 않는다.

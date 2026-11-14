@@ -16,6 +16,7 @@ import { AnalyzingScreen } from './components/AnalyzingScreen';
 import { ResultsScreen } from './components/ResultsScreen';
 import { MyPageScreen } from './components/MyPageScreen';
 import { SavedMenusScreen } from './components/SavedMenusScreen';
+import { MyReviewsScreen } from './components/reviews/MyReviewsScreen';
 import { CurationScreen } from './components/CurationScreen';
 import { CurationDetailScreen } from './components/CurationDetailScreen';
 import { CardsScreen } from './components/CardsScreen';
@@ -667,6 +668,7 @@ export default function App() {
             }
           />
           <Route path="/mypage/saved-menus" element={<SavedMenusScreen language={language} demoMode={demoMode} />} />
+          <Route path="/mypage/reviews" element={<MyReviewsScreen language={language} profile={userProfile} demoMode={demoMode} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

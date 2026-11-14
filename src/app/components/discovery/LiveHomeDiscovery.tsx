@@ -48,7 +48,10 @@ export function LiveHomeDiscovery({
     candidates.find((store) => store.storeId === selectedId) ??
     candidates[0] ??
     null;
-  const recommended = candidates.slice(0, 6);
+  // 홈의 지역 칩은 사용자 위치가 아닌 지역 중심을 사용한다. 실제 위치가 없을 때는 후기 수를 우선한다.
+  const recommended = [...candidates].sort((a, b) =>
+    (b.reviewCount ?? 0) - (a.reviewCount ?? 0) || a.distanceMeters - b.distanceMeters,
+  ).slice(0, 6);
   const photos = restaurantRecommendationPhotos(recommended.map(store => store.categoryName));
 
   const selectArea = (nextArea: DiscoverAreaId) => {

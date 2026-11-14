@@ -28,6 +28,8 @@ import { menuPrice } from '../demo/currency';
 import { useDemoValue } from '../demo/storage';
 import { AREAS, RESTAURANTS } from '../demo/restaurants';
 import { SaveScanSheet } from './results/SaveScanSheet';
+import { RestaurantPicker } from './discovery/RestaurantPicker';
+import { MealReviewSheet } from './reviews/MealReviewSheet';
 import {
   OwnerCommunicationSheet,
   type OwnerCommunicationType,
@@ -117,6 +119,8 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const [selectedRestaurantId] = useDemoValue<string | null>('selected-restaurant', null);
   const restaurantId = partnerRestaurantId ?? (demoMode || !sourceScanId ? selectedRestaurantId : null);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [reviewPickerOpen, setReviewPickerOpen] = useState(false);
+  const [reviewStore, setReviewStore] = useState<{ id: string | number; name: string; linkedToScan: boolean } | null>(null);
   const [savedRecord, setSavedRecord] = useState<ScanRecordResponse | null>(record ?? null);
   const [saved, setSaved] = useState(Boolean(savedRecordId || record));
   const [recordId] = useState(() => savedRecordId ?? (sourceScanId ? `local-${sourceScanId}` : `local-${crypto.randomUUID()}`));
@@ -128,6 +132,12 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const menuList = Array.isArray(menus) ? menus : [];
   const profileSummary = getProfileSummary(userProfile, language);
   const profileCommunicationItems = getProfileCommunicationItems(userProfile);
+  const startReview = () => {
+    const knownStore = store ?? savedRecord?.store;
+    if (knownStore) { setReviewStore({ id: knownStore.storeId, name: knownStore.name, linkedToScan: true }); return; }
+    if (restaurant) { setReviewStore({ id: restaurant.id, name: localizeMenuText(restaurant.name, language), linkedToScan: true }); return; }
+    setReviewPickerOpen(true);
+  };
 
   useEffect(() => {
     if (demoMode || !sourceScanId) return;
@@ -319,9 +329,12 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
       <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-border-warm bg-surface-raised/95 px-5 py-3 backdrop-blur">
         <button onClick={onRescan} className="min-h-12 rounded-xl border border-brand-primary bg-surface-raised px-3 text-sm font-extrabold text-brand-primary hover:bg-brand-primary-soft">{partnerRestaurantId ? t('프로필 수정하기', 'Edit profile', 'تعديل الملف') : t('다시 스캔하기', 'Scan again', 'المسح مرة أخرى')}</button>
         <button disabled={menuList.length === 0} onClick={() => setSaveOpen(true)} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-primary px-3 text-sm font-extrabold text-white disabled:opacity-40"><Bookmark className="size-4" />{saved ? t('기록 수정', 'Edit record', 'تعديل السجل') : t('기록하기', 'Keep this scan', 'احفظ المسح')}</button>
+        {saved && <button type="button" onClick={startReview} className="col-span-2 min-h-11 rounded-xl border border-brand-primary text-sm font-extrabold text-brand-primary">{t('식당 후기 작성', 'Write a restaurant review', 'اكتب مراجعة للمطعم')}</button>}
       </footer>
 
       {saveOpen && <SaveScanSheet language={language} menus={menuList} profile={userProfile} recordId={recordId} sourceScanId={sourceScanId} restaurantId={restaurantId} scanStore={store} scanRecord={savedRecord} onClose={() => setSaveOpen(false)} onSaved={(nextRecord) => { setSavedRecord(nextRecord ?? null); setSaved(true); }} />}
+      {reviewPickerOpen && <RestaurantPicker language={language} demoMode={demoMode || !sourceScanId} selectedId={null} onClose={() => setReviewPickerOpen(false)} onSelectDemo={item => { setReviewPickerOpen(false); if (item) setReviewStore({ id: item.id, name: localizeMenuText(item.name, language), linkedToScan: false }); }} onSelectStore={item => { setReviewPickerOpen(false); if (item) setReviewStore({ id: item.storeId, name: item.branchName ? `${item.name} ${item.branchName}` : item.name, linkedToScan: false }); }} />}
+      {reviewStore && <MealReviewSheet language={language} profile={userProfile} store={reviewStore} menuNames={[...new Set(menuList.map(menu => menu.menuName))]} scanId={reviewStore.linkedToScan ? sourceScanId : undefined} demoMode={demoMode || typeof reviewStore.id === 'string' || !sourceScanId} onClose={() => setReviewStore(null)} onSaved={() => {}} />}
 
       {sheetType && selectedMenu && <OwnerCommunicationSheet menu={selectedMenu} type={sheetType} userProfile={userProfile} language={language} initialResponse={getStoredResponse(selectedMenu, sheetType)} onResponseSelect={handleOwnerResponseSelect} onClose={closeSheet} />}
       {profileSheetOpen && <ProfileCommunicationSheet items={profileCommunicationItems} language={language} onClose={() => setProfileSheetOpen(false)} />}
