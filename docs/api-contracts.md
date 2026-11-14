@@ -22,6 +22,9 @@
 | GET `/api/v1/scans/:scanId` | 상태·최종 메뉴·재촬영 사유·실패 코드(`failureCode`) |
 | PUT `/api/v1/scans/:scanId/record` | 완료된 스캔의 가게 연결·선택형 피드백 멱등 저장 |
 | GET `/api/v1/scans/:scanId/record` | 저장된 스캔 기록 단건 조회 |
+| GET `/api/v1/saved-menus` | 본인의 찜 메뉴 최신순 목록. 스캔 기록과 별도 |
+| POST `/api/v1/saved-menus` | `{ scanId, displayOrder }`로 완료된 본인 스캔의 메뉴 찜. 같은 메뉴 재요청은 멱등 |
+| DELETE `/api/v1/saved-menus/:favoriteId` | 본인 찜 해제. 다시 요청해도 성공 |
 | GET `/api/v1/scans?page=0&size=20` | 스캔 이력 |
 | PATCH/DELETE `/api/v1/scans/:scanId` | `{ title }` 변경/삭제 |
 | GET/POST `/api/v1/cards/saved` | 카드 목록/저장 |
@@ -44,7 +47,7 @@
 
 현재 메뉴: `menuNameKo`, `menuNameEn?`, `descriptionKo?`, `descriptionEn?`, `priceText?`, `riskLevel`, `isSpicy?`, `hits?`, `message?`, `ownerCard?`. 음식 설명은 결과 카드 가격 아래, `message`는 판정 이유에 매핑한다.
 스캔 상세·이력의 `store`는 `{ storeId, name } | null`이다. 응답은 data 래핑이 있거나 직접 전달될 수 있다.
-`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. 라이킷은 아직 서버에 보내지 않으며, 피드백은 기록 저장 시
+`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. 메뉴 찜은 완료된 서버 스캔에만 `saved-menus` API로 저장하고, 서버 리소스가 없는 명시적 시연·파트너 메뉴는 `src/app/demo/`의 브라우저 저장소를 쓴다. 찜 응답은 `id`, `scanId`, `displayOrder`, `menuName`, `riskLevel`, `store?`, `savedAt`이다. 찜과 스캔 기록은 별도 리소스다. 피드백은 기록 저장 시
 현재 프로필에 존재하는 항목만 서버에 보낸다.
 
 분석 상태는 pending/processing/analyzing → processing, completed/complete/done/succeeded → completed로 정규화한다. failed, needs_retake, unknown은 별도로 다룬다.

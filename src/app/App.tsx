@@ -15,6 +15,7 @@ import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingFixt
 import { AnalyzingScreen } from './components/AnalyzingScreen';
 import { ResultsScreen } from './components/ResultsScreen';
 import { MyPageScreen } from './components/MyPageScreen';
+import { SavedMenusScreen } from './components/SavedMenusScreen';
 import { CurationScreen } from './components/CurationScreen';
 import { CurationDetailScreen } from './components/CurationDetailScreen';
 import { CardsScreen } from './components/CardsScreen';
@@ -204,6 +205,7 @@ export default function App() {
     sessionStorage.setItem('han-spoon-demo-session', '1');
     writeDemo('profile', null);
     writeDemo('records', []);
+    writeDemo('saved-menus', []);
     writeDemo('selected-restaurant', null);
     setDemoMode(true);
     setUserProfile(null);
@@ -627,6 +629,7 @@ export default function App() {
                 store={activeScanStore}
                 record={activeScanRecord}
                 savedRecordId={activeRecordId}
+                demoMode={demoMode}
                 onBack={() => navigate('/home')}
                 onRescan={() => navigate('/scan')}
               />
@@ -654,6 +657,7 @@ export default function App() {
                 onHistoryClick={openHistory}
                 onEditHistoryTitle={handleRenameHistory}
                 onDeleteHistory={handleDeleteHistory}
+                onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
                 onLogout={() => {
                   setUserProfile(null);
                   setCurrentUser(null);
@@ -662,6 +666,7 @@ export default function App() {
               />
             }
           />
+          <Route path="/mypage/saved-menus" element={<SavedMenusScreen language={language} demoMode={demoMode} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

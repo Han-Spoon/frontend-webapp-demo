@@ -103,9 +103,14 @@ function DemoRestaurantMapScreen({
     null,
   );
   const restaurants = useMemo(() => {
-    if (area !== 'nearby' || !location) return restaurantsInArea(area);
+    const reviewCount = (restaurant: Restaurant) => restaurant.feedback.reduce((total, item) => total + item.total, 0);
+    if (area !== 'nearby') return restaurantsInArea(area);
+    if (!location) return [...restaurantsInArea(area)].sort((a, b) => reviewCount(b) - reviewCount(a));
     const distance = (r: Restaurant) => Math.hypot((r.lat - location.lat) * 111, (r.lng - location.lng) * 111 * Math.cos(location.lat * Math.PI / 180));
-    return RESTAURANTS.filter(r => distance(r) <= 10).sort((a, b) => distance(a) - distance(b)).slice(0, 6);
+    return RESTAURANTS.filter(r => distance(r) <= 10).sort((a, b) => {
+      const gapMeters = (distance(a) - distance(b)) * 1000;
+      return Math.abs(gapMeters) <= 50 ? reviewCount(b) - reviewCount(a) || gapMeters : gapMeters;
+    }).slice(0, 6);
   }, [area, location]);
   const mapStores = useMemo(
     () =>

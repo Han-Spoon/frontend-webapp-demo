@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, MapPin, Pencil, Trash2, X } from 'lucide-react';
 import type { HistoryItem, Language } from '../App';
-import { createTranslator } from '../locales';
+import { createTranslator, LANGUAGE_LOCALES } from '../locales';
 
 interface ScanHistoryListProps {
   language: Language;
@@ -22,6 +22,12 @@ export function ScanHistoryList({ language, history, onOpen, onDelete, onRename 
     `Analyzed ${item.menuCount} items`,
     `تم تحليل ${item.menuCount} عناصر`,
   );
+  const scanTime = (date: string) => {
+    const parsed = new Date(date);
+    return Number.isNaN(parsed.getTime()) ? '' : new Intl.DateTimeFormat(LANGUAGE_LOCALES[language], {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    }).format(parsed);
+  };
 
   return (
     <div className="space-y-2">
@@ -58,7 +64,7 @@ export function ScanHistoryList({ language, history, onOpen, onDelete, onRename 
               <button onClick={() => onOpen(item)} className="min-w-0 flex-1 text-start">
                 <div className="text-sm font-bold text-soy-ink">{item.title}</div>
                 {item.store && <div className="mt-1 flex items-center gap-1 truncate text-xs font-semibold text-brand-primary"><MapPin className="size-3 shrink-0" />{item.store.name}</div>}
-                <div className="text-xs text-sesame-gray mt-1">{subtitle(item)}</div>
+                <div className="text-xs text-sesame-gray mt-1">{scanTime(item.date)} · {subtitle(item)}</div>
               </button>
               <button
                 onClick={() => {

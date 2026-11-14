@@ -130,6 +130,7 @@ export function SaveScanSheet({
         date: existing?.date ?? new Date().toISOString(),
         menuCount: menus.length,
         dangerCount: menus.filter((m) => m.riskLevel === 'danger').length,
+        store: restaurantName ? { storeId: lockedStore?.storeId ?? selectedStore?.storeId ?? 0, name: restaurantName } : null,
         menus,
         profileSnapshot: profile,
         feedback: hasRestaurant ? validFeedback : {},
