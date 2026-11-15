@@ -463,6 +463,7 @@ function LiveRestaurantMapScreen({
     isLoading,
     locationStatus,
     retryLocation,
+    retrySearch,
     searchAt,
     searchAtCurrentLocation,
     searchLocation,
@@ -584,8 +585,11 @@ function LiveRestaurantMapScreen({
           </div>
 
           {error ? (
-            <div role="alert" className="rounded-[24px] border border-red-200 bg-red-50 p-5 text-center text-sm text-red-800 shadow-lg">
-              {t('식당 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', 'Could not load restaurants. Please try again shortly.', 'تعذر تحميل المطاعم. يرجى المحاولة بعد قليل.')}
+            <div role="alert" className="rounded-[24px] border border-border-warm bg-surface-raised px-5 py-7 text-center shadow-lg">
+              <AlertCircle className="mx-auto mb-3 size-8 text-text-tertiary" aria-hidden="true" />
+              <p className="text-base font-extrabold">{t('식당 목록을 불러오지 못했어요.', 'Could not load restaurants.', 'تعذر تحميل المطاعم.')}</p>
+              <p className="mt-2 text-sm text-text-secondary">{t('연결 상태를 확인하고 다시 시도해 주세요.', 'Check your connection and try again.', 'تحقق من الاتصال وحاول مرة أخرى.')}</p>
+              <button type="button" onClick={retrySearch} className="mt-4 min-h-11 rounded-[18px] border border-brand-primary px-4 text-sm font-bold text-brand-primary">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button>
             </div>
           ) : selected ? (
             <div className="rounded-[26px] border border-border-warm bg-rice-white/95 p-4 shadow-[0_18px_50px_rgba(35,42,37,.18)] backdrop-blur">
@@ -613,8 +617,8 @@ function LiveRestaurantMapScreen({
       )}
 
       <div className="absolute inset-x-0 bottom-0 z-30"><BottomNav language={language} /></div>
-      {selected && showReviews && <BottomSheet language={language} title={storeName(selected)} description={selected.roadAddress ?? selected.categoryName ?? ''} onClose={() => setShowReviews(false)}><button type="button" onClick={() => selectAndScan(selected)} className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-brand-primary text-sm font-extrabold text-white"><Camera className="size-4" />{t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}</button><div className="border-t border-border-warm pt-5"><RestaurantReviewList key={selected.storeId} language={language} profile={userProfile} reviews={reviews} loading={reviewsLoading} error={reviewsError} onRetry={() => setReviewRefresh(value => value + 1)} onReport={async (review, reason) => { await reportReview(review.id, reason); }} /></div><button type="button" onClick={() => { setShowReviews(false); setReviewing(true); }} className="mt-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button></BottomSheet>}
-      {selected && reviewing && <MealReviewSheet language={language} profile={userProfile} store={{ id: selected.storeId, name: storeName(selected) }} demoMode={false} onClose={() => setReviewing(false)} onSaved={() => { setShowReviews(true); setReviewRefresh(value => value + 1); if (searchLocation) searchAt(searchLocation); }} />}
+      {selected && showReviews && <BottomSheet language={language} title={storeName(selected)} description={selected.roadAddress ?? selected.categoryName ?? ''} onClose={() => setShowReviews(false)}><button type="button" onClick={() => selectAndScan(selected)} className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-brand-primary text-sm font-extrabold text-white"><Camera className="size-4" />{t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}</button><div className="border-t border-border-warm pt-5"><RestaurantReviewList key={selected.storeId} language={language} profile={userProfile} reviews={reviews} reviewCount={selected.reviewCount} loading={reviewsLoading} error={reviewsError} onRetry={() => setReviewRefresh(value => value + 1)} onReport={async (review, reason) => { await reportReview(review.id, reason); }} /></div><button type="button" onClick={() => { setShowReviews(false); setReviewing(true); }} className="mt-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button></BottomSheet>}
+      {selected && reviewing && <MealReviewSheet language={language} profile={userProfile} store={{ id: selected.storeId, name: storeName(selected) }} demoMode={false} onClose={() => setReviewing(false)} onSaved={() => { setShowReviews(true); setReviewRefresh(value => value + 1); retrySearch(); }} />}
     </div>
   );
 }

@@ -208,6 +208,7 @@ export default function App() {
     writeDemo('profile', null);
     writeDemo('records', []);
     writeDemo('saved-menus', []);
+    writeDemo('cards', []);
     writeDemo('selected-restaurant', null);
     setDemoMode(true);
     setUserProfile(null);
@@ -589,7 +590,7 @@ export default function App() {
           <Route path="/curation/:id" element={<CurationDetailScreen language={language} />} />
           <Route
             path="/cards"
-            element={<CardsScreen language={language} onMyPage={() => navigate('/mypage')} />}
+            element={<CardsScreen language={language} demoMode={demoMode} onMyPage={() => navigate('/mypage')} />}
           />
           <Route
             path="/analyzing"
@@ -653,6 +654,7 @@ export default function App() {
             element={
               <MyPageScreen
                 language={language}
+                demoMode={demoMode}
                 setLanguage={handleLanguageChange}
                 currentUser={currentUser}
                 userProfile={userProfile}

@@ -30,6 +30,7 @@ import { restaurantRecommendationPhotos } from './discovery/restaurantPhotos';
 import { menuPrice } from '../demo/currency';
 import type { StoreCandidate } from '../../api/store';
 import { LiveHomeDiscovery } from './discovery/LiveHomeDiscovery';
+import { OfflineBanner } from './OfflineBanner';
 
 export function HomeScreen({
   language,
@@ -155,6 +156,8 @@ export function HomeScreen({
           <User className="size-5" />
         </button>
       </header>
+
+      <OfflineBanner language={language} />
 
       <main className="flex-1 overflow-y-auto pb-9">
         <section className="px-5 pb-5 pt-4">

@@ -30,6 +30,7 @@ export function DevResultsPreview({ fallbackLanguage }: DevResultsPreviewProps) 
     <ResultsScreen
       language={language}
       menus={RESULT_PREVIEW_MENUS}
+      demoMode
       userProfile={{ ...RESULT_PREVIEW_PROFILE, languageCode: language }}
       onBack={() => navigate('/home')}
       onRescan={() => window.location.assign(`/scan?demo=1&lang=${language}`)}

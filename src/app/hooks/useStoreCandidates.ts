@@ -39,6 +39,7 @@ export function useStoreCandidates(
   const [candidates, setCandidates] = useState<StoreCandidate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [searchRefresh, setSearchRefresh] = useState(0);
   const [locationRequestPending, setLocationRequestPending] = useState(locateUser);
 
   const retryLocation = useCallback(() => {
@@ -54,6 +55,10 @@ export function useStoreCandidates(
     setError(false);
     setSearchLocation(coordinates);
     setSearchOrigin('map-center');
+  }, []);
+
+  const retrySearch = useCallback(() => {
+    setSearchRefresh(current => current + 1);
   }, []);
 
   const searchAtCurrentLocation = useCallback(() => {
@@ -131,7 +136,7 @@ export function useStoreCandidates(
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [enabled, query, searchLocation]);
+  }, [enabled, query, searchLocation, searchRefresh]);
 
   return {
     candidates,
@@ -140,6 +145,7 @@ export function useStoreCandidates(
     location,
     locationStatus,
     retryLocation,
+    retrySearch,
     searchAt,
     searchAtCurrentLocation,
     searchLocation,

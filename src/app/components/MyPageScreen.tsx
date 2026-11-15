@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { ArrowLeft, User, LogOut, ChevronRight, Heart, MessageSquare } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, User, LogOut, ChevronRight, Heart, MessageSquare, Check, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clearAuthData, logout } from '../../api/auth';
+import { getConsentStatus, type ConsentStatus } from '../../api/consent';
 import { deleteMe } from '../../api/user';
 import type { CurrentUser } from '../../api/user';
 import type { Language, UserProfile } from '../App';
@@ -30,6 +31,7 @@ interface MyPageScreenProps {
   language: Language;
   setLanguage: (language: Language) => void;
   currentUser: CurrentUser | null;
+  demoMode: boolean;
   userProfile: UserProfile | null;
   history: HistoryItem[];
   onBack: () => void;
@@ -47,6 +49,7 @@ type TabType = 'profile' | 'scan' | 'setting';
 export function MyPageScreen({
   language,
   currentUser,
+  demoMode,
   userProfile,
   history,
   onBack,
@@ -61,10 +64,25 @@ export function MyPageScreen({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [consentStatus, setConsentStatus] = useState<ConsentStatus | null>(null);
+  const [consentError, setConsentError] = useState(false);
+  const [consentLoading, setConsentLoading] = useState(false);
+  const [consentReload, setConsentReload] = useState(0);
   const navigate = useNavigate();
 
   const t = createTranslator(language);
   const mapLanguage = useMapLanguage();
+
+  useEffect(() => {
+    if (demoMode || activeTab !== 'setting') return;
+    let active = true;
+    setConsentLoading(true);
+    setConsentError(false);
+    getConsentStatus().then(status => { if (active) setConsentStatus(status); })
+      .catch(() => { if (active) setConsentError(true); })
+      .finally(() => { if (active) setConsentLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, consentReload, demoMode]);
 
   const currentLanguageLabel = LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;
   const profileSummary = getProfileSummary(userProfile, language);
@@ -233,21 +251,21 @@ export function MyPageScreen({
         )}
 
         {activeTab === 'setting' && (
-          <div className="px-5 py-6 space-y-3">
+          <div className="space-y-12 px-5 py-8 pb-12">
             {/* 지도 언어 — 앱 언어와 독립된 로컬 표시 설정이라 프로필 편집 플로우를 타지 않는다.
                 네이버 지도가 ko/en/zh/ja 4개만 지원해서 앱 언어(7개)와 1:1 대응이 불가능하다. */}
             <section>
-              <h3 className="mb-1 text-sm font-bold text-soy-ink">
+              <h3 className="text-base font-extrabold text-text-primary">
                 {t('지도 언어', 'Map language', 'لغة الخريطة')}
               </h3>
-              <p className="mb-2 text-xs text-sesame-gray/80">
+              <p className="mt-0.5 text-sm text-text-secondary">
                 {t(
                   '지도에 표시되는 지명 언어예요. 기본은 한국어예요.',
                   'Language for place names on the map. Korean by default.',
                   'لغة أسماء الأماكن على الخريطة. الكورية افتراضياً.',
                 )}
               </p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 {MAP_LANGUAGE_OPTIONS.map((option) => {
                   const active = option.value === mapLanguage;
                   return (
@@ -256,36 +274,42 @@ export function MyPageScreen({
                       type="button"
                       onClick={() => setMapLanguage(option.value)}
                       aria-pressed={active}
-                      className={`min-h-11 rounded-2xl border px-2 text-xs font-semibold transition-colors ${
+                      className={`flex min-h-[62px] items-center justify-between gap-2 rounded-[22px] border px-5 text-base font-extrabold transition-colors ${
                         active
-                          ? 'border-brand-green-700 bg-brand-green-50 text-brand-green-900'
-                          : 'border-border-warm bg-rice-white text-sesame-gray hover:bg-brand-green-50/50'
+                          ? 'border-brand-primary bg-brand-primary-soft text-text-primary'
+                          : 'border-border-warm bg-surface-raised text-text-primary hover:bg-brand-primary-soft'
                       }`}
                     >
-                      {option.label}
+                      <span>{option.label}</span>
+                      <span aria-hidden="true" className={`flex size-8 shrink-0 items-center justify-center rounded-full border-2 ${active ? 'border-brand-primary bg-brand-primary text-white' : 'border-text-tertiary'}`}>{active && <Check className="size-4" />}</span>
                     </button>
                   );
                 })}
               </div>
             </section>
 
-            <button onClick={onTerms} className="w-full h-13 bg-rice-white border border-border-warm text-soy-ink text-sm font-bold rounded-2xl hover:bg-brand-green-50 transition-colors flex items-center justify-center gap-2">
-              {t('약관 및 동의 설정', 'Terms and consent', 'الشروط والموافقة')}
-              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
-            </button>
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="w-full h-13 bg-rice-white border border-border-warm text-soy-ink text-sm font-bold rounded-2xl hover:bg-brand-green-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              {t('로그아웃', 'Log out', 'تسجيل الخروج')}
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full h-13 border border-red-400 bg-rice-white text-red-600 text-sm font-bold rounded-2xl hover:bg-red-50 transition-colors"
-            >
-              {t('회원 탈퇴', 'Delete account', 'حذف الحساب')}
-            </button>
+            <section className="rounded-[20px] border border-border-warm bg-surface-raised px-4 py-1">
+              <div className="flex min-h-12 items-center justify-between gap-2">
+                <h3 className="text-base font-extrabold">{t('알림 · 동의', 'Notifications · consent', 'الإشعارات · الموافقة')}</h3>
+                <button type="button" onClick={onTerms} className="flex min-h-11 items-center gap-1 px-2 text-sm font-bold text-brand-primary"><Pencil className="size-4" aria-hidden="true" />{t('수정', 'Edit', 'تعديل')}</button>
+              </div>
+              <div className="flex min-h-11 items-center justify-between gap-2 border-t border-border-warm py-3 text-sm">
+                <span className="font-semibold text-text-secondary">{t('마케팅 정보 수신', 'Marketing messages', 'الرسائل التسويقية')}</span>
+                <span className="text-end font-bold">{demoMode
+                  ? t('시연용 선택', 'Demo choice', 'اختيار تجريبي')
+                  : consentLoading ? t('확인 중…', 'Checking…', 'جارٍ التحقق…')
+                    : consentError || consentStatus?.decisions.marketing === undefined ? t('확인 필요', 'Check status', 'تحقق من الحالة')
+                      : consentStatus.decisions.marketing ? t('동의함', 'Agreed', 'موافق') : t('동의 안 함', 'Not agreed', 'غير موافق')}</span>
+              </div>
+              {consentError && <button type="button" onClick={() => setConsentReload(value => value + 1)} className="mb-2 min-h-11 text-sm font-bold text-brand-primary">{t('동의 상태 다시 확인', 'Retry consent status', 'إعادة التحقق من الموافقة')}</button>}
+            </section>
+
+            <section className="border-t border-border-warm pt-7">
+              <h3 className="mb-4 text-base font-extrabold">{t('계정', 'Account', 'الحساب')}</h3>
+              <button type="button" onClick={() => setShowLogoutConfirm(true)} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-border-warm bg-surface-raised text-sm font-bold"><LogOut className="size-4" aria-hidden="true" />{t('로그아웃', 'Log out', 'تسجيل الخروج')}</button>
+              <p className="mt-12 text-xs leading-5 text-text-secondary">{t('탈퇴하면 스캔 기록·식사 후기·직원 카드가 모두 지워지고 되돌릴 수 없어요.', 'Deleting your account removes scans, reviews and staff cards permanently.', 'حذف الحساب يزيل السجلات والمراجعات والبطاقات نهائياً.')}</p>
+              <button type="button" onClick={() => setShowDeleteConfirm(true)} className="mt-3 min-h-11 rounded-[18px] border border-status-danger px-4 text-sm font-bold text-status-danger-text">{t('회원 탈퇴', 'Delete account', 'حذف الحساب')}</button>
+            </section>
           </div>
         )}
       </div>

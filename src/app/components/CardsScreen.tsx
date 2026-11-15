@@ -4,9 +4,12 @@ import type { Language } from '../App';
 import { deleteCard, getSavedCards, type CardType, type SavedCard } from '../../api/card';
 import { BottomNav } from './BottomNav';
 import { createTranslator, translateText, type LocalizedText } from '../locales';
+import { OfflineBanner } from './OfflineBanner';
+import { deleteDemoCard, listDemoCards } from '../demo/cards';
 
 interface CardsScreenProps {
   language: Language;
+  demoMode: boolean;
   onMyPage: () => void;
 }
 
@@ -37,7 +40,7 @@ function speakKorean(text: string) {
   window.speechSynthesis.speak(utterance);
 }
 
-export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
+export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) {
   const [cards, setCards] = useState<SavedCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,7 +65,7 @@ export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
     try {
       setLoading(true);
       setError('');
-      setCards(await getSavedCards());
+      setCards(demoMode ? listDemoCards() : await getSavedCards());
     } catch (e) {
       console.error('Failed to load saved cards:', e);
       setError(t('카드를 불러오지 못했어요.', 'Failed to load cards.', 'تعذر تحميل البطاقات.'));
@@ -82,7 +85,8 @@ export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
   const handleDelete = async (cardId: string) => {
     try {
       setDeletingId(cardId);
-      await deleteCard(cardId);
+      if (demoMode) deleteDemoCard(cardId);
+      else await deleteCard(cardId);
       setCards((prev) => prev.filter((card) => card.cardId !== cardId));
     } catch (e) {
       console.error('Failed to delete card:', e);
@@ -111,6 +115,8 @@ export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
           <User className="size-5" />
         </button>
       </div>
+
+      <OfflineBanner language={language} onRetry={() => void loadCards()} />
 
       <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5">
         {/* 고정: 식당에서 자주 쓰는 문장 */}
@@ -142,11 +148,11 @@ export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
         </div>
 
         {/* 저장 카드 */}
-        {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+        {error && <div role="alert" className="rounded-[20px] border border-border-warm bg-surface-raised px-5 py-6 text-center"><p className="text-sm font-bold text-text-primary">{error}</p><button type="button" onClick={() => void loadCards()} className="mt-3 min-h-11 rounded-[18px] border border-brand-primary px-4 text-sm font-bold text-brand-primary">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button></div>}
 
         {loading ? (
           <p className="text-sm text-sesame-gray text-center py-8">{t('불러오는 중...', 'Loading...', 'جارٍ التحميل...')}</p>
-        ) : cards.length === 0 ? (
+        ) : !error && cards.length === 0 ? (
           <div className="py-10 text-center">
             <div className="text-4xl mb-3">💬</div>
             <p className="text-sm text-sesame-gray">

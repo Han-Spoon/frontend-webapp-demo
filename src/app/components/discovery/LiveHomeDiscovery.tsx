@@ -39,6 +39,7 @@ export function LiveHomeDiscovery({
     error,
     isLoading,
     searchAt,
+    retrySearch,
     searchLocation,
   } = useStoreCandidates('', {
     initialSearchLocation: DEFAULT_SEARCH_LOCATION,
@@ -160,7 +161,7 @@ export function LiveHomeDiscovery({
         ) : (
           <div
             role={error ? 'alert' : 'status'}
-            className="absolute inset-x-3 bottom-3 flex min-h-[86px] items-center justify-center rounded-[22px] border border-white/70 bg-rice-white/95 p-3 text-center text-xs font-semibold text-text-secondary shadow-[0_14px_38px_rgba(35,42,37,.16)] backdrop-blur"
+            className="absolute inset-x-3 bottom-3 flex min-h-[86px] flex-col items-center justify-center rounded-[22px] border border-white/70 bg-rice-white/95 p-3 text-center text-xs font-semibold text-text-secondary shadow-[0_14px_38px_rgba(35,42,37,.16)] backdrop-blur"
           >
             {isLoading ? (
               <>
@@ -168,7 +169,7 @@ export function LiveHomeDiscovery({
                 {t('식당을 찾고 있어요.', 'Finding restaurants…', 'جارٍ البحث عن المطاعم…')}
               </>
             ) : error ? (
-              t('식당 목록을 불러오지 못했어요.', 'Could not load restaurants.', 'تعذر تحميل المطاعم.')
+              <><p>{t('식당 목록을 불러오지 못했어요.', 'Could not load restaurants.', 'تعذر تحميل المطاعم.')}</p><button type="button" onClick={retrySearch} className="mt-2 min-h-11 rounded-[18px] border border-brand-primary px-4 font-bold text-brand-primary">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button></>
             ) : (
               t('이 지역에 등록된 식당이 없어요.', 'No registered restaurants in this area.', 'لا توجد مطاعم مسجلة في هذه المنطقة.')
             )}
@@ -188,7 +189,7 @@ export function LiveHomeDiscovery({
       }))}
       loading={isLoading}
       error={error}
-      onRetry={() => selectArea(area)}
+      onRetry={retrySearch}
       onSelect={id => {
         const store = candidates.find(candidate => String(candidate.storeId) === id);
         if (store) openMap(store);

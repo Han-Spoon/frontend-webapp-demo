@@ -13,6 +13,7 @@ import {
   type OwnerContent,
 } from '../i18n';
 import { createTranslator } from '../locales';
+import { saveDemoCard } from '../demo/cards';
 import { getProfileCommunicationItems, getProfileSummary, localizeMenuText } from '../results/resultViewModel';
 
 export type OwnerCommunicationType =
@@ -50,6 +51,7 @@ interface OwnerCommunicationSheetProps {
   type: OwnerCommunicationType;
   userProfile: UserProfile | null;
   language: Language;
+  demoMode?: boolean;
   initialResponse?: OwnerResponseId | null;
   onResponseSelect?: (type: OwnerCommunicationType, responseId: OwnerResponseId) => void;
   onClose: () => void;
@@ -60,6 +62,7 @@ export function OwnerCommunicationSheet({
   type,
   userProfile,
   language,
+  demoMode = false,
   initialResponse = null,
   onResponseSelect,
   onClose,
@@ -203,11 +206,13 @@ export function OwnerCommunicationSheet({
     try {
       setSaving(true);
       setSaveError('');
-      await saveCard({
+      const request = {
         type: toCardType(type),
         menuNameKo: menu.menuName,
         text: { ko: content.korean, en: content.english, ar: content.arabic },
-      });
+      };
+      if (demoMode) saveDemoCard(request);
+      else await saveCard(request);
       setSaved(true);
       setTimeout(() => {
         onClose();
