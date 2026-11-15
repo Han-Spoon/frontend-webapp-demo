@@ -6,6 +6,7 @@ import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import { createTranslator, LANGUAGE_LOCALES, translateText } from '../locales';
 import { StoryImage } from './curation/StoryImage';
 import { CURATION_BODY_DRAFTS } from '../constants/curationBodyDrafts';
+import { OfflineBanner } from './OfflineBanner';
 
 interface CurationDetailScreenProps {
   language: Language;
@@ -67,6 +68,7 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
 
   return (
     <div className="flex h-dvh flex-col bg-[#13231c] text-rice-white">
+      <OfflineBanner language={language} />
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="relative h-[440px]">
           <StoryImage article={article} language={language} className="absolute inset-0 size-full object-cover" />

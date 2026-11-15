@@ -6,10 +6,11 @@ import { createTranslator } from '../../locales';
 import { getProfileCommunicationItems, localizeMenuText } from '../../results/resultViewModel';
 import { ReviewCards } from './ReviewCards';
 
-export function RestaurantReviewList({ language, profile, reviews, loading = false, error = '', onRetry, onReport }: {
+export function RestaurantReviewList({ language, profile, reviews, reviewCount, loading = false, error = '', onRetry, onReport }: {
   language: Language;
   profile: UserProfile | null;
   reviews: RestaurantReview[];
+  reviewCount?: number;
   loading?: boolean;
   error?: string;
   onRetry?: () => void;
@@ -31,9 +32,10 @@ export function RestaurantReviewList({ language, profile, reviews, loading = fal
       (dietFilters.length === 0 || dietFilters.some(id => menu.answers[id] !== undefined)));
     return menus.length ? [{ ...review, menus }] : [];
   });
+  const visibleCount = (loading || error) && typeof reviewCount === 'number' && Number.isFinite(reviewCount) ? reviewCount : reviews.length;
 
   return <section>
-    <h3 className="text-xl font-extrabold">{t(`후기 ${reviews.length}개`, `${reviews.length} reviews`, `${reviews.length} مراجعات`)}</h3>
+    <h3 className="text-xl font-extrabold">{t(`후기 ${visibleCount}개`, `${visibleCount} reviews`, `${visibleCount} مراجعات`)}</h3>
     <p className="mt-3 flex items-start gap-2 rounded-[18px] border border-border-warm bg-surface-raised px-3 py-2.5 text-sm leading-5 text-text-secondary"><Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{t('다른 사용자의 경험이에요. 재료는 매장에 꼭 확인하세요.', 'These are other diners’ experiences. Confirm ingredients with the restaurant.', 'هذه تجارب زوار آخرين. تحقق من المكونات لدى المطعم.')}</p>
     {loading ? <div role="status" className="mt-5 flex items-center justify-center gap-2 rounded-[20px] border border-border-warm bg-surface-raised px-4 py-12 text-sm text-text-secondary"><Loader2 className="size-5 animate-spin motion-reduce:animate-none" />{t('후기를 불러오는 중…', 'Loading reviews…', 'جارٍ تحميل المراجعات…')}</div>
       : error ? <div role="alert" className="mt-5 rounded-[20px] border border-border-warm bg-surface-raised px-4 py-9 text-center"><Info className="mx-auto mb-3 size-7 text-text-tertiary" /><p className="font-extrabold">{t('후기를 불러오지 못했어요', 'Could not load reviews', 'تعذر تحميل المراجعات')}</p><p className="mt-1 text-sm text-text-secondary">{t('연결 상태를 확인하고 다시 시도해 주세요.', 'Check your connection and try again.', 'تحقق من الاتصال وحاول مرة أخرى.')}</p>{onRetry && <button type="button" onClick={onRetry} className="mt-4 min-h-11 rounded-[18px] border border-brand-primary px-4 text-sm font-bold text-brand-primary">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button>}</div>
