@@ -30,6 +30,7 @@ import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
+import { ScreenErrorBoundary, ScreenErrorFallback } from './components/ScreenErrorBoundary';
 
 export type { Language } from './locales';
 
@@ -519,6 +520,17 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-[var(--shell-background)] flex items-center justify-center sm:px-6">
       <div className="mobile-container w-full max-w-[430px] min-h-dvh bg-rice-cream shadow-[0_24px_80px_rgba(41,54,46,0.16)] relative overflow-hidden sm:border-x sm:border-border-warm">
+        <ScreenErrorBoundary
+          resetKey={location.pathname}
+          fallback={(reset) => (
+            <ScreenErrorFallback
+              language={language}
+              pathname={location.pathname}
+              onRetry={reset}
+              onHome={location.pathname === '/home' ? undefined : () => navigate('/home')}
+            />
+          )}
+        >
         <Routes>
           <Route
             path="/"
@@ -681,6 +693,7 @@ export default function App() {
           <Route path="/mypage/reviews" element={<MyReviewsScreen language={language} profile={userProfile} demoMode={demoMode} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </ScreenErrorBoundary>
       </div>
     </div>
   );
