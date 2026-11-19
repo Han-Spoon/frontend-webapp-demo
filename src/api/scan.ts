@@ -36,6 +36,8 @@ export interface MenuResult {
   descriptionKo?: string | null;
   descriptionEn?: string | null;
   priceText?: string | null;
+  imageUrl?: string | null;
+  imageAttribution?: string | null;
   isSpicy?: boolean | null;
   riskLevel: 'safe' | 'caution' | 'danger';
   hits?: string[] | null;
@@ -194,6 +196,8 @@ export function mapMenuResult(menu: MenuResult, index: number): MenuAnalysis {
 
   return {
     id: String(menu.displayOrder ?? index),
+    image: menu.imageUrl ?? undefined,
+    imageAttribution: menu.imageUrl ? menu.imageAttribution ?? undefined : undefined,
     menuName: menu.menuNameKo,
     menuNameEn: menu.menuNameEn ?? menu.menuNameKo,
     menuNameAr: undefined,

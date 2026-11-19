@@ -51,7 +51,7 @@
 스캔 상세의 `record`에도 같은 구조가 선택적으로 포함된다. 저장 실패 시 로컬 성공으로 대체하지 않으며 사용자가
 같은 멱등 PUT을 다시 시도할 수 있게 한다. 서버 `scanId`가 없는 시연·파트너 결과와 기존 로컬 기록만 로컬 저장을 유지한다.
 
-현재 메뉴: `menuNameKo`, `menuNameEn?`, `descriptionKo?`, `descriptionEn?`, `priceText?`, `riskLevel`, `isSpicy?`, `hits?`, `message?`, `ownerCard?`. 음식 설명은 결과 카드 가격 아래, `message`는 판정 이유에 매핑한다.
+현재 메뉴: `menuNameKo`, `menuNameEn?`, `descriptionKo?`, `descriptionEn?`, `priceText?`, `imageUrl?`, `imageAttribution?`, `riskLevel`, `isSpicy?`, `hits?`, `message?`, `ownerCard?`. 음식 설명은 결과 카드 가격 아래, `message`는 판정 이유에 매핑한다. `imageUrl`은 스캔 가게의 가게 메뉴 사진(없으면 null)으로 결과 카드 사진(`image`)에, `imageAttribution`은 원문 그대로(번역 없음) 상세 근거 아래 출처 표기에 쓴다.
 스캔 상세·이력의 `store`는 `{ storeId, name } | null`이다. 응답은 data 래핑이 있거나 직접 전달될 수 있다.
 `mapMenuResult`가 메뉴를 프론트 구조로 변환한다. 메뉴 찜은 완료된 서버 스캔에만 `saved-menus` API로 저장하고, 서버 리소스가 없는 명시적 시연·파트너 메뉴는 `src/app/demo/`의 브라우저 저장소를 쓴다. 찜 응답은 `id`, `scanId`, `displayOrder`, `menuName`, `riskLevel`, `store?`, `savedAt`이다. 찜과 스캔 기록은 별도 리소스다. 피드백은 기록 저장 시
 현재 프로필에 존재하는 항목만 서버에 보낸다.

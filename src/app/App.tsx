@@ -126,6 +126,7 @@ export interface MenuAnalysis {
   imagePosition?: string;
   imageScale?: number;
   imageCredit?: { author: string; url: string; license: string };
+  imageAttribution?: string;
   /** Explicit fixture marker. Never returned/inferred by the live API adapter. */
   demoScenario?: 'bunsik-vegan-shrimp';
   menuName: string;
