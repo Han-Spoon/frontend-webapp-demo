@@ -31,6 +31,7 @@ export function AnalysisEvidence({ menu, language }: { menu: MenuAnalysis; langu
     {vm.uncertainties.length > 0 && <section className="rounded-2xl border border-status-caution-border bg-status-caution-surface p-3.5"><h5 className="mb-3 flex items-center gap-2 text-xs font-extrabold text-status-caution-text"><ClipboardCheck className="size-4" />{t('주문 전, 이것만 확인해요', 'Before ordering, check these', 'تحقق من هذه قبل الطلب')}</h5><ul className="space-y-3">{vm.uncertainties.map((item, index) => <li key={index} className="flex items-start gap-2 text-xs leading-5"><CircleHelp className="mt-0.5 size-4 shrink-0 text-status-caution-text" /><span>{item}</span></li>)}</ul></section>}
     {!vm.ingredients.length && !menu.explainability?.checks?.length && <p className="text-xs text-text-tertiary">{t('상세 근거가 아직 제공되지 않았어요.', 'Detailed evidence has not been supplied.', 'لم يتم توفير أدلة تفصيلية بعد.')}</p>}
     {menu.imageCredit && <a href={menu.imageCredit.url} target="_blank" rel="noreferrer" className="block text-[10px] text-text-tertiary underline">{t('참고 사진', 'Reference photo', 'صورة مرجعية')}: {menu.imageCredit.author} · {menu.imageCredit.license} · {t('화면에 맞춰 크롭', 'Cropped to fit', 'مقتصة للعرض')}</a>}
+    {menu.imageAttribution && <p className="text-[10px] text-text-tertiary">{menu.imageAttribution}</p>}
   </div>;
 }
 

@@ -72,6 +72,10 @@ try {
   assert.equal(live.explainability.decisionReason.ko, '서버 판정 이유');
   assert.equal(live.riskLevel, 'caution');
   assert.equal(live.demoScenario, undefined);
+  assert.equal(live.image, undefined);
+  const withPhoto = mapMenuResult({menuNameKo:'김치찌개', riskLevel:'caution', imageUrl:'https://api.han-spoon.site/menus/stores/a.jpg', imageAttribution:'사진 제공: 기와'}, 0);
+  assert.equal(withPhoto.image, 'https://api.han-spoon.site/menus/stores/a.jpg');
+  assert.equal(withPhoto.imageAttribution, '사진 제공: 기와');
   const { getProfileSummary } = await server.ssrLoadModule('/src/app/results/resultViewModel.ts');
   assert.ok(getProfileSummary({...FILMING_PROFILE,noSpicy:true,noAlcohol:true},'ko').every(label=>!label.includes('제외')));
   const milkMenu = RESULT_PREVIEW_MENUS.find(
