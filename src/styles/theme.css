@@ -42,6 +42,10 @@
   --status-danger-text: #842923;
   --status-danger-surface: #fff0ee;
   --status-danger-border: #e8b3ae;
+  --status-unknown: #4d6177;
+  --status-unknown-text: #33465b;
+  --status-unknown-surface: #eef2f6;
+  --status-unknown-border: #c1ccd8;
   --focus-ring: #337e62;
   --shadow-card: 0 8px 24px rgba(44, 48, 44, 0.07);
   --shadow-float: 0 16px 44px rgba(35, 42, 37, 0.12);
@@ -113,6 +117,10 @@
   --status-danger-text: #ffd9d5;
   --status-danger-surface: #3d211f;
   --status-danger-border: #75413d;
+  --status-unknown: #9db1c7;
+  --status-unknown-text: #dce6f1;
+  --status-unknown-surface: #1f2833;
+  --status-unknown-border: #45566a;
   --focus-ring: #72c6a0;
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.18);
   --shadow-float: 0 16px 44px rgba(0, 0, 0, 0.32);
@@ -220,6 +228,10 @@
   --color-status-danger-text: var(--status-danger-text);
   --color-status-danger-surface: var(--status-danger-surface);
   --color-status-danger-border: var(--status-danger-border);
+  --color-status-unknown: var(--status-unknown);
+  --color-status-unknown-text: var(--status-unknown-text);
+  --color-status-unknown-surface: var(--status-unknown-surface);
+  --color-status-unknown-border: var(--status-unknown-border);
 }
 
 @layer base {

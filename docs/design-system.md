@@ -15,6 +15,9 @@
 | 본문 | text-primary / #20231f |
 | 보조 글 | text-secondary / #626862 |
 | 안전/주의/위험 | status-safe / status-caution / status-danger와 대응 surface·text·border |
+| 확인 필요(판정 못 함) | status-unknown / #4d6177 회청색과 대응 surface·text·border. 안전·위험 어느 쪽으로도 읽히지 않는 중립색 |
+
+판정 표시(색·아이콘·단어)는 `results/ResultEvidence.tsx`의 `RISK_DISPLAY` 한 곳에서 정의한다. 서버가 `riskLevel`을 주지 않거나(null) 모르는 값을 주면 `확인 필요`(`unknown`, 물음표 아이콘)로 그리고, 안전으로 추정하지 않는다. 이 상태의 카드는 "직원에게 재료 확인하기"를 주요 행동으로 두고 "빼고 요청"은 보여 주지 않는다. 결과 필터의 `확인 필요` 칩은 해당 메뉴가 있을 때만 나타난다.
 
 ## 레이아웃
 

@@ -26,6 +26,7 @@ import { clearAuthData, getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
 import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { ScanRecordResponse } from '../api/scan';
+import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
@@ -138,7 +139,7 @@ export interface MenuAnalysis {
   descriptionAr?: string;
   descriptionLocalized?: LocalizedMenuText;
   price?: string;
-  riskLevel: 'safe' | 'caution' | 'danger';
+  riskLevel: RiskLevel;
   riskReasons: string[];
   riskReasonsEn?: string[];
   riskReasonsAr?: string[];

@@ -53,7 +53,7 @@
 
 현재 메뉴: `menuNameKo`, `menuNameEn?`, `descriptionKo?`, `descriptionEn?`, `priceText?`, `imageUrl?`, `imageAttribution?`, `riskLevel`, `isSpicy?`, `hits?`, `message?`, `ownerCard?`. 음식 설명은 결과 카드 가격 아래, `message`는 판정 이유에 매핑한다. `imageUrl`은 스캔 가게의 가게 메뉴 사진(없으면 null)으로 결과 카드 사진(`image`)에, `imageAttribution`은 원문 그대로(번역 없음) 상세 근거 아래 출처 표기에 쓴다.
 스캔 상세·이력의 `store`는 `{ storeId, name } | null`이다. 응답은 data 래핑이 있거나 직접 전달될 수 있다.
-`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. 메뉴 찜은 완료된 서버 스캔에만 `saved-menus` API로 저장하고, 서버 리소스가 없는 명시적 시연·파트너 메뉴는 `src/app/demo/`의 브라우저 저장소를 쓴다. 찜 응답은 `id`, `scanId`, `displayOrder`, `menuName`, `riskLevel`, `store?`, `savedAt`이다. 찜과 스캔 기록은 별도 리소스다. 피드백은 기록 저장 시
+`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. `riskLevel`은 `normalizeRiskLevel`(`src/api/riskLevel.ts`)을 거쳐 safe·caution·danger 외의 값, null, 누락을 모두 화면 상태 `unknown`(확인 필요)으로 바꾼다. 명세 V2는 판정하지 못한 메뉴에 `riskLevel: null`을 준다. 찜 응답의 `riskLevel`도 같은 함수를 거친다. 메뉴 찜은 완료된 서버 스캔에만 `saved-menus` API로 저장하고, 서버 리소스가 없는 명시적 시연·파트너 메뉴는 `src/app/demo/`의 브라우저 저장소를 쓴다. 찜 응답은 `id`, `scanId`, `displayOrder`, `menuName`, `riskLevel`, `store?`, `savedAt`이다. 찜과 스캔 기록은 별도 리소스다. 피드백은 기록 저장 시
 현재 프로필에 존재하는 항목만 서버에 보낸다.
 
 분석 상태는 pending/processing/analyzing → processing, completed/complete/done/succeeded → completed로 정규화한다. failed, needs_retake, unknown은 별도로 다룬다.

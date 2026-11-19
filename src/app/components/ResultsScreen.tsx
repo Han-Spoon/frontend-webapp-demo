@@ -39,7 +39,8 @@ import {
 } from './OwnerCommunicationSheet';
 import { ProfileCommunicationSheet } from './ProfileCommunicationSheet';
 import { CommunicationActions } from './results/CommunicationActions';
-import { RiskBadge, StatusGuidance } from './results/ResultEvidence';
+import { RiskBadge, riskLabel, StatusGuidance } from './results/ResultEvidence';
+import { normalizeRiskLevel } from '../../api/riskLevel';
 import { AnalysisEvidence, CautionInsight } from './results/AnalysisInsights';
 import { FILMING_PROFILE } from '../results/filmingFixtures';
 import {
@@ -133,7 +134,9 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
     ?? savedRecord?.store?.name
     ?? (restaurant ? localizeMenuText(restaurant.name, language) : null);
   const t = createTranslator(language);
-  const menuList = Array.isArray(menus) ? menus : [];
+  // 기기 저장 기록 등 매퍼를 거치지 않은 값도 판정 정규화
+  const menuList = useMemo(() => (Array.isArray(menus) ? menus : [])
+    .map(menu => ({ ...menu, riskLevel: normalizeRiskLevel(menu.riskLevel) })), [menus]);
   const profileSummary = getProfileSummary(userProfile, language);
   const profileCommunicationItems = getProfileCommunicationItems(userProfile);
   const startReview = () => {
@@ -180,6 +183,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
     safe: menuList.filter((menu) => menu.riskLevel === 'safe').length,
     caution: menuList.filter((menu) => menu.riskLevel === 'caution').length,
     danger: menuList.filter((menu) => menu.riskLevel === 'danger').length,
+    unknown: menuList.filter((menu) => menu.riskLevel === 'unknown').length,
   }), [menuList]);
   const filteredMenus = filter === 'all' ? menuList : menuList.filter((menu) => menu.riskLevel === filter);
 
@@ -249,9 +253,9 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
         <nav className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b border-border-warm bg-surface-base/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t('결과 필터', 'Result filters', 'مرشحات النتائج')}>
           {([
             { value: 'all' as const, label: t('전체', 'All', 'الكل'), count: menuList.length },
-            { value: 'safe' as const, label: t('안전', 'Safe', 'آمن'), count: counts.safe },
-            { value: 'caution' as const, label: t('주의', 'Caution', 'تنبيه'), count: counts.caution },
-            { value: 'danger' as const, label: t('위험', 'Danger', 'خطر'), count: counts.danger },
+            ...(['safe', 'caution', 'danger', 'unknown'] as const)
+              .filter((level) => level !== 'unknown' || counts.unknown > 0)
+              .map((level) => ({ value: level, label: riskLabel(level, t), count: counts[level] })),
           ]).map((item) => (
             <button key={item.value} onClick={() => setFilter(item.value)} aria-pressed={filter === item.value} className={`min-h-11 shrink-0 rounded-xl border px-3.5 text-sm font-bold ${filter === item.value ? 'border-text-primary bg-text-primary text-white' : 'border-border-warm bg-surface-raised text-text-secondary hover:border-text-tertiary'}`}>
               {item.label} <span className="ms-1 opacity-70">{item.count}</span>
@@ -285,7 +289,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             const displayedCauses = causeItems.slice(0, 2);
             const hiddenCauseCount = Math.max(0, causeItems.length - displayedCauses.length);
             const requestActions = [
-              ...(menu.riskLevel !== 'safe' ? [{ id: 'request', label: t('빼고 요청', 'Request removal', 'طلب الإزالة'), onClick: () => openSheet(menu, 'request') }] : []),
+              ...(menu.riskLevel === 'caution' || menu.riskLevel === 'danger' ? [{ id: 'request', label: t('빼고 요청', 'Request removal', 'طلب الإزالة'), onClick: () => openSheet(menu, 'request') }] : []),
               ...(isSpicy ? [{ id: 'less-spicy', label: t('덜 맵게 요청', 'Less spicy', 'أقل حدة'), onClick: () => openSheet(menu, 'lessSpicy') }] : []),
             ];
 
@@ -305,7 +309,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                   </div>
 
                   <div className="space-y-3 p-3">
-                    {causeItems.length > 0 && <div className="flex flex-wrap gap-1.5">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`min-h-8 max-w-full break-words rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="min-h-8 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
+                    {causeItems.length > 0 && <div className="flex flex-wrap gap-1.5">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`min-h-8 max-w-full break-words rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : menu.riskLevel === 'unknown' ? 'bg-status-unknown-surface text-status-unknown-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="min-h-8 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
                     {!profileSummary.length && (viewModel.ingredients.length > 0 || isSpicy) && <div className="flex gap-1.5 overflow-hidden whitespace-nowrap">{viewModel.ingredients.slice(0, 4).map(item => <span key={item.localizedName} className="rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">{item.localizedName}</span>)}{isSpicy && <span className="inline-flex items-center gap-1 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary"><Flame className="size-3" />{t('매운 음식', 'Spicy', 'حار')}</span>}</div>}
                     <div className="flex items-center gap-2"><button type="button" onClick={() => openSheet(menu, profileSummary.length && menu.riskLevel !== 'safe' ? 'ingredient' : 'order')} className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-3 py-2.5 text-sm font-extrabold ${menu.riskLevel === 'danger' && profileSummary.length ? 'border border-brand-primary text-brand-primary' : 'bg-brand-primary text-white'}`}><MessageSquareText className="size-4 shrink-0" />{profileSummary.length && menu.riskLevel !== 'safe' ? causeItems.length ? t(`재료 ${causeItems.length}개 확인하기`, `Check ${causeItems.length} ingredients`, `تحقق من ${causeItems.length} مكونات`) : t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات') : t('주문 카드', 'Order card', 'بطاقة الطلب')}</button><button type="button" onClick={() => toggleExpanded(menu.id)} aria-expanded={expanded} aria-controls={cardDetailsId} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[18px] px-2 text-sm font-bold text-brand-primary">{expanded ? t('접기', 'Hide', 'إخفاء') : t('근거 보기', 'Evidence', 'الأدلة')}<ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button></div>
                   </div>
