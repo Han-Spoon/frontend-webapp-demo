@@ -669,7 +669,7 @@ export function StoreMapView({
   const [sort, setSort] = useState<StoreSort>('default');
   const [category, setCategory] = useState<FoodCategoryId | 'all'>('all');
   const categories = useMemo(() => {
-    const present = new Set(candidates.map((store) => foodCategoryOf(store.categoryName)));
+    const present = new Set(candidates.map((store) => foodCategoryOf(store)));
     return FOOD_CATEGORY_ORDER.filter((id) => present.has(id));
   }, [candidates]);
   useEffect(() => {
@@ -678,7 +678,7 @@ export function StoreMapView({
   const distanceSortable = !query.trim();
   const activeSort: StoreSort = sort === 'distance' && !distanceSortable ? 'default' : sort;
   const visible = useMemo(() => {
-    const filtered = category === 'all' ? candidates : candidates.filter((store) => foodCategoryOf(store.categoryName) === category);
+    const filtered = category === 'all' ? candidates : candidates.filter((store) => foodCategoryOf(store) === category);
     if (activeSort === 'default') return filtered;
     const far = Number.MAX_SAFE_INTEGER;
     return [...filtered].sort((a, b) => activeSort === 'distance'

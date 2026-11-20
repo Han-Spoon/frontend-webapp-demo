@@ -36,12 +36,6 @@ function areaFromAddress(address?: string | null) {
   return tokens.find((token) => /[구군]$/.test(token)) ?? tokens[1] ?? null;
 }
 
-/** "음식점 > 한식 > 육류,고기" → "육류,고기" */
-function categoryLabel(categoryName?: string | null) {
-  const last = categoryName?.split('>').pop()?.trim();
-  return last || null;
-}
-
 function formatDistance(meters: number) {
   return meters < 1000 ? `${Math.round(meters)}m` : `${(meters / 1000).toFixed(1)}km`;
 }
@@ -95,8 +89,9 @@ function StoreCard({
   const tr = (text: Parameters<typeof translateText>[1]) => translateText(language, text);
   const rating = validRating(extras?.rating);
   const reviewCount = store.reviewCount ?? 0;
-  const category = foodCategoryOf(store.categoryName);
-  const categoryText = category === 'other' ? categoryLabel(store.categoryName) : translateText(language, FOOD_CATEGORY_LABELS[category]);
+  const category = foodCategoryOf(store);
+  // 기타(기타 한식 음식점·중분류 '한식' 등)는 '기타'라고 쓰지 않고, 한국어 화면에서만 원래 분류 이름을 보여 준다.
+  const categoryText = category !== 'other' ? translateText(language, FOOD_CATEGORY_LABELS[category]) : language === 'ko' ? store.categoryName?.trim() || null : null;
   const meta = [areaFromAddress(store.roadAddress), categoryText, extras?.floorInfo].filter(Boolean);
   const photos = extras?.photos?.slice(0, 3) ?? [];
   const distance = store.distanceMeters !== null && origin ? formatDistance(store.distanceMeters) : null;
