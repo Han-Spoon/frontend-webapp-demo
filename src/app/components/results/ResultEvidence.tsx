@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, OctagonX } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleHelp, OctagonX } from 'lucide-react';
 import type { MenuAnalysis } from '../../App';
 
 export type ResultTranslator = (ko: string, en: string, ar: string) => string;
@@ -8,12 +8,14 @@ const statusClasses: Record<MenuAnalysis['riskLevel'], string> = {
   safe: 'border-status-safe-border bg-status-safe-surface text-status-safe-text',
   caution: 'border-status-caution-border bg-status-caution-surface text-status-caution-text',
   danger: 'border-status-danger-border bg-status-danger-surface text-status-danger-text',
+  unknown: 'border-border-warm bg-surface-subtle text-text-secondary',
 };
 
 const statusIcons = {
   safe: CheckCircle2,
   caution: AlertTriangle,
   danger: OctagonX,
+  unknown: CircleHelp,
 };
 
 export function RiskBadge({ level, t }: { level: MenuAnalysis['riskLevel']; t: ResultTranslator }) {
@@ -22,7 +24,7 @@ export function RiskBadge({ level, t }: { level: MenuAnalysis['riskLevel']; t: R
     ? t('안전', 'Safe', 'آمن')
     : level === 'caution'
       ? t('주의', 'Caution', 'تنبيه')
-      : t('위험', 'Danger', 'خطر');
+      : level === 'danger' ? t('위험', 'Danger', 'خطر') : t('판정 불가', 'Not assessed', 'لم يتم التقييم');
 
   return (
     <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-extrabold ${statusClasses[level]}`}>
@@ -38,7 +40,7 @@ export function StatusGuidance({ level, t }: { level: MenuAnalysis['riskLevel'];
     ? t('안전', 'Safe', 'آمن')
     : level === 'caution'
       ? t('주의', 'Caution', 'تنبيه')
-      : t('위험', 'Danger', 'خطر');
+      : level === 'danger' ? t('위험', 'Danger', 'خطر') : t('판정 불가', 'Not assessed', 'لم يتم التقييم');
   const guidance = level === 'safe'
     ? t(
       '확보한 정보에서 식단 충돌을 찾지 못했어요. 실제 재료와 조리 환경은 확인해 주세요.',
@@ -51,11 +53,11 @@ export function StatusGuidance({ level, t }: { level: MenuAnalysis['riskLevel'];
         'Please check the ingredients or cooking method once more.',
         'يرجى التحقق من المكونات أو طريقة التحضير مرة أخرى.',
       )
-      : t(
+      : level === 'danger' ? t(
         '식이 기준과 맞지 않아 피하는 게 좋아요',
         'This does not fit your dietary needs, so it is best to avoid it.',
         'هذا لا يناسب احتياجاتك الغذائية، لذا يُفضّل تجنبه.',
-      );
+      ) : t('정보가 부족해 판정하지 못했어요.', 'There was not enough information to assess this menu.', 'المعلومات غير كافية لتقييم هذا الطبق.');
 
   return (
     <div className="flex items-start gap-2.5 rounded-xl border border-border-warm bg-surface-raised px-3 py-2.5">

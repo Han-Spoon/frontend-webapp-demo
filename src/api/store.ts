@@ -1,7 +1,7 @@
 import { authFetch } from './authFetch';
 import { ApiError } from './user';
 
-export type StoreMatchMethod = 'gps_candidate' | 'name_search' | 'kakao_fallback';
+export type StoreMatchMethod = 'gps_candidate' | 'name_search' | 'kakao_fallback' | 'store_detail';
 
 export interface StoreCandidate {
   storeId: number;
@@ -10,10 +10,11 @@ export interface StoreCandidate {
   roadAddress?: string | null;
   latitude: number;
   longitude: number;
-  distanceMeters: number;
+  distanceMeters: number | null;
   categoryCode?: string | null;
   categoryName?: string | null;
   verified: boolean;
+  reviewCount?: number;
   matchMethod: StoreMatchMethod;
 }
 
@@ -23,8 +24,8 @@ export interface StoreSummary {
 }
 
 export interface StoreCandidateRequest {
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   query?: string;
   radiusMeters?: number;
   limit?: number;

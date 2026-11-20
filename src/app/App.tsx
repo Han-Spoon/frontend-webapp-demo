@@ -131,7 +131,8 @@ export interface MenuAnalysis {
   descriptionAr?: string;
   descriptionLocalized?: LocalizedMenuText;
   price?: string;
-  riskLevel: 'safe' | 'caution' | 'danger';
+  riskLevel: 'safe' | 'caution' | 'danger' | 'unknown';
+  staffQuestions?: import('../api/scan').MenuResult['staffQuestions'];
   riskReasons: string[];
   riskReasonsEn?: string[];
   riskReasonsAr?: string[];
@@ -229,7 +230,6 @@ export default function App() {
     try {
       const user = await getMe();
       setCurrentUser(user);
-      // 신규 언어는 백엔드 enum 확장 전까지 로컬 선택을 우선 보존한다.
       const locallySelected = localStorage.getItem('han-spoon-language');
       if (isLanguage(locallySelected) && !isBackendLanguage(locallySelected)) {
         setLanguage(locallySelected);
@@ -276,7 +276,7 @@ export default function App() {
             formatHistoryTitle(language, item.scannedAt ? new Date(item.scannedAt) : new Date()),
           date: item.scannedAt ?? new Date().toISOString(),
           menuCount: item.menuCount ?? 0,
-          dangerCount: item.riskyMenuCount ?? 0,
+          dangerCount: item.dangerCount ?? 0,
           menus: [],
           store: item.store ?? null,
         })),
@@ -301,12 +301,13 @@ export default function App() {
     }
     try {
       const result = await getScanResult(item.id);
-      setCurrentAnalysis((result.menus ?? []).map(mapMenuResult));
+      const snapshot = result.dietSnapshot ? { ...userProfile, ...result.dietSnapshot, languageCode: result.locale ?? language } as UserProfile : null;
+      setCurrentAnalysis((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, snapshot)));
       setAnalysisImage(null);
       setActiveScanId(item.id);
       setActiveRecordId(undefined);
-      setHistoryProfile(undefined);
-      setActiveScanStore(result.store ?? null);
+      setHistoryProfile(snapshot ?? undefined);
+      setActiveScanStore(result.record?.store ?? result.store ?? null);
       writeDemo('selected-restaurant', null);
       navigate('/results');
     } catch (error) {
@@ -325,7 +326,8 @@ export default function App() {
   };
 
   const handleRenameHistory = async (id: string, title: string) => {
-    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title } : record)); return; }
+    if (!title.trim() || title.trim().length > 30) return;
+    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title: title.trim() } : record)); return; }
     setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)));
     try {
       await updateScanTitle(id, title);
@@ -491,11 +493,12 @@ export default function App() {
               <AnalyzingScreen
                 language={language}
                 image={analysisImage}
+                userProfile={userProfile}
                 fixedResults={FIXED_SCAN_RESULTS_ENABLED || demoMode}
-                onComplete={(_scanId, menus, store) => {
+                onComplete={(_scanId, menus, store, appliedProfile) => {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
-                  setHistoryProfile(_scanId === null ? { ...RESULT_PREVIEW_PROFILE, languageCode: language } : undefined);
+                  setHistoryProfile(_scanId === null ? { ...RESULT_PREVIEW_PROFILE, languageCode: language } : appliedProfile);
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
                   if (analysisImage?.previewUrl.startsWith('blob:')) URL.revokeObjectURL(analysisImage.previewUrl);

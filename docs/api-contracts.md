@@ -1,6 +1,6 @@
 # 현재 API와 제안 출력 계약
 
-2026-09-15 기준. 아래 현재 API는 `src/api/`를 근거로 한다. 제안 구조는 서버 구현/합의가 완료되었다는 의미가 아니다.
+이 문서는 2026-09-15 기준의 이전 계약을 보존한다. 2026-11-20 API V2 연동 상태는 [api-v2-integration.md](api-v2-integration.md)를 따른다.
 
 발표용 릴리스 예외: `FIXED_SCAN_RESULTS_ENABLED=true`인 현재 새 스캔은 모든 이미지에 고정 결과를 반환하므로 업로드 URL 발급/분석 시작을 호출하지 않는다. 인증·프로필·기록 조회는 기존 계약을 사용한다. 4분할 `checks` UI는 제거했다. 복구 절차는 `scan-result-filming.md` 참조.
 

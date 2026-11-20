@@ -74,6 +74,7 @@ export function OwnerCommunicationSheet({
   const toCardType = (sheetType: OwnerCommunicationType): CardType => {
     if (sheetType === 'order') return 'order';
     if (sheetType === 'ingredient') return 'ingredient_check';
+    if (sheetType === 'lessSpicy') return 'less_spicy';
     return 'exclude';
   };
 

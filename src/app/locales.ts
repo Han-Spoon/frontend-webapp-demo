@@ -2,7 +2,7 @@ export const LANGUAGE_CODES = ['ko', 'en', 'ar', 'zh-CN', 'ja', 'zh-TW', 'es'] a
 
 export type Language = (typeof LANGUAGE_CODES)[number];
 export type BaseLanguage = 'ko' | 'en' | 'ar';
-export type BackendLanguage = BaseLanguage;
+export type BackendLanguage = Language;
 export type NewLanguage = Exclude<Language, BaseLanguage>;
 
 export type LocalizedText = Record<BaseLanguage, string> & Partial<Record<NewLanguage, string>>;
@@ -793,8 +793,6 @@ export const isLanguage = (value: string | null | undefined): value is Language 
   Boolean(value && LANGUAGE_CODES.includes(value as Language));
 
 export const isBackendLanguage = (value: string | null | undefined): value is BackendLanguage =>
-  value === 'ko' || value === 'en' || value === 'ar';
+  isLanguage(value);
 
-/** 백엔드 언어 enum이 확장되기 전까지 신규 언어는 영어로 저장하고 UI 선택은 로컬에 보존한다. */
-export const toBackendLanguage = (language: Language): BackendLanguage =>
-  isBackendLanguage(language) ? language : 'en';
+export const toBackendLanguage = (language: Language): BackendLanguage => language;

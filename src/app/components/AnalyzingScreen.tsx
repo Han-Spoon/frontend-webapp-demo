@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Camera, ChevronDown, CircleDashed, Database, Loader2, ScanText, Search, ShieldCheck, Users } from 'lucide-react';
-import { getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
+import { deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
 import type { StoreSummary } from '../../api/store';
-import type { Language, MenuAnalysis, PendingMenuImage } from '../App';
+import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../App';
 import { createTranslator } from '../locales';
 import { FILMING_MENUS } from '../results/filmingFixtures';
 
 interface AnalyzingScreenProps {
   language: Language;
   image: PendingMenuImage | null;
+  userProfile: UserProfile | null;
   fixedResults?: boolean;
-  onComplete: (scanId: string | null, menus: MenuAnalysis[], store: StoreSummary | null) => void;
+  onComplete: (scanId: string | null, menus: MenuAnalysis[], store: StoreSummary | null, appliedProfile: UserProfile | null) => void;
   onRetryWithNewImage: () => void;
   onCancel: () => void;
 }
@@ -20,12 +21,13 @@ type Phase = 'analyzing' | 'retake' | 'failed';
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_MS = 300000;
 
-export function AnalyzingScreen({ language, image, fixedResults = false, onComplete, onRetryWithNewImage, onCancel }: AnalyzingScreenProps) {
+export function AnalyzingScreen({ language, image, userProfile, fixedResults = false, onComplete, onRetryWithNewImage, onCancel }: AnalyzingScreenProps) {
   const [phase, setPhase] = useState<Phase>('analyzing');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [retryRequiresNewUpload, setRetryRequiresNewUpload] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const activeScanId = useRef<string | null>(null);
 
   const t = createTranslator(language);
 
@@ -70,7 +72,7 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
       setPhase('analyzing');
       setErrorMessage(null);
       const timer = window.setTimeout(() => {
-        onComplete(null, FILMING_MENUS, image.store ? { storeId: image.store.storeId, name: image.store.name } : null);
+        onComplete(null, FILMING_MENUS, image.store ? { storeId: image.store.storeId, name: image.store.name } : null, null);
       }, 4200);
       return () => window.clearTimeout(timer);
     }
@@ -102,6 +104,7 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
             ? { storeId: image.store.storeId, storeMatchMethod: image.store.matchMethod }
             : {}),
         });
+        activeScanId.current = scanId;
         const deadline = Date.now() + MAX_POLL_MS;
 
         while (!cancelled) {
@@ -111,7 +114,9 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
           const status = normalizeScanStatus(result.status);
 
           if (status === 'completed') {
-            onComplete(scanId, (result.menus ?? []).map(mapMenuResult), result.store ?? null);
+            activeScanId.current = null;
+            const appliedProfile = result.dietSnapshot ? { ...userProfile, ...result.dietSnapshot, languageCode: result.locale ?? language } as UserProfile : userProfile;
+            onComplete(scanId, (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, appliedProfile)), result.record?.store ?? result.store ?? null, appliedProfile);
             return;
           }
           if (status === 'needs_retake') {
@@ -158,6 +163,12 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image, attempt, fixedResults]);
 
+  const cancel = () => {
+    if (activeScanId.current) void deleteScan(activeScanId.current).catch(error => console.warn('Scan cancellation failed:', error));
+    activeScanId.current = null;
+    onCancel();
+  };
+
   // 재촬영 안내 (needs_retake)
   if (phase === 'retake') {
     return (
@@ -175,7 +186,7 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
         </div>
         <div className="border-t border-border-warm bg-rice-white/95 px-5 py-4 flex-shrink-0">
           <button
-            onClick={onCancel}
+            onClick={cancel}
             className="min-h-12 w-full rounded-xl bg-brand-primary font-bold text-white shadow-sm hover:bg-brand-primary-hover"
           >
             {t('다시 촬영', 'Retake', 'إعادة التصوير')}
@@ -256,7 +267,7 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
           </button>
         )}
         <button
-          onClick={onCancel}
+          onClick={cancel}
           className="min-h-11 w-full text-sm font-semibold text-text-secondary hover:text-text-primary"
         >
           {t('취소', 'Cancel', 'إلغاء')}

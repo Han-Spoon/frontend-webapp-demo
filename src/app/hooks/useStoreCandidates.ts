@@ -103,7 +103,7 @@ export function useStoreCandidates(
   }, [enabled, locationRequestPending]);
 
   useEffect(() => {
-    if (!enabled || !searchLocation) return;
+    if (!enabled || (!searchLocation && !query.trim())) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
@@ -111,9 +111,9 @@ export function useStoreCandidates(
       setError(false);
       try {
         const items = await findStoreCandidates({
-          ...searchLocation,
+          ...(searchLocation ?? {}),
           query: query.trim() || undefined,
-          radiusMeters: 1000,
+          ...(searchLocation ? { radiusMeters: 1000 } : {}),
           limit: 20,
         }, controller.signal);
         setCandidates(items);
