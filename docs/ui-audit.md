@@ -76,14 +76,14 @@
 | UX-07 | P1 | `ResultsScreen.tsx:288` | 주재료(참치김밥의 참치)에도 "빼고 요청"을 권한다. 명세는 `message.notes[].code = hard_to_remove`를 준다 | 사용자가 뺄 수 없는 재료를 빼 달라고 요청함 | [실행][문서] |
 | UX-08 | P1 | `ResultsScreen.tsx:299` | 프로필이 없으면 판정 배지를 아예 숨긴다. 프로필 없이 온 사용자에게 결과의 의미와 다음 행동(프로필 설정)을 알려 주지 않는다. 홈에서도 프로필 설정을 권하지 않는다 | 처음 온 사용자가 판정을 못 봄 | [코드][실행] |
 | UX-09 | P1 | `ScanScreen.tsx` 분석 버튼 | 사진 선택 후 "분석 시작"이 화면 밖이다. 업로드 사진에도 "다시 촬영"이 보인다 | 주요 흐름 불편 | [실행] |
-| UX-10 | P1 | `AnalyzingScreen.tsx:169-194` | 다시 찍기 화면이 `retakeReasons`·`retakeSuggestions`를 쓰지 않고 "가이드라인에 맞춰 촬영해주세요"만 보여 준다. 가이드라인 자체가 화면에 없다 | 무엇을 고쳐 찍을지 모름 | [코드][문서] No 16 |
+| UX-10 | P1 ✅ 해결 | `AnalyzingScreen.tsx:169-194` | 다시 찍기 화면이 `retakeReasons`·`retakeSuggestions`를 쓰지 않고 "가이드라인에 맞춰 촬영해주세요"만 보여 준다. 가이드라인 자체가 화면에 없다 | 무엇을 고쳐 찍을지 모름 | [코드][문서] No 16 |
 | UX-11 | P1 | `AnalyzingScreen.tsx:145-157` | 스캔 시작 오류를 상태 코드로만 나눈다. `503 SCAN_CAPACITY_EXCEEDED`(2초 뒤 재시도)는 "잠시 후 다시 시도"로, `404 UPLOAD_NOT_FOUND`(새 업로드 필요)는 같은 키 재시도로 떨어진다. 폴링 중 일시적 네트워크 오류 1회로 전체 분석이 실패 처리된다 | 불필요한 실패·막다른 재시도 | [코드][문서] No 15 |
 | UX-12 | P1 ✅ 해결 | `App.tsx:359-361, 369-371` | 기록 열기·삭제 실패가 `console.error`뿐이다. 눌러도 아무 일이 없다 | 사용자: 고장으로 인식 | [코드] |
 | UX-13 | P1 | `App.tsx:200`, `docs/routes.md` | `/results`는 메모리 상태라 새로고침·뒤로 갔다 오기에 사라진다 | 데이터 손실처럼 보임 | [코드] 문서에도 기재 |
 | UX-14 | P1 ✅ 해결 | `OwnerCommunicationSheet.tsx:234`, `ProfileCommunicationSheet.tsx:73`, `AnalyzingScreen.tsx:33`, `CardsScreen`, `MyPageScreen`, `MyReviewsScreen` | 손으로 만든 `role="dialog"` 6곳에 Escape 닫기·포커스 가두기·포커스 복귀가 없다(Radix를 쓰는 `BottomSheet`는 있음). 직원 카드 시트가 포함된다 | 접근성, 키보드·스크린리더 | [코드] `Escape` 처리 0건 |
-| UX-15 | P1 | `ResultsScreen.tsx:310` 외 | 문구: "Check 1 ingredients"(복수형), 분석 중 설명의 "OCR"·"백엔드", 판정 안내 "판정은 참고용이에요"가 카드마다 다른 말투. 결과 제목 "YOUR MENU, MADE CLEAR"·"Your menu, understood."는 장식 | 이해 저하 | [실행][코드] |
+| UX-15 | P1 | `ResultsScreen.tsx:310` 외 | 문구: "Check 1 ingredients"(복수형), 분석 중 설명의 "OCR"·"백엔드"(✅ 11-21 해결), 판정 안내 "판정은 참고용이에요"가 카드마다 다른 말투. 결과 제목 "YOUR MENU, MADE CLEAR"·"Your menu, understood."는 장식 | 이해 저하 | [실행][코드] |
 | UX-16 | P1 | 결과 320px | 필터 칩 4개 중 "위험"이 잘려 가로 스크롤해야 보인다. 위험이 가장 중요한 칩이다 | 위험 메뉴 찾기 어려움 | [실행] |
-| UX-17 | P2 | `AnalyzingScreen.tsx:224-232` | 4단계 목록이 정지 상태라 진행감이 없다(명세상 서버는 단계를 주지 않음). 실패 화면에서도 "취소"가 "계속 분석" 확인창을 띄운다 | 불안·혼란 | [실행][코드] |
+| UX-17 | P2 ✅ 해결 | `AnalyzingScreen.tsx:224-232` | 4단계 목록이 정지 상태라 진행감이 없다(명세상 서버는 단계를 주지 않음). 실패 화면에서도 "취소"가 "계속 분석" 확인창을 띄운다 | 불안·혼란 | [실행][코드] |
 | UX-18 | P2 | `/terms` | 외국인에게 한국어 원문 4개를 끝까지 스크롤하게 한다(법적 이유는 `i18n-accessibility.md`에 기재). 요약 한 줄과 이유 안내가 없다 | 첫 진입 이탈 | [실행] 제품 결정(C) 포함 |
 | UX-19 | P2 | 랜딩·홈 | 랜딩 시작 버튼이 첫 화면에 다 보이지 않는다. 홈은 강조점이 여럿이다 | 첫 행동 지연 | [실행] |
 | UX-20 | P2 ✅ 해결 | `ScanHistoryList.tsx:23` | 기록 목록에 위험·주의 수가 없다(명세 V2는 `dangerCount`·`cautionCount`를 준다) | 기록 훑기 어려움 | [코드][문서] No 17 |
@@ -110,7 +110,7 @@
 | 매운맛 | `isSpicy` true/null(모름) | `Boolean()`으로 false 처리 | null을 "안 맵다"로 그리지 않는지 확인 필요(현재는 칩 미표시라 문제 작음) |
 | 가격 옵션 | `priceOptions[]` | 없음 | 표시 여부 C |
 | 적용 프로필 | `dietSnapshot` | 현재 프로필 | UX-02 |
-| 다시 찍기 | `retakeReasons`, `retakeSuggestions` | 미사용 | UX-10 |
+| 다시 찍기 | `retakeReasons`, `retakeSuggestions` | 사용(한국어 사용자만, 11-21) | UX-10 |
 | 실패 코드 | `failureCode` 7종 | 7종 모두 문구 있음 | 일치 |
 | 분석 취소 | `DELETE /scans/{id}` = 취소 | 화면만 나가고 서버 스캔은 계속 | 명세와 다름. 호출 추가는 동작 변경(B) |
 | 메뉴판 사진 | No 20 `GET /scans/{id}/image`, 410 `SCAN_IMAGE_EXPIRED` | 방금 찍은 사진만, 기록에선 "아직 제공되지 않아요" | 데모 표시 유지, 연동 시 만료 상태 필요 |
@@ -170,7 +170,12 @@
     - A안(`design/results-layout-a`) 합칠 때 함께 할 것: `DietCardSheet`를 `ModalSheet`로 교체, 결과 사진 보기 Dialog에 `useReturnFocus` 연결, `brand-primary` → `action-primary` 충돌 정리.
 5. ✅ (2026-11-20) 상태 색과 브랜드 강조색 분리. 판정 화면의 행동색을 무채색 `action-primary`로 분리. (UX-06)
 6. 촬영 화면: 사진 선택 후 "분석 시작"을 고정 하단으로, 업로드 사진엔 "다른 사진 선택". (UX-09)
-7. 분석 중·다시 찍기: `retakeReasons/Suggestions` 표시, 촬영 가이드 한 줄, 실패 화면의 취소 확인 제거, 전문 용어 제거. (UX-10, UX-15, UX-17)
+7. ✅ (2026-11-21) 분석 중·다시 찍기·실패 화면. (UX-10, UX-15 일부, UX-17)
+    - 다시 찍기: 제목 "다시 찍어 주세요", "이렇게 찍어 보세요" 목록, [다시 촬영]·[홈으로]. 서버의 `retakeReasons`·`retakeSuggestions`(번역 없는 한국어)는 한국어 사용자에게만, 그 밖에는 7개 언어 기본 팁 3줄(A안).
+    - 실패: 제목 "분석하지 못했어요", 빨간 상자 대신 중립 카드, [홈으로]는 확인창 없이 나감.
+    - 분석 중: "이런 순서로 확인해요" 머리말, 부제 "결과가 나오면 바로 보여 드릴게요.", 30초가 지나면 "평소보다 오래 걸리고 있어요" 한 줄, 자세히 보기에서 OCR·백엔드 등 전문 용어 제거.
+    - 오류 문구 해요체 통일, "이미지 저장 키" 같은 내부 용어 제거.
+    - 남은 것: 촬영 화면의 촬영 가이드 한 줄은 6번에서.
 8. 프로필 없는 사용자 안내(홈·결과). (UX-08) 문구는 C.
 9. "빼고 요청" 노출 조건 정리(주재료 제외). (UX-07)
 10. ✅ (2026-11-21) 기록·카드 빈 상태와 실패 알림. (UX-12, UX-20, UX-21)
