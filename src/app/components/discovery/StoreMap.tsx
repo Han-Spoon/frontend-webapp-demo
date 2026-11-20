@@ -41,6 +41,7 @@ export function StoreMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<naver.maps.Map | null>(null);
   const markersRef = useRef<naver.maps.Marker[]>([]);
+  const placementsRef = useRef<Placement[]>([]);
   const listenersRef = useRef<unknown[]>([]);
   const mapListenersRef = useRef<unknown[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -59,6 +60,7 @@ export function StoreMap({
     // 인증 실패 시 SDK가 내부 객체를 먼저 폐기할 수 있다. 각 객체는 한 번만 정리한다.
     const listeners = listenersRef.current.splice(0);
     const markers = markersRef.current.splice(0);
+    placementsRef.current = [];
     listeners.forEach((listener) => {
       try { window.naver?.maps?.Event?.removeListener(listener); } catch { /* SDK already disposed */ }
     });
@@ -107,6 +109,7 @@ export function StoreMap({
             const nextCenter = map.getCenter();
             onCenterChangeRef.current?.({ lat: nextCenter.lat(), lng: nextCenter.lng() });
           }),
+          naver.maps.Event.addListener(map, 'idle', () => layoutLabelsRef.current()),
         );
         setStatus('ready');
       })
@@ -137,6 +140,38 @@ export function StoreMap({
     }
   }, [center?.lat, center?.lng, status]);
 
+  // 이름표 배치. 지도 이동·확대가 끝난(idle) 뒤에만 다시 계산한다.
+  const layoutLabels = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      const projection = map.getProjection();
+      const placed: Box[] = [];
+      const items = placementsRef.current.map((item) => {
+        const point = projection.fromCoordToOffset(item.position);
+        return { item, x: point.x, y: point.y };
+      });
+      const dots = items.map(({ x, y }) => dotBox(x, y));
+      // 우선순위: 선택 > 후보 순서(서버가 검증 가게를 앞에 둔다)
+      const order = [...items].sort((a, b) => Number(b.item.selected) - Number(a.item.selected));
+      order.forEach(({ item, x, y }) => {
+        const box = labelBox(x, y, item.labelWidth);
+        const free = item.selected || (
+          !placed.some((other) => overlaps(box, other)) &&
+          !dots.some((dot, index) => items[index].item !== item && overlaps(box, dot))
+        );
+        if (free) placed.push(box);
+        const mode = free ? 'label' : 'dot';
+        if (mode === item.mode) return;
+        item.mode = mode;
+        item.marker.setIcon({ content: mode === 'label' ? item.labelHtml : item.dotHtml, anchor: new naver.maps.Point(0, 0) });
+        item.marker.setZIndex(item.selected ? 1000 : mode === 'label' ? 100 : 10);
+      });
+    } catch { /* 인증 실패 등으로 지도가 폐기된 경우 */ }
+  };
+  const layoutLabelsRef = useRef(layoutLabels);
+  layoutLabelsRef.current = layoutLabels;
+
   // 후보가 바뀌면 마커를 다시 그린다.
   const storeKey = useMemo(() => stores.map((s) => s.id).join('|'), [stores]);
 
@@ -147,19 +182,35 @@ export function StoreMap({
     clearMarkers();
     try {
       const bounds = new naver.maps.LatLngBounds();
-      stores.forEach((store) => {
-        const position = new naver.maps.LatLng(store.lat, store.lng);
+      groupNearbyStores(stores, selectedId).forEach((group) => {
+        const lead = group.find((store) => store.id === selectedId) ?? group[0];
+        const selected = lead.id === selectedId;
+        const position = new naver.maps.LatLng(lead.lat, lead.lng);
         bounds.extend(position);
         const marker = new naver.maps.Marker({
           position,
           map,
-          title: store.name,
-          icon: { content: markerHtml(store.name, store.id === selectedId) },
+          title: group.map((store) => store.name).join(', '),
+          icon: { content: markerDotHtml(selected), anchor: new naver.maps.Point(0, 0) },
+          zIndex: selected ? 1000 : 10,
         });
+        // 같은 건물 묶음은 누를 때마다 다음 가게로 넘어간다.
         listenersRef.current.push(
-          naver.maps.Event.addListener(marker, 'click', () => onSelectRef.current?.(store)),
+          naver.maps.Event.addListener(marker, 'click', () => {
+            const index = group.findIndex((store) => store.id === selectedId);
+            onSelectRef.current?.(group[(index + 1) % group.length]);
+          }),
         );
         markersRef.current.push(marker);
+        placementsRef.current.push({
+          marker,
+          position,
+          selected,
+          mode: 'dot',
+          labelHtml: markerLabelHtml(lead.name, group.length - 1, selected),
+          dotHtml: markerDotHtml(selected),
+          labelWidth: labelWidth(lead.name, group.length - 1),
+        });
       });
 
       if (fitStores) {
@@ -167,6 +218,7 @@ export function StoreMap({
         if (stores.length > 0) map.fitBounds(bounds, 48);
         else if (center) { map.setCenter(new naver.maps.LatLng(center.lat, center.lng)); map.setZoom(15); }
       }
+      layoutLabelsRef.current();
     } catch {
       disposeMap();
       setStatus('error');
@@ -231,13 +283,99 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, className }: {
   </div>;
 }
 
-/** 마커 라벨은 우리 데이터라 사용자 언어로 그대로 렌더링한다(지도 라벨과 별개). */
-function markerHtml(name: string, selected: boolean) {
-  const safe = name.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
-  const tone = selected ? 'background:#B45309;color:#fff' : 'background:#fff;color:#1F2937';
+/** 같은 건물로 보는 거리. 층만 다른 가게는 좌표가 거의 같다. */
+const SAME_BUILDING_METERS = 5;
+const LABEL_HEIGHT = 26;
+const LABEL_GAP = 9;
+const DOT_RADIUS = 7;
+
+interface Placement {
+  marker: naver.maps.Marker;
+  position: naver.maps.LatLng;
+  selected: boolean;
+  mode: 'label' | 'dot';
+  labelHtml: string;
+  dotHtml: string;
+  labelWidth: number;
+}
+
+interface Box { left: number; top: number; right: number; bottom: number }
+
+function distanceMeters(a: MapStore, b: MapStore) {
+  const dLat = (a.lat - b.lat) * 111_320;
+  const dLng = (a.lng - b.lng) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.hypot(dLat, dLng);
+}
+
+/** 후보 순서를 지키며 5m 안의 가게를 한 묶음으로 모은다. 선택한 가게가 있는 묶음을 맨 앞에 둔다. */
+function groupNearbyStores(stores: MapStore[], selectedId?: string | null) {
+  const groups: MapStore[][] = [];
+  stores.forEach((store) => {
+    const group = groups.find((items) => distanceMeters(items[0], store) <= SAME_BUILDING_METERS);
+    if (group) group.push(store);
+    else groups.push([store]);
+  });
+  return groups.sort((a, b) => Number(b.some((s) => s.id === selectedId)) - Number(a.some((s) => s.id === selectedId)));
+}
+
+function labelBox(x: number, y: number, width: number): Box {
+  const bottom = y - LABEL_GAP;
+  return { left: x - width / 2, right: x + width / 2, top: bottom - LABEL_HEIGHT, bottom };
+}
+
+function dotBox(x: number, y: number): Box {
+  return { left: x - DOT_RADIUS, right: x + DOT_RADIUS, top: y - DOT_RADIUS, bottom: y + DOT_RADIUS };
+}
+
+function overlaps(a: Box, b: Box) {
+  const margin = 2;
+  return a.left < b.right + margin && b.left < a.right + margin && a.top < b.bottom + margin && b.top < a.bottom + margin;
+}
+
+let measureContext: CanvasRenderingContext2D | null | undefined;
+function labelWidth(name: string, extra: number) {
+  if (measureContext === undefined) measureContext = document.createElement('canvas').getContext('2d');
+  let text = name.length * 12;
+  if (measureContext) {
+    measureContext.font = '600 12px Pretendard, system-ui, sans-serif';
+    text = measureContext.measureText(name).width;
+  }
+  const badge = extra > 0 ? 8 + String(extra).length * 7 + 10 : 0;
+  return Math.ceil(text + 22 + badge);
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** 위치 점. 이름표 자리가 없을 때도 이 점은 남아 누를 수 있다. */
+function markerDotHtml(selected: boolean) {
+  const color = selected ? '#B45309' : '#2F6B4F';
+  const size = DOT_RADIUS * 2;
   return (
-    `<div style="${tone};border:1px solid rgba(0,0,0,.12);border-radius:999px;` +
-    `padding:4px 10px;font-size:12px;font-weight:600;white-space:nowrap;` +
-    `box-shadow:0 1px 4px rgba(0,0,0,.18);transform:translate(-50%,-130%)">${safe}</div>`
+    `<div style="position:relative;width:0;height:0;cursor:pointer">` +
+    `<span style="position:absolute;left:-${DOT_RADIUS}px;top:-${DOT_RADIUS}px;width:${size}px;height:${size}px;` +
+    `border-radius:999px;background:${color};border:2px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span>` +
+    `</div>`
+  );
+}
+
+/**
+ * 점 + 이름표. 마커 라벨은 우리 데이터라 사용자 언어로 그대로 렌더링한다(지도 라벨과 별개).
+ * 같은 건물에 가게가 더 있으면 '+N'을 붙인다.
+ */
+function markerLabelHtml(name: string, extra: number, selected: boolean) {
+  const tone = selected ? 'background:#B45309;color:#fff' : 'background:#fff;color:#1F2937';
+  const badgeTone = selected ? 'background:rgba(255,255,255,.25);color:#fff' : 'background:#EEF4EF;color:#2F6B4F';
+  const badge = extra > 0
+    ? `<span style="${badgeTone};margin-inline-start:6px;border-radius:999px;padding:0 5px;font-size:11px;font-weight:700">+${extra}</span>`
+    : '';
+  return (
+    markerDotHtml(selected).replace('</div>', '') +
+    `<div dir="auto" style="${tone};position:absolute;left:0;bottom:${LABEL_GAP}px;transform:translateX(-50%);` +
+    `height:${LABEL_HEIGHT}px;box-sizing:border-box;display:flex;align-items:center;` +
+    `border:1px solid rgba(0,0,0,.12);border-radius:999px;padding:0 10px;font-size:12px;font-weight:600;white-space:nowrap;` +
+    `box-shadow:0 1px 4px rgba(0,0,0,.18)">${escapeHtml(name)}${badge}</div>` +
+    `</div>`
   );
 }

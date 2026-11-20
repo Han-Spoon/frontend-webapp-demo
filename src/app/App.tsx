@@ -30,6 +30,7 @@ import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
+import { DevMapPreview } from './components/DevMapPreview';
 import { ScreenErrorBoundary, ScreenErrorFallback } from './components/ScreenErrorBoundary';
 
 export type { Language } from './locales';
@@ -672,6 +673,12 @@ export default function App() {
             <Route
               path="/dev/results-preview"
               element={<DevResultsPreview fallbackLanguage={language} />}
+            />
+          )}
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/map-preview"
+              element={<DevMapPreview fallbackLanguage={language} />}
             />
           )}
           <Route
