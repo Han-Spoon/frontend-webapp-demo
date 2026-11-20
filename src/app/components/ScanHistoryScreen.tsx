@@ -1,4 +1,5 @@
 import { ArrowLeft, BookOpen } from 'lucide-react';
+import { HistoryLoadError } from './HistoryLoadError';
 import { useNavigate } from 'react-router-dom';
 import type { HistoryItem, Language } from '../App';
 import { createTranslator } from '../locales';
@@ -9,14 +10,19 @@ import { OfflineBanner } from './OfflineBanner';
 export function ScanHistoryScreen({
   language,
   history,
+  loadFailed,
+  onRetryLoad,
   onOpen,
   onDelete,
   onRename,
 }: {
   language: Language;
   history: HistoryItem[];
-  onOpen: (item: HistoryItem) => void;
-  onDelete: (id: string) => void;
+  /** 서버 기록 목록을 불러오지 못함. 이때는 '기록 없음'을 보여 주지 않는다. */
+  loadFailed: boolean;
+  onRetryLoad: () => void;
+  onOpen: (item: HistoryItem) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   onRename: (id: string, title: string) => Promise<void>;
 }) {
   const t = createTranslator(language);
@@ -44,6 +50,7 @@ export function ScanHistoryScreen({
             'احتفظ بنكهات رحلتك. زيارات المطاعم ومسح القوائم في مكان واحد.',
           )}
         </p>
+        {loadFailed && <HistoryLoadError language={language} onRetry={onRetryLoad} />}
         <ScanHistoryList
           language={language}
           history={history}
@@ -51,7 +58,7 @@ export function ScanHistoryScreen({
           onDelete={onDelete}
           onRename={onRename}
         />
-        {history.length === 0 && (
+        {history.length === 0 && !loadFailed && (
           <div className="py-14 text-center">
             <BookOpen className="mx-auto mb-4 size-10 text-brand-primary" />
             <p className="text-sm text-text-secondary">

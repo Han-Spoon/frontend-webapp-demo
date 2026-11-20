@@ -168,7 +168,9 @@ export interface HistoryItem {
   title: string;
   date: string;
   menuCount: number;
-  dangerCount: number;
+  /** 서버가 주지 않으면 null. 0으로 채우지 않는다(위험 없음으로 읽히지 않게). */
+  dangerCount?: number | null;
+  cautionCount?: number | null;
   menus: MenuAnalysis[];
   store?: StoreSummary | null;
 }
@@ -204,6 +206,8 @@ export default function App() {
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
   const [resultPhotoUrl, setResultPhotoUrl] = useState<string | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
+  // 서버 기록 목록을 불러오지 못함. 빈 목록('기록 없음')과 구분해 다시 시도를 보여 준다.
+  const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
 
   const startDemo = () => {
@@ -315,6 +319,7 @@ export default function App() {
 
   const loadHistory = async () => {
     try {
+      setHistoryLoadFailed(false);
       const items = await getScanHistory();
       setAnalysisHistory(
         items.map((item) => ({
@@ -324,13 +329,15 @@ export default function App() {
             formatHistoryTitle(language, item.scannedAt ? new Date(item.scannedAt) : new Date()),
           date: item.scannedAt ?? new Date().toISOString(),
           menuCount: item.menuCount ?? 0,
-          dangerCount: item.dangerCount ?? 0,
+          dangerCount: item.dangerCount ?? null,
+          cautionCount: item.cautionCount ?? null,
           menus: [],
           store: item.store ?? null,
         })),
       );
     } catch (error) {
       console.warn('Unable to fetch scan history:', error);
+      setHistoryLoadFailed(true);
     }
   };
 
@@ -366,6 +373,8 @@ export default function App() {
       navigate('/results');
     } catch (error) {
       console.error('Unable to open scan:', error);
+      // 목록이 실패 알림을 보여 줄 수 있게 다시 던진다.
+      throw error;
     }
   };
 
@@ -376,6 +385,7 @@ export default function App() {
       setAnalysisHistory((prev) => prev.filter((item) => item.id !== id));
     } catch (error) {
       console.error('Delete scan failed:', error);
+      throw error;
     }
   };
 
@@ -583,7 +593,7 @@ export default function App() {
           <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurants/:id/menu" element={<PartnerMenuScreen language={language} userProfile={userProfile} />} />
-          <Route path="/history" element={<ScanHistoryScreen language={language} history={combinedHistory} onOpen={openHistory} onDelete={handleDeleteHistory} onRename={handleRenameHistory} />} />
+          <Route path="/history" element={<ScanHistoryScreen language={language} history={combinedHistory} loadFailed={historyLoadFailed} onRetryLoad={() => void loadHistory()} onOpen={openHistory} onDelete={handleDeleteHistory} onRename={handleRenameHistory} />} />
           <Route
             path="/scan"
             element={
@@ -686,6 +696,8 @@ export default function App() {
                 currentUser={currentUser}
                 userProfile={userProfile}
                 history={combinedHistory}
+                historyLoadFailed={historyLoadFailed}
+                onRetryHistory={() => void loadHistory()}
                 onBack={() => navigate('/home')}
                 onEditProfile={(section) =>
                   navigate('/onboarding', section ? { state: { editSection: section } } : undefined)

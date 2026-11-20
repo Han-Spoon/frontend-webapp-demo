@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, MessageSquareText, Trash2, User, Volume2, X } from 'lucide-react';
+import { Camera, ChevronDown, ChevronUp, MessageSquareText, Trash2, User, Volume2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Language } from '../App';
 import { deleteCard, getSavedCards, type CardType, type SavedCard } from '../../api/card';
 import { BottomNav } from './BottomNav';
@@ -50,6 +51,7 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
   const [selected, setSelected] = useState<Speakable | null>(null);
 
   const t = createTranslator(language);
+  const navigate = useNavigate();
 
   const localized = (item: Speakable) => translateText(language, {
     ko: item.ko,
@@ -149,16 +151,41 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
         </div>
 
         {/* 저장 카드 */}
+        <h2 className="pt-1 text-base font-extrabold text-text-primary">
+          {translateText(language, {
+            ko: '저장한 카드', en: 'Saved cards', ar: 'البطاقات المحفوظة',
+            'zh-CN': '已保存的卡片', ja: '保存したカード', 'zh-TW': '已儲存的卡片', es: 'Tarjetas guardadas',
+          })}
+        </h2>
         {error && <div role="alert" className="rounded-[20px] border border-border-warm bg-surface-raised px-5 py-6 text-center"><p className="text-sm font-bold text-text-primary">{error}</p><button type="button" onClick={() => void loadCards()} className="mt-3 min-h-11 rounded-[18px] border border-brand-primary px-4 text-sm font-bold text-brand-primary">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button></div>}
 
         {loading ? (
           <p className="text-sm text-sesame-gray text-center py-8">{t('불러오는 중...', 'Loading...', 'جارٍ التحميل...')}</p>
         ) : !error && cards.length === 0 ? (
-          <div className="py-10 text-center">
-            <div className="text-4xl mb-3">💬</div>
-            <p className="text-sm text-sesame-gray">
+          <div className="rounded-[20px] border border-dashed border-border-warm px-5 py-8 text-center">
+            <div className="text-4xl mb-3" aria-hidden="true">💬</div>
+            <p className="text-sm font-bold text-text-primary">
               {t('저장된 카드가 없어요', 'No saved cards yet', 'لا توجد بطاقات محفوظة')}
             </p>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">
+              {translateText(language, {
+                ko: '메뉴를 스캔한 뒤 직원에게 보여 줄 문장을 저장하면 여기에 모여요.',
+                en: 'Scan a menu, then save the phrases you want to show staff. They will appear here.',
+                ar: 'امسح قائمة، ثم احفظ العبارات التي تريد عرضها على الموظفين. ستظهر هنا.',
+                'zh-CN': '扫描菜单后，保存想给店员看的句子，就会出现在这里。',
+                ja: 'メニューをスキャンして、店員に見せたい文を保存するとここに表示されます。',
+                'zh-TW': '掃描菜單後，儲存想給店員看的句子，就會出現在這裡。',
+                es: 'Escanea un menú y guarda las frases que quieras mostrar al personal. Aparecerán aquí.',
+              })}
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/scan')}
+              className="mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-brand-primary px-5 text-sm font-bold text-white"
+            >
+              <Camera className="size-4" />
+              {t('메뉴 스캔하기', 'Scan a menu', 'امسح قائمة')}
+            </button>
           </div>
         ) : (
           <div className="space-y-3">

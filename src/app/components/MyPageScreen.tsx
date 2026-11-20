@@ -5,7 +5,7 @@ import { clearAuthData, logout } from '../../api/auth';
 import { getConsentStatus, type ConsentStatus } from '../../api/consent';
 import { deleteMe } from '../../api/user';
 import type { CurrentUser } from '../../api/user';
-import type { Language, UserProfile } from '../App';
+import type { HistoryItem, Language, UserProfile } from '../App';
 import { createTranslator, LANGUAGE_OPTIONS } from '../locales';
 import { getProfileSummary } from '../results/resultViewModel';
 import { MAP_LANGUAGE_OPTIONS, setMapLanguage, useMapLanguage } from '../../lib/mapLanguage';
@@ -14,18 +14,10 @@ import {
   getCountryName,
 } from '../constants/onboarding';
 import { ScanHistoryList } from './ScanHistoryList';
+import { HistoryLoadError } from './HistoryLoadError';
 import { OfflineBanner } from './OfflineBanner';
 
 type ProfileSection = 'language' | 'country' | 'diet';
-
-interface HistoryItem {
-  id: string;
-  title: string;
-  date: string;
-  menuCount: number;
-  dangerCount: number;
-  menus: any[];
-}
 
 interface MyPageScreenProps {
   language: Language;
@@ -34,12 +26,15 @@ interface MyPageScreenProps {
   demoMode: boolean;
   userProfile: UserProfile | null;
   history: HistoryItem[];
+  /** 서버 기록 목록을 불러오지 못함 */
+  historyLoadFailed: boolean;
+  onRetryHistory: () => void;
   onBack: () => void;
   /** section 미지정 시 전체 온보딩(신규 생성), 지정 시 해당 단위만 수정 */
   onEditProfile: (section?: ProfileSection) => void;
-  onHistoryClick: (item: HistoryItem) => void;
+  onHistoryClick: (item: HistoryItem) => Promise<void>;
   onEditHistoryTitle: (id: string, title: string) => Promise<void>;
-  onDeleteHistory: (id: string) => void;
+  onDeleteHistory: (id: string) => Promise<void>;
   onTerms: () => void;
   onLogout: () => void;
 }
@@ -52,6 +47,8 @@ export function MyPageScreen({
   demoMode,
   userProfile,
   history,
+  historyLoadFailed,
+  onRetryHistory,
   onBack,
   onEditProfile,
   onHistoryClick,
@@ -231,6 +228,7 @@ export function MyPageScreen({
 
         {activeTab === 'scan' && (
           <div className="px-5 py-6">
+            {historyLoadFailed && <HistoryLoadError language={language} onRetry={onRetryHistory} />}
             {history.length > 0 ? (
               <ScanHistoryList
                 language={language}
@@ -239,12 +237,19 @@ export function MyPageScreen({
                 onDelete={onDeleteHistory}
                 onRename={onEditHistoryTitle}
               />
-            ) : (
+            ) : !historyLoadFailed && (
               <div className="py-16 text-center">
                 <div className="text-4xl mb-4">📋</div>
                 <p className="text-sm text-sesame-gray">
                   {t('스캔 기록이 없어요', 'No scan history yet', 'لا يوجد سجل مسح بعد')}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/scan')}
+                  className="mt-5 min-h-11 rounded-xl bg-brand-primary px-5 text-sm font-bold text-white"
+                >
+                  {t('메뉴 스캔하기', 'Scan a menu', 'امسح قائمة')}
+                </button>
               </div>
             )}
           </div>
