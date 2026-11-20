@@ -6,6 +6,7 @@ export type { LocalizedText } from './locales';
 export type OwnerCommunicationContentType =
   | 'order'
   | 'ingredient'
+  | 'ingredientInMenu'
   | 'request'
   | 'exclude'
   | 'diet'
@@ -268,6 +269,16 @@ export const ownerCommunicationI18n = {
       ja: `これには${translate('ja', ingredient)}が入っていますか？`,
       'zh-TW': `這裡面含有${translate('zh-TW', ingredient)}嗎？`,
       es: `¿Esto contiene ${translate('es', ingredient)}?`,
+    }),
+    // 결과 위계 A 데모 전용: '여기' 대신 메뉴명을 넣는다.
+    ingredientInMenu: ({ menuName, ingredient }: OwnerContentParams): OwnerContent => ownerContent({
+      ko: `${menuName.ko}에 ${ingredient.ko}${koreanSubjectParticle(ingredient.ko)} 들어가 있나요?`,
+      en: `Does the ${menuName.en} contain ${ingredient.en}?`,
+      ar: `هل يحتوي ${menuName.ar} على ${ingredient.ar}؟`,
+      'zh-CN': `${translate('zh-CN', menuName)}里面含有${translate('zh-CN', ingredient)}吗？`,
+      ja: `${translate('ja', menuName)}には${translate('ja', ingredient)}が入っていますか？`,
+      'zh-TW': `${translate('zh-TW', menuName)}裡面含有${translate('zh-TW', ingredient)}嗎？`,
+      es: `¿${translate('es', menuName)} contiene ${translate('es', ingredient)}?`,
     }),
     request: ({ allergen }: OwnerContentParams): OwnerContent => ownerContent({
       ko: `저는 ${allergen.ko} 알레르기가 있어요. ${allergen.ko} 빼고 만들어 주실 수 있나요?`,

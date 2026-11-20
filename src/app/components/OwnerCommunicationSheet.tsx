@@ -57,6 +57,10 @@ interface OwnerCommunicationSheetProps {
   onResponseSelect?: (type: OwnerCommunicationType, responseId: OwnerResponseId) => void;
   scanId?: string;
   onServerAnswer?: () => void;
+  /** 결과 위계 A 데모 전용: 재료 확인 시트를 메뉴명 문장·직원 응답 제출 방식으로 줄인다. */
+  simplifiedIngredient?: boolean;
+  /** 결과 위계 A 데모 전용: 직원이 읽는 한국어를 크게, 내 언어를 작게 보여 준다. */
+  koreanFirst?: boolean;
   onClose: () => void;
 }
 
@@ -70,8 +74,11 @@ export function OwnerCommunicationSheet({
   onResponseSelect,
   scanId,
   onServerAnswer,
+  simplifiedIngredient = false,
+  koreanFirst = false,
   onClose,
 }: OwnerCommunicationSheetProps) {
+  const simplified = simplifiedIngredient && type === 'ingredient';
   const [response, setResponse] = useState<OwnerResponseId | null>(initialResponse);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -131,6 +138,11 @@ export function OwnerCommunicationSheet({
         const ingredient = flaggedLabels.ko
           ? flaggedLabels
           : ownerCommunicationI18n.ingredients.generic;
+        if (simplified) return formatOwnerCommunicationContent('ingredientInMenu', {
+          menuName: { ...menu.menuNameLocalized, ...menuName, en: menu.menuNameEn || menu.menuName, ar: menu.menuNameLocalized?.ar ?? menuName.ar } as LocalizedText,
+          ingredient,
+          allergen: emptyText,
+        });
 
         return formatOwnerCommunicationContent(type, {
           menuName,
@@ -178,7 +190,8 @@ export function OwnerCommunicationSheet({
   };
 
   const content = getContent();
-  const responseButtons = getOwnerResponseOptions(type);
+  // A 데모는 '잘 모르겠어요'를 빼고 있어요/없어요만 받는다.
+  const responseButtons = getOwnerResponseOptions(type).filter(option => !simplified || option.id !== 'unknown');
   const selectedResponse = response ? getOwnerResponseOption(type, response) : null;
 
   const selectedButtonClasses: Record<OwnerResponseTone, string> = {
@@ -205,7 +218,14 @@ export function OwnerCommunicationSheet({
 
   const handleResponseSelect = (option: OwnerResponseOption) => {
     setResponse(option.id);
-    onResponseSelect?.(type, option.id);
+    if (!simplified) onResponseSelect?.(type, option.id);
+  };
+
+  const handleSubmitResponse = () => {
+    if (!response || saved) return;
+    onResponseSelect?.(type, response);
+    setSaved(true);
+    setTimeout(onClose, 800);
   };
 
   const answerQuestion = async (questionId: string, answer: StaffAnswer) => {
@@ -261,12 +281,17 @@ export function OwnerCommunicationSheet({
         <div className="px-6 pb-8 pt-6 relative">
           <div className="mb-4 flex items-start gap-3">
             <div className="min-w-0 flex-1">
+              {koreanFirst ? <>
+                <div lang="ko" dir="auto" className="mb-2 break-words text-2xl font-extrabold leading-tight text-text-primary">{content.korean}</div>
+                <div lang={language === 'ko' ? 'en' : language} dir="auto" className="break-words text-sm text-text-secondary">{language === 'ko' ? content.english : translate(language, content.localized)}</div>
+              </> : <>
               <div className="mb-2 break-words text-2xl font-extrabold leading-tight text-text-primary">
                 {translate(language, content.localized)}
               </div>
               <div className="break-words text-sm text-text-secondary">
                 {language === 'ko' ? content.english : content.korean}
               </div>
+              </>}
             </div>
             {ttsSupported && content.korean && (
               <button
@@ -279,7 +304,7 @@ export function OwnerCommunicationSheet({
             )}
           </div>
 
-          <div className="mb-6 rounded-xl border border-border-warm bg-surface-subtle p-4">
+          {!simplified && <div className="mb-6 rounded-xl border border-border-warm bg-surface-subtle p-4">
             <div className="mb-1 text-xs font-semibold text-brand-primary">{translate(language, ownerCommunicationI18n.labels.selectedMenu)}</div>
             <div className="font-bold text-text-primary">
               {language === 'ko'
@@ -292,7 +317,7 @@ export function OwnerCommunicationSheet({
             </div>
             <div className="mt-1 text-xs text-text-secondary">{language === 'ko' ? menu.menuNameEn : menu.menuName}</div>
             <p className="mt-2 text-xs font-semibold text-brand-primary">{t('내 식단', 'My dietary needs', 'احتياجاتي الغذائية')}: {getProfileSummary(userProfile, language).join(' · ')}</p>
-          </div>
+          </div>}
 
           {type === 'ingredient' && scanId && (menu.staffQuestions?.length ?? 0) > 0 ? <div className="mb-4 space-y-3">
             {menu.staffQuestions?.map(question => <div key={question.questionId} className="rounded-xl border border-border-warm bg-surface-subtle p-3">
@@ -324,9 +349,9 @@ export function OwnerCommunicationSheet({
                     {selected ? getResponseIcon(btn.tone) : btn.id === 'ok' || btn.id === 'possible' ? '✓' : btn.id === 'yes' ? '!' : btn.id === 'unknown' ? '?' : '✗'}
                   </span>
                   <span className="min-w-0 text-start leading-tight">
-                    <span className="block">{translate(language, btn.label)}</span>
+                    <span className="block" dir={koreanFirst ? 'auto' : undefined}>{koreanFirst ? btn.label.ko : translate(language, btn.label)}</span>
                     <span className={`mt-0.5 block text-xs ${selected ? 'opacity-75' : 'text-text-secondary'}`}>
-                      {language === 'ko' ? btn.label.en : btn.label.ko}
+                      {koreanFirst ? (language === 'ko' ? btn.label.en : translate(language, btn.label)) : language === 'ko' ? btn.label.en : btn.label.ko}
                     </span>
                   </span>
                 </button>
@@ -345,7 +370,16 @@ export function OwnerCommunicationSheet({
           )}
 
           {saveError && <p className="mb-2 text-center text-xs text-status-danger-text">{saveError}</p>}
-          <button
+          {simplified ? <button
+            type="button"
+            onClick={handleSubmitResponse}
+            disabled={!response || saved}
+            className={`min-h-12 w-full rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed ${saved ? 'bg-status-safe text-white' : 'bg-brand-primary text-white hover:bg-brand-primary-hover disabled:opacity-40'}`}
+          >
+            {saved
+              ? <span className="flex items-center justify-center gap-2"><Check className="w-4 h-4" />{t('직원 응답을 제출했어요', 'Staff answer submitted', 'تم إرسال إجابة الموظف')}</span>
+              : t('직원 응답 제출', 'Submit staff answer', 'إرسال إجابة الموظف')}
+          </button> : <button
             onClick={handleSave}
             disabled={saved || saving}
             className={`min-h-12 w-full rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed ${
@@ -364,7 +398,7 @@ export function OwnerCommunicationSheet({
             ) : (
               translate(language, ownerCommunicationI18n.labels.saveFavorite)
             )}
-          </button>
+          </button>}
         </div>
       </div>
     </>

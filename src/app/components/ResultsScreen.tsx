@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
+  Camera,
   ChevronDown,
   ChevronRight,
   CircleHelp,
@@ -44,7 +45,8 @@ import { ProfileCommunicationSheet } from './ProfileCommunicationSheet';
 import { CommunicationActions } from './results/CommunicationActions';
 import { RiskBadge, riskLabel, StatusGuidance } from './results/ResultEvidence';
 import { normalizeRiskLevel } from '../../api/riskLevel';
-import { AnalysisEvidence, CautionInsight } from './results/AnalysisInsights';
+import { AnalysisEvidence, CautionInsight, CompactEvidence } from './results/AnalysisInsights';
+import { DietCardSheet } from './results/DietCardSheet';
 import { FILMING_PROFILE } from '../results/filmingFixtures';
 import {
   buildMenuResultViewModel,
@@ -71,7 +73,11 @@ interface ResultsScreenProps {
   scanProfileUnknown?: boolean;
   /** 기록 저장 후 목록 갱신. */
   onSavedRecord?: () => void;
+  /** 개발 미리보기 전용 결과 위계 비교(ui-audit 4번). 'a'는 헤더·카드·필터, 'b'는 카드·필터만 바꾼다. 확정 후 제거한다. */
+  layoutVariant?: ResultsLayoutVariant;
 }
+
+export type ResultsLayoutVariant = 'current' | 'a' | 'b';
 
 interface MenuImageProps {
   menu: MenuAnalysis;
@@ -114,7 +120,9 @@ export function MenuImage({ menu, translatedName, t }: MenuImageProps) {
   );
 }
 
-export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, record, demoMode = false, menuPhotoUrl, scanProfileUnknown = false, currentUserProfile, onSavedRecord }: ResultsScreenProps) {
+export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, record, demoMode = false, menuPhotoUrl, scanProfileUnknown = false, currentUserProfile, onSavedRecord, layoutVariant = 'current' }: ResultsScreenProps) {
+  const verdictFirstCard = layoutVariant !== 'current';
+  const compactHeader = layoutVariant === 'a';
   const filmingScenario = menus.some(menu => menu.demoScenario === 'bunsik-vegan-shrimp');
   const userProfile = filmingScenario ? { ...FILMING_PROFILE, languageCode: language } : suppliedProfile;
   // 판정 기준을 모르면 userProfile은 지금 식단(직원 전달용)일 뿐, 판정 기준이 아니다.
@@ -259,6 +267,44 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
       </header>
 
       <main className="flex-1 overflow-y-auto" aria-live="polite">
+        {compactHeader ? (
+          <section className="border-b border-border-warm bg-surface-raised px-5 pb-3.5 pt-4">
+            {/* 가게를 고르고 스캔했으면 배포본처럼 가게명을 제목으로, 아니면 메뉴 수를 제목으로 둔다. 기록 토글은 제목 끝에 둔다. */}
+            <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+            {storeName && <div className="flex min-h-6 items-center gap-1.5 text-[11px] font-bold text-text-tertiary">
+              <MapPin className="size-3.5 shrink-0 text-brand-primary" aria-hidden="true" />
+              <span className="min-w-0 truncate">{restaurant ? localizeMenuText(AREAS.find(area => area.id === restaurant.area)!, language) : t('식당 연결됨', 'Restaurant linked', 'مطعم مرتبط')} · {t(`메뉴 ${menuList.length}개`, `${menuList.length} dishes`, `${menuList.length} أطباق`)}</span>
+              {partnerRestaurantId && <button type="button" onClick={() => setPartnerNoteOpen(value => !value)} aria-expanded={partnerNoteOpen} className="inline-flex min-h-6 shrink-0 items-center gap-1 rounded-full bg-surface-subtle px-2 text-[11px] font-bold text-text-secondary"><Store className="size-3 text-brand-primary" aria-hidden="true" />{t('파트너', 'Partner', 'شريك')}<Info className="size-3" aria-hidden="true" /></button>}
+              {(photoUrl || canLoadServerPhoto) && <button type="button" disabled={scanImageLoading} onClick={() => { if (photoUrl) setPhotoOpen(true); else void showScanImage(); }} className="ms-auto inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full border border-border-warm px-2.5 text-[11px] font-bold text-brand-primary disabled:opacity-40"><ImageIcon className="size-3.5" aria-hidden="true" />{scanImageLoading ? t('불러오는 중…', 'Loading…', 'جار التحميل…') : t('메뉴판 사진', 'Menu photo', 'صورة القائمة')}</button>}
+            </div>}
+            <h2 className="mt-0.5 break-words text-xl font-extrabold leading-7 tracking-[-0.02em]">{storeName ?? t(`스캔한 메뉴 ${menuList.length}개`, `${menuList.length} dishes scanned`, `تم مسح ${menuList.length} أطباق`)}</h2>
+            </div>
+            {/* 기록 토글: 기록 전엔 빈 북마크, 기록 후엔 채워진 북마크. 누르면 기록(수정) 시트를 연다. */}
+            <button type="button" disabled={menuList.length === 0} onClick={() => setSaveOpen(true)} aria-pressed={saved} aria-label={saved ? t('기록 수정', 'Edit record', 'تعديل السجل') : t('기록하기', 'Keep this scan', 'احفظ المسح')} className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-extrabold disabled:opacity-40 ${saved ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : 'border-border-warm bg-surface-raised text-text-secondary hover:bg-surface-subtle'}`}>
+              <Bookmark className={`size-4 ${saved ? 'fill-current' : ''}`} aria-hidden="true" />
+              {saved ? t('기록됨', 'Saved', 'محفوظ') : t('기록하기', 'Save', 'حفظ')}
+            </button>
+            </div>
+            {partnerNoteOpen && <p className="mt-2 rounded-xl bg-surface-subtle p-3 text-xs text-text-secondary">{t('파트너 식당의 등록된 레시피를 참고했어요. 실제 제공 재료는 매장에 확인하세요.', 'We used recipes supplied by this partner. Confirm the served ingredients with the restaurant.', 'استخدمنا وصفات قدمها المطعم الشريك. تحقق من المكونات المقدمة لدى المطعم.')}</p>}
+            {scanImageError && <p role="alert" className="mt-1 text-xs text-status-danger-text">{scanImageError}</p>}
+            {basisUnknown ? (
+              <div className="mt-2.5 rounded-xl border border-border-warm bg-surface-subtle px-3.5 py-3">
+                <p className="mb-1 flex items-center gap-2 text-sm font-extrabold text-status-unknown-text"><CircleHelp className="size-4 text-status-unknown" aria-hidden="true" />{t('판정 기준 식단 확인 불가', 'Diet used for this result is unknown', 'النظام الغذائي المستخدم لهذه النتيجة غير معروف')}</p>
+                <p className="text-xs leading-5 text-text-secondary">{t('스캔 뒤에 바꾼 식단은 판정에 반영되지 않았어요.', 'Changes made after scanning are not reflected in these results.', 'التغييرات بعد المسح لا تنعكس في هذه النتائج.')}</p>
+                <button type="button" onClick={onRescan} className="inline-flex min-h-11 items-center text-sm font-bold text-brand-primary underline underline-offset-2">{t('지금 식단으로 다시 스캔', 'Rescan with my current diet', 'أعد المسح بنظامي الغذائي الحالي')}</button>
+              </div>
+            ) : (
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-text-tertiary"><ShieldCheck className="size-3.5 text-brand-primary" aria-hidden="true" />{t('내 식단 기준', 'Checked for', 'حسب نظامي')}</span>
+                {profileSummary.length > 0
+                  ? profileSummary.map(item => <span key={item} className="rounded-full bg-brand-primary-soft px-2.5 py-1 text-xs font-bold text-brand-primary">{item}</span>)
+                  : <span className="text-xs text-text-secondary">{t('설정된 식단 조건이 없어요', 'No dietary conditions are set.', 'لا توجد شروط غذائية محددة.')}</span>}
+              </div>
+            )}
+            <p className="mt-2 flex items-start gap-1 text-[11px] leading-4 text-text-tertiary"><Info className="mt-px size-3 shrink-0" aria-hidden="true" />{t('판정은 참고용이에요. 재료는 매장에 꼭 확인하세요.', 'This judgment is a guide. Confirm ingredients with the restaurant.', 'هذا التقييم إرشادي. تحقق من المكونات لدى المطعم.')}</p>
+          </section>
+        ) : (
         <section className="border-b border-border-warm bg-surface-raised px-5 pb-5 pt-6">
           {storeName ? <>
             <p className="eyebrow mb-3 flex items-center gap-1"><MapPin className="size-3" aria-hidden="true" />{restaurant ? localizeMenuText(AREAS.find(area => area.id === restaurant.area)!, language) : t('식당 연결됨', 'Restaurant linked', 'مطعم مرتبط')}</p>
@@ -302,13 +348,15 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             <p>{t('판정은 참고용이에요. 재료는 매장에 꼭 확인하세요.', 'This judgment is a guide. Confirm ingredients with the restaurant.', 'هذا التقييم إرشادي. تحقق من المكونات لدى المطعم.')}</p>
           </div>
         </section>
+        )}
 
         {favoriteError && <p role="alert" className="mx-5 mt-3 rounded-xl bg-status-danger-surface p-3 text-xs text-status-danger-text">{favoriteError}</p>}
 
         <nav className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b border-border-warm bg-surface-base/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t('결과 필터', 'Result filters', 'مرشحات النتائج')}>
           {([
             { value: 'all' as const, label: t('전체', 'All', 'الكل'), count: menuList.length },
-            ...(['safe', 'caution', 'danger', 'unknown'] as const)
+            // A·B안은 위험부터 보여 줘 좁은 화면에서 위험 칩이 잘리지 않게 한다.
+            ...(verdictFirstCard ? ['danger', 'caution', 'unknown', 'safe'] as const : ['safe', 'caution', 'danger', 'unknown'] as const)
               .filter((level) => level !== 'unknown' || counts.unknown > 0)
               .map((level) => ({ value: level, label: riskLabel(level, t), count: counts[level] })),
           ]).map((item) => (
@@ -318,7 +366,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
           ))}
         </nav>
 
-        <div className="space-y-4 px-4 py-5 sm:px-5">
+        <div className={`space-y-4 px-4 py-5 sm:px-5 ${compactHeader && profileCommunicationItems.length > 0 ? 'pb-24' : ''}`}>
           {filter !== 'all' && <StatusGuidance level={filter} t={t} />}
 
           {filteredMenus.map((menu) => {
@@ -343,6 +391,21 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                 : viewModel.ingredients;
             const displayedCauses = causeItems.slice(0, 2);
             const hiddenCauseCount = Math.max(0, causeItems.length - displayedCauses.length);
+            // A·B안: 접힌 카드에서도 보이는 한 줄 판정 이유. 안전은 '문제 없음'으로 단정하지 않는다.
+            const verdictLead = {
+              danger: t('이 메뉴는 피하세요', 'Avoid this dish', 'تجنب هذا الطبق'),
+              caution: t('주문 전에 확인하세요', 'Check before ordering', 'تحقق قبل الطلب'),
+              unknown: t('재료를 확인하지 못했어요', 'Ingredients not verified', 'لم نتحقق من المكونات'),
+              safe: t('피할 재료가 확인되지 않았어요', 'None of your avoided ingredients found', 'لم نجد مكونات تتجنبها'),
+            }[menu.riskLevel];
+            const verdictCauses = displayedCauses.map(item => item.localizedName).join(', ')
+              + (hiddenCauseCount > 0 ? ` ${t(`외 ${hiddenCauseCount}개`, `+${hiddenCauseCount} more`, `+${hiddenCauseCount}`)}` : '');
+            const verdictToneClass = {
+              danger: 'text-status-danger-text',
+              caution: 'text-status-caution-text',
+              unknown: 'text-status-unknown-text',
+              safe: 'text-status-safe-text',
+            }[menu.riskLevel];
             const requestActions = [
               ...(menu.riskLevel === 'caution' || menu.riskLevel === 'danger' ? [{ id: 'request', label: t('빼고 요청', 'Request removal', 'طلب الإزالة'), onClick: () => openSheet(menu, 'request') }] : []),
               ...(isSpicy ? [{ id: 'less-spicy', label: t('덜 맵게 요청', 'Less spicy', 'أقل حدة'), onClick: () => openSheet(menu, 'lessSpicy') }] : []),
@@ -353,23 +416,25 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                 <article className="relative overflow-hidden rounded-[var(--radius-card)] border border-border-warm bg-surface-raised shadow-[var(--shadow-card)]">
                   <button type="button" aria-label={`${liked ? t('찜 해제', 'Remove saved menu', 'إزالة الطبق المحفوظ') : t('메뉴 찜하기', 'Save menu', 'احفظ الطبق')}: ${menu.menuName}`} aria-pressed={liked} disabled={favoritePending === favoriteKey} onClick={() => void toggleFavorite(menu, favoriteKey, favorite)} className={`absolute end-1.5 top-1.5 z-[1] flex size-11 items-center justify-center rounded-full disabled:opacity-50 ${liked ? 'bg-brand-accent-soft text-brand-accent' : 'bg-surface-subtle text-text-tertiary'}`}><Heart className={`size-5 ${liked ? 'fill-current' : ''}`} /></button>
                   <div className="flex gap-3 border-b border-border-warm p-3">
-                    <div className="size-20 shrink-0 overflow-hidden rounded-[18px] border border-border-warm bg-surface-subtle"><MenuImage menu={menu} translatedName={translatedName} t={t} /></div>
+                    <div className={`${verdictFirstCard ? 'size-14 rounded-[14px]' : 'size-20 rounded-[18px]'} shrink-0 overflow-hidden border border-border-warm bg-surface-subtle`}><MenuImage menu={menu} translatedName={translatedName} t={t} /></div>
                     <div className="min-w-0 flex-1 space-y-1 pe-10">
                       {showVerdicts && <div className="flex flex-wrap items-center gap-1.5"><RiskBadge level={menu.riskLevel} t={t} />{(Boolean(partnerRestaurantId) || (menu.explainability?.ingredients?.length ?? 0) > 0) && <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-bold text-text-secondary"><Sparkles className="size-3" />{partnerRestaurantId ? t('등록 레시피', 'Supplied recipe', 'وصفة مقدمة') : t('추정 정보', 'Estimated', 'معلومات تقديرية')}</span>}</div>}
                       <h3 className="break-words text-lg font-extrabold leading-[1.4] tracking-[-0.015em]">{menu.menuName}</h3>
                       {language !== 'ko' && translatedName.trim() !== menu.menuName.trim() && <p className="break-words text-xs font-semibold text-text-secondary">{translatedName}</p>}
-                      {price ? <div className="flex flex-wrap items-baseline gap-x-1.5"><span className="text-sm font-extrabold tabular-nums" dir="ltr">{price.original}</span>{price.converted && <span className="text-xs text-text-secondary" dir="ltr">≈ {price.converted}</span>}</div> : <p className="text-xs text-text-tertiary">{t('가격 확인 필요', 'Price needs checking', 'يجب التحقق من السعر')}</p>}
-                      {description && <p className="truncate text-xs leading-5 text-text-secondary">{description}</p>}
+                      {verdictFirstCard && showVerdicts && <p className={`break-words text-sm leading-5 ${verdictToneClass}`}><span className="font-extrabold">{verdictLead}</span>{verdictCauses && <span className="font-semibold"> · {verdictCauses}</span>}</p>}
+                      {price ? <div className="flex flex-wrap items-baseline gap-x-1.5"><span className={`${verdictFirstCard ? 'text-xs font-bold text-text-secondary' : 'text-sm font-extrabold'} tabular-nums`} dir="ltr">{price.original}</span>{price.converted && <span className="text-xs text-text-secondary" dir="ltr">≈ {price.converted}</span>}</div> : <p className="text-xs text-text-tertiary">{t('가격 확인 필요', 'Price needs checking', 'يجب التحقق من السعر')}</p>}
+                      {description && !verdictFirstCard && <p className="truncate text-xs leading-5 text-text-secondary">{description}</p>}
                     </div>
                   </div>
 
                   <div className="space-y-3 p-3">
-                    {causeItems.length > 0 && <div className="flex flex-wrap gap-1.5">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`min-h-8 max-w-full break-words rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : menu.riskLevel === 'unknown' ? 'bg-status-unknown-surface text-status-unknown-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="min-h-8 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
+                    {causeItems.length > 0 && !verdictFirstCard && <div className="flex flex-wrap gap-1.5">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`min-h-8 max-w-full break-words rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : menu.riskLevel === 'unknown' ? 'bg-status-unknown-surface text-status-unknown-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="min-h-8 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
                     {!showVerdicts && (viewModel.ingredients.length > 0 || isSpicy) && <div className="flex gap-1.5 overflow-hidden whitespace-nowrap">{viewModel.ingredients.slice(0, 4).map(item => <span key={item.localizedName} className="rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">{item.localizedName}</span>)}{isSpicy && <span className="inline-flex items-center gap-1 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary"><Flame className="size-3" />{t('매운 음식', 'Spicy', 'حار')}</span>}</div>}
-                    <div className="flex items-center gap-2"><button type="button" onClick={() => openSheet(menu, showVerdicts && menu.riskLevel !== 'safe' ? 'ingredient' : 'order')} className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-3 py-2.5 text-sm font-extrabold ${menu.riskLevel === 'danger' && showVerdicts ? 'border border-brand-primary text-brand-primary' : 'bg-brand-primary text-white'}`}><MessageSquareText className="size-4 shrink-0" />{showVerdicts && menu.riskLevel !== 'safe' ? causeItems.length ? t(`재료 ${causeItems.length}개 확인하기`, `Check ${causeItems.length} ingredients`, `تحقق من ${causeItems.length} مكونات`) : t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات') : t('주문 카드', 'Order card', 'بطاقة الطلب')}</button><button type="button" onClick={() => toggleExpanded(menu.id)} aria-expanded={expanded} aria-controls={cardDetailsId} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[18px] px-2 text-sm font-bold text-brand-primary">{expanded ? t('접기', 'Hide', 'إخفاء') : t('근거 보기', 'Evidence', 'الأدلة')}<ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button></div>
+                    <div className="flex items-center gap-2"><button type="button" onClick={() => openSheet(menu, showVerdicts && menu.riskLevel !== 'safe' ? 'ingredient' : 'order')} className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-3 py-2.5 text-sm font-extrabold ${menu.riskLevel === 'danger' && showVerdicts ? 'border border-brand-primary text-brand-primary' : 'bg-brand-primary text-white'}`}><MessageSquareText className="size-4 shrink-0" />{showVerdicts && menu.riskLevel !== 'safe' ? causeItems.length ? verdictFirstCard ? t(`재료 확인하기 (${causeItems.length})`, `Check ingredients (${causeItems.length})`, `تحقق من المكونات (${causeItems.length})`) : t(`재료 ${causeItems.length}개 확인하기`, `Check ${causeItems.length} ingredients`, `تحقق من ${causeItems.length} مكونات`) : t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات') : t('주문 카드', 'Order card', 'بطاقة الطلب')}</button><button type="button" onClick={() => toggleExpanded(menu.id)} aria-expanded={expanded} aria-controls={cardDetailsId} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[18px] px-2 text-sm font-bold text-brand-primary">{expanded ? t('접기', 'Hide', 'إخفاء') : t('근거 보기', 'Evidence', 'الأدلة')}<ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button></div>
                   </div>
 
-                  {expanded && <div id={cardDetailsId} className="border-t border-border-warm bg-surface-subtle/60 px-4 py-4"><div className="space-y-4">{description && <p className="text-sm leading-6 text-text-secondary">{description}</p>}{pronunciation && <p className="text-xs text-text-tertiary">{pronunciation}</p>}{menu.riskLevel === 'caution' && <CautionInsight menu={menu} profile={userProfile} language={language} anyProfile={basisUnknown} />}{viewModel.primaryReason && <div><p className="mb-1 text-[11px] font-extrabold text-text-tertiary">{t('판정 이유', 'Reason', 'السبب')}</p><p className="text-sm font-semibold leading-6">{viewModel.primaryReason}</p></div>}<CommunicationActions requestActions={requestActions} trailingAction={{ id: 'order', label: t('주문 카드', 'Order card', 'بطاقة الطلب'), onClick: () => openSheet(menu, 'order') }} /><AnalysisEvidence menu={menu} language={language} /></div></div>}
+                  {expanded && compactHeader && <div id={cardDetailsId} className="border-t border-border-warm bg-surface-subtle/60 px-4 py-4"><CompactEvidence menu={menu} profile={userProfile} language={language} anyProfile={basisUnknown} description={description} onRequest={menu.riskLevel === 'caution' || menu.riskLevel === 'danger' ? () => openSheet(menu, 'request') : undefined} /></div>}
+                  {expanded && !compactHeader && <div id={cardDetailsId} className="border-t border-border-warm bg-surface-subtle/60 px-4 py-4"><div className="space-y-4">{description && <p className="text-sm leading-6 text-text-secondary">{description}</p>}{pronunciation && <p className="text-xs text-text-tertiary">{pronunciation}</p>}{menu.riskLevel === 'caution' && <CautionInsight menu={menu} profile={userProfile} language={language} anyProfile={basisUnknown} />}{viewModel.primaryReason && <div><p className="mb-1 text-[11px] font-extrabold text-text-tertiary">{t('판정 이유', 'Reason', 'السبب')}</p><p className="text-sm font-semibold leading-6">{viewModel.primaryReason}</p></div>}<CommunicationActions requestActions={requestActions} trailingAction={{ id: 'order', label: t('주문 카드', 'Order card', 'بطاقة الطلب'), onClick: () => openSheet(menu, 'order') }} /><AnalysisEvidence menu={menu} language={language} /></div></div>}
                 </article>
 
               </Fragment>
@@ -390,18 +455,29 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
         </div>
       </main>
 
-      <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-border-warm bg-surface-raised/95 px-5 py-3 backdrop-blur">
+      {compactHeader && profileCommunicationItems.length > 0 && <div className="relative h-0 shrink-0">
+        <button type="button" onClick={() => setProfileSheetOpen(true)} aria-label={t('내 식단 전달하기', 'Share my dietary needs', 'شارك احتياجاتي الغذائية')} className="absolute bottom-3 end-4 z-20 flex size-16 flex-col items-center justify-center gap-0.5 rounded-full bg-brand-primary text-white shadow-[var(--shadow-float)] hover:bg-brand-primary-hover">
+          <MessageSquareText className="size-5" aria-hidden="true" />
+          <span className="text-[10px] font-extrabold leading-none">{t('내 식단', 'My diet', 'نظامي')}</span>
+        </button>
+      </div>}
+
+      {compactHeader ? <footer className={`grid shrink-0 gap-3 border-t border-border-warm bg-surface-raised/95 px-5 py-3 backdrop-blur ${saved ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        <button type="button" onClick={onRescan} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-brand-primary bg-surface-raised px-2 text-sm font-extrabold text-brand-primary hover:bg-brand-primary-soft">{!saved && <Camera className="size-4 shrink-0" aria-hidden="true" />}{partnerRestaurantId ? t('프로필 수정하기', 'Edit profile', 'تعديل الملف') : t('메뉴판 다시 찍기', 'Retake menu photo', 'أعد تصوير القائمة')}</button>
+        {saved && <button type="button" onClick={startReview} className="min-h-12 rounded-xl bg-brand-primary px-3 text-sm font-extrabold text-white hover:bg-brand-primary-hover">{t('식당 후기 작성', 'Write a restaurant review', 'اكتب مراجعة للمطعم')}</button>}
+      </footer> : <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-border-warm bg-surface-raised/95 px-5 py-3 backdrop-blur">
         <button onClick={onRescan} className="min-h-12 rounded-xl border border-brand-primary bg-surface-raised px-3 text-sm font-extrabold text-brand-primary hover:bg-brand-primary-soft">{partnerRestaurantId ? t('프로필 수정하기', 'Edit profile', 'تعديل الملف') : t('다시 스캔하기', 'Scan again', 'المسح مرة أخرى')}</button>
         <button disabled={menuList.length === 0} onClick={() => setSaveOpen(true)} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-primary px-3 text-sm font-extrabold text-white disabled:opacity-40"><Bookmark className="size-4" />{saved ? t('기록 수정', 'Edit record', 'تعديل السجل') : t('기록하기', 'Keep this scan', 'احفظ المسح')}</button>
         {saved && <button type="button" onClick={startReview} className="col-span-2 min-h-11 rounded-xl border border-brand-primary text-sm font-extrabold text-brand-primary">{t('식당 후기 작성', 'Write a restaurant review', 'اكتب مراجعة للمطعم')}</button>}
-      </footer>
+      </footer>}
 
       {saveOpen && <SaveScanSheet language={language} menus={menuList} profile={userProfile} recordId={recordId} sourceScanId={sourceScanId} restaurantId={restaurantId} scanStore={store} scanRecord={savedRecord} onClose={() => setSaveOpen(false)} onSaved={(nextRecord) => { setSavedRecord(nextRecord ?? null); setSaved(true); onSavedRecord?.(); }} />}
       {reviewPickerOpen && <RestaurantPicker language={language} demoMode={demoMode || !sourceScanId} selectedId={null} onClose={() => setReviewPickerOpen(false)} onSelectDemo={item => { setReviewPickerOpen(false); if (item) setReviewStore({ id: item.id, name: localizeMenuText(item.name, language), linkedToScan: false }); }} onSelectStore={item => { setReviewPickerOpen(false); if (item) setReviewStore({ id: item.storeId, name: item.branchName ? `${item.name} ${item.branchName}` : item.name, linkedToScan: false }); }} />}
       {reviewStore && <MealReviewSheet language={language} profile={currentUserProfile ?? userProfile} store={reviewStore} menuNames={[...new Set(menuList.map(menu => menu.menuName))]} scanId={reviewStore.linkedToScan ? sourceScanId : undefined} scanMenuIds={Object.fromEntries(menuList.filter(menu => /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(menu.id)).map(menu => [menu.menuName, menu.id]))} demoMode={demoMode || typeof reviewStore.id === 'string' || !sourceScanId} onClose={() => setReviewStore(null)} onSaved={() => {}} />}
 
-      {sheetType && selectedMenu && <OwnerCommunicationSheet menu={selectedMenu} type={sheetType} userProfile={userProfile} language={language} demoMode={demoMode} scanId={demoMode ? undefined : sourceScanId} onServerAnswer={() => void refreshServerResult()} initialResponse={getStoredResponse(selectedMenu, sheetType)} onResponseSelect={handleOwnerResponseSelect} onClose={closeSheet} />}
-      {profileSheetOpen && <ProfileCommunicationSheet items={profileCommunicationItems} language={language} onClose={() => setProfileSheetOpen(false)} />}
+      {sheetType && selectedMenu && <OwnerCommunicationSheet menu={selectedMenu} type={sheetType} userProfile={userProfile} language={language} demoMode={demoMode} scanId={demoMode ? undefined : sourceScanId} onServerAnswer={() => void refreshServerResult()} simplifiedIngredient={compactHeader} koreanFirst={compactHeader} initialResponse={getStoredResponse(selectedMenu, sheetType)} onResponseSelect={handleOwnerResponseSelect} onClose={closeSheet} />}
+      {profileSheetOpen && compactHeader && <DietCardSheet items={profileCommunicationItems} language={language} onClose={() => setProfileSheetOpen(false)} />}
+      {profileSheetOpen && !compactHeader && <ProfileCommunicationSheet items={profileCommunicationItems} language={language} onClose={() => setProfileSheetOpen(false)} />}
       <Dialog.Root open={photoOpen && Boolean(photoUrl)} onOpenChange={setPhotoOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-soy-ink/80" />

@@ -38,3 +38,36 @@ export function AnalysisEvidence({ menu, language }: { menu: MenuAnalysis; langu
 function FragmentNode({ item, last }: { item: string; last: boolean }) {
   return <><span className={`w-full rounded-xl border px-3 py-2 text-center text-xs font-bold ${last ? 'border-brand-primary/20 bg-brand-primary text-white' : 'border-border-warm bg-surface-raised text-text-primary'}`}>{item}</span>{!last && <ArrowDown className="my-1 size-4 text-brand-primary/60" aria-hidden="true" />}</>;
 }
+
+/**
+ * 결과 위계 A 데모 전용 근거 영역. 메뉴 설명 → 판정 이유 → 재료 포함 가능성(주의일 때만) → 주문 전 확인 → 빼고 요청만 보여 준다.
+ * 참고 사진 출처는 이미지 라이선스(CC BY·BY-SA) 표기 의무라 맨 아래에 작게 남긴다.
+ */
+export function CompactEvidence({ menu, profile, language, anyProfile = false, description, onRequest }: { menu: MenuAnalysis; profile: UserProfile | null; language: Language; anyProfile?: boolean; description?: string; onRequest?: () => void }) {
+  const t = createTranslator(language);
+  const vm = buildMenuResultViewModel(menu, language);
+  const probabilities = getCautionProbabilities(menu, profile, anyProfile);
+  const heading = 'mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-text-tertiary';
+  return <div className="space-y-4">
+    {description && <p className="text-sm leading-6 text-text-secondary">{description}</p>}
+    {vm.primaryReason && <section><h4 className={heading}>{t('판정 이유', 'Why this result', 'سبب النتيجة')}</h4><p className="text-sm font-semibold leading-6 text-text-primary">{vm.primaryReason}</p></section>}
+    {probabilities.length > 0 && <section aria-label={t('재료 포함 가능성', 'Chance each ingredient is included', 'احتمال وجود كل مكوّن')}>
+      <h4 className={heading}>{t('재료 포함 가능성', 'Chance it is included', 'احتمال وجوده')}</h4>
+      <ul className="space-y-2.5">{probabilities.map((ingredient, index) => {
+        const name = localizeMenuText(ingredient.name, language);
+        return <li key={index} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
+          <span className="break-words text-sm font-bold">{name}</span>
+          <span className="text-sm font-extrabold tabular-nums text-status-caution-text" dir="ltr">{ingredient.inclusionProbability}%</span>
+          <span className="col-span-2 block h-2 overflow-hidden rounded-full bg-status-caution-surface" aria-hidden="true"><span className="block h-full rounded-full bg-status-caution" style={{ width: `${ingredient.inclusionProbability}%` }} /></span>
+        </li>;
+      })}</ul>
+      <p className="mt-2 text-[10px] leading-4 text-text-tertiary">{t('재료 포함 추정치예요. 섭취 안전 확률이 아니에요.', 'Estimated chance of inclusion. Not a probability of safe consumption.', 'تقدير لاحتمال وجود المكوّن، وليس احتمال سلامة الاستهلاك.')}</p>
+    </section>}
+    {vm.uncertainties.length > 0 && <section className="rounded-xl border border-status-caution-border bg-status-caution-surface p-3">
+      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-extrabold text-status-caution-text"><ClipboardCheck className="size-4" aria-hidden="true" />{t('주문 전, 이것만 확인해요', 'Before ordering, check these', 'تحقق من هذه قبل الطلب')}</h4>
+      <ol className="space-y-2">{vm.uncertainties.map((item, index) => <li key={index} className="flex items-start gap-2 text-xs leading-5 text-text-primary"><span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-status-caution text-[10px] font-extrabold text-white">{index + 1}</span><span>{item}</span></li>)}</ol>
+    </section>}
+    {onRequest && <button type="button" onClick={onRequest} className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-brand-primary bg-surface-raised px-3 text-sm font-bold text-brand-primary hover:bg-brand-primary-soft">{t('빼고 요청', 'Request removal', 'طلب الإزالة')}</button>}
+    {menu.imageCredit && <a href={menu.imageCredit.url} target="_blank" rel="noreferrer" className="block text-[10px] text-text-tertiary underline">{t('참고 사진', 'Reference photo', 'صورة مرجعية')}: {menu.imageCredit.author} · {menu.imageCredit.license}</a>}
+  </div>;
+}
