@@ -26,9 +26,11 @@ import { clearAuthData, getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
 import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { ScanRecordResponse } from '../api/scan';
+import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
+import { ScreenErrorBoundary, ScreenErrorFallback } from './components/ScreenErrorBoundary';
 
 export type { Language } from './locales';
 
@@ -138,7 +140,7 @@ export interface MenuAnalysis {
   descriptionAr?: string;
   descriptionLocalized?: LocalizedMenuText;
   price?: string;
-  riskLevel: 'safe' | 'caution' | 'danger';
+  riskLevel: RiskLevel;
   riskReasons: string[];
   riskReasonsEn?: string[];
   riskReasonsAr?: string[];
@@ -258,6 +260,8 @@ export default function App() {
   const [activeScanStore, setActiveScanStore] = useState<StoreSummary | null>(null);
   const [activeScanRecord, setActiveScanRecord] = useState<ScanRecordResponse | null>(null);
   const [historyProfile, setHistoryProfile] = useState<UserProfile | null | undefined>();
+  // 판정 당시 식단을 아직 받을 수 없음(dietSnapshot 연동 예정).
+  const [scanProfileUnknown, setScanProfileUnknown] = useState(false);
   useEffect(() => () => {
     if (resultPhotoUrl?.startsWith('blob:')) URL.revokeObjectURL(resultPhotoUrl);
   }, [resultPhotoUrl]);
@@ -339,6 +343,7 @@ export default function App() {
       setActiveRecordId(local.id);
       setActiveScanId(local.sourceScanId);
       setHistoryProfile(local.profileSnapshot);
+      setScanProfileUnknown(false);
       setActiveScanStore(null);
       setActiveScanRecord(null);
       writeDemo('selected-restaurant', local.restaurantId);
@@ -352,6 +357,7 @@ export default function App() {
       setActiveScanId(item.id);
       setActiveRecordId(undefined);
       setHistoryProfile(undefined);
+      setScanProfileUnknown(true);
       setActiveScanStore(result.store ?? null);
       setActiveScanRecord(result.record ?? null);
       writeDemo('selected-restaurant', null);
@@ -518,6 +524,17 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-[var(--shell-background)] flex items-center justify-center sm:px-6">
       <div className="mobile-container w-full max-w-[430px] min-h-dvh bg-rice-cream shadow-[0_24px_80px_rgba(41,54,46,0.16)] relative overflow-hidden sm:border-x sm:border-border-warm">
+        <ScreenErrorBoundary
+          resetKey={location.pathname}
+          fallback={(reset) => (
+            <ScreenErrorFallback
+              language={language}
+              pathname={location.pathname}
+              onRetry={reset}
+              onHome={location.pathname === '/home' ? undefined : () => navigate('/home')}
+            />
+          )}
+        >
         <Routes>
           <Route
             path="/"
@@ -604,6 +621,7 @@ export default function App() {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
                   setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : undefined);
+                  setScanProfileUnknown(false);
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
                   setActiveScanRecord(null);
@@ -639,6 +657,7 @@ export default function App() {
                 savedRecordId={activeRecordId}
                 demoMode={demoMode}
                 menuPhotoUrl={resultPhotoUrl}
+                scanProfileUnknown={scanProfileUnknown}
                 onBack={() => { setResultPhotoUrl(null); navigate('/home'); }}
                 onRescan={() => { setResultPhotoUrl(null); navigate('/scan'); }}
               />
@@ -680,6 +699,7 @@ export default function App() {
           <Route path="/mypage/reviews" element={<MyReviewsScreen language={language} profile={userProfile} demoMode={demoMode} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </ScreenErrorBoundary>
       </div>
     </div>
   );

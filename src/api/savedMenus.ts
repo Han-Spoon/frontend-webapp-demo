@@ -2,6 +2,7 @@ import { authFetch } from './authFetch';
 import { ApiError } from './user';
 import type { StoreSummary } from './store';
 import type { MenuAnalysis } from '../app/App';
+import { normalizeRiskLevel } from './riskLevel';
 
 export interface SavedMenu {
   id: string;
@@ -20,16 +21,19 @@ async function parse<T>(response: Response): Promise<T> {
   return (json.data ?? json) as T;
 }
 
+const toSavedMenu = (item: SavedMenu): SavedMenu => ({ ...item, riskLevel: normalizeRiskLevel(item.riskLevel) });
+
 export async function getSavedMenus(): Promise<SavedMenu[]> {
-  return parse<SavedMenu[]>(await authFetch('/api/v1/saved-menus'));
+  const items = await parse<SavedMenu[]>(await authFetch('/api/v1/saved-menus'));
+  return (Array.isArray(items) ? items : []).map(toSavedMenu);
 }
 
 export async function saveMenu(scanId: string, displayOrder: number): Promise<SavedMenu> {
-  return parse<SavedMenu>(await authFetch('/api/v1/saved-menus', {
+  return toSavedMenu(await parse<SavedMenu>(await authFetch('/api/v1/saved-menus', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scanId, displayOrder }),
-  }));
+  })));
 }
 
 export async function deleteSavedMenu(id: string): Promise<void> {

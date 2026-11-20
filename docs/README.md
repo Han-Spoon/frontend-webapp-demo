@@ -21,6 +21,7 @@
 | 중요한 선택 | decisions/에 ADR 추가 |
 | 출시·수정 | changelog, testing |
 
+- [UI/UX·프론트 진단 (2026-11-20)](ui-audit.md): #46 담당자의 진행 중 작업 계획. 규칙 문서가 아니며, 남은 항목은 착수하지 않는다.
 - [시연 방법과 가짜 데이터 목록](demo-guide.md)
 - [제품의 여섯 가지 고민과 결정](decisions/0001-discovery-and-scan.md)
 - [사업 제휴와 후속 작업](roadmap.md)

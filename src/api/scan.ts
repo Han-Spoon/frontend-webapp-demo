@@ -1,6 +1,7 @@
 import { authFetch } from './authFetch';
 import { ApiError } from './user';
 import type { StoreMatchMethod, StoreSummary } from './store';
+import { normalizeRiskLevel } from './riskLevel';
 import type { MenuAnalysis } from '../app/App';
 
 export type ScanStatus =
@@ -39,7 +40,8 @@ export interface MenuResult {
   imageUrl?: string | null;
   imageAttribution?: string | null;
   isSpicy?: boolean | null;
-  riskLevel: 'safe' | 'caution' | 'danger';
+  /** 판정 못 한 메뉴는 null(명세 V2). 화면 값은 normalizeRiskLevel로 변환. */
+  riskLevel?: string | null;
   hits?: string[] | null;
   message?: FinalMessage | null;
   ownerCard?: OwnerCard | null;
@@ -210,7 +212,7 @@ export function mapMenuResult(menu: MenuResult, index: number): MenuAnalysis {
       ar: menu.message.ar ?? undefined,
     } } : undefined,
     price: menu.priceText ?? undefined,
-    riskLevel: menu.riskLevel,
+    riskLevel: normalizeRiskLevel(menu.riskLevel),
     riskReasons: tags,
     riskReasonsEn: tags,
     riskReasonsAr: tags,

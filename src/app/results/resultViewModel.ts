@@ -57,11 +57,11 @@ export function localizeMenuText(text: LocalizedMenuText, language: Language): s
 
 const hiddenTags = new Set(['unknown menu', 'unknown remain', 'hidden animal']);
 
-export function getCautionProbabilities(menu: MenuAnalysis, profile: UserProfile | null) {
+export function getCautionProbabilities(menu: MenuAnalysis, profile: UserProfile | null, anyProfile = false) {
   const profileIds = new Set(getProfileCommunicationItems(profile).map(item => item.id));
   if (menu.riskLevel !== 'caution') return [];
   return (menu.explainability?.ingredients ?? []).filter(ingredient =>
-    ingredient.profileIds?.some(id => profileIds.has(id)) &&
+    (anyProfile ? (ingredient.profileIds?.length ?? 0) > 0 : ingredient.profileIds?.some(id => profileIds.has(id))) &&
     typeof ingredient.inclusionProbability === 'number' && Number.isFinite(ingredient.inclusionProbability) &&
     ingredient.inclusionProbability >= 0 && ingredient.inclusionProbability <= 100);
 }
