@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingScreen } from './components/LandingScreen';
@@ -24,13 +24,18 @@ import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } f
 import { getConsentStatus } from '../api/consent';
 import { clearAuthData, getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
-import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
+import { appliedScanProfile, deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { ScanRecordResponse } from '../api/scan';
 import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
 import { ScreenErrorBoundary, ScreenErrorFallback } from './components/ScreenErrorBoundary';
+
+// 개발 서버 전용. 운영 빌드에서는 import 자체가 빠져 가상 가게 데이터가 번들에 들어가지 않는다.
+const DevMapPreview = import.meta.env.DEV
+  ? lazy(() => import('./components/DevMapPreview').then((module) => ({ default: module.DevMapPreview })))
+  : null;
 
 export type { Language } from './locales';
 
@@ -141,6 +146,7 @@ export interface MenuAnalysis {
   descriptionLocalized?: LocalizedMenuText;
   price?: string;
   riskLevel: RiskLevel;
+  staffQuestions?: import('../api/scan').MenuResult['staffQuestions'];
   riskReasons: string[];
   riskReasonsEn?: string[];
   riskReasonsAr?: string[];
@@ -167,7 +173,9 @@ export interface HistoryItem {
   title: string;
   date: string;
   menuCount: number;
-  dangerCount: number;
+  /** 서버가 주지 않으면 null. 0으로 채우지 않는다(위험 없음으로 읽히지 않게). */
+  dangerCount?: number | null;
+  cautionCount?: number | null;
   menus: MenuAnalysis[];
   store?: StoreSummary | null;
 }
@@ -203,6 +211,8 @@ export default function App() {
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
   const [resultPhotoUrl, setResultPhotoUrl] = useState<string | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
+  // 서버 기록 목록을 불러오지 못함. 빈 목록('기록 없음')과 구분해 다시 시도를 보여 준다.
+  const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
 
   const startDemo = () => {
@@ -277,7 +287,6 @@ export default function App() {
     try {
       const user = await getMe();
       setCurrentUser(user);
-      // 신규 언어는 백엔드 enum 확장 전까지 로컬 선택을 우선 보존한다.
       const locallySelected = localStorage.getItem('han-spoon-language');
       if (isLanguage(locallySelected) && !isBackendLanguage(locallySelected)) {
         setLanguage(locallySelected);
@@ -315,6 +324,7 @@ export default function App() {
 
   const loadHistory = async () => {
     try {
+      setHistoryLoadFailed(false);
       const items = await getScanHistory();
       setAnalysisHistory(
         items.map((item) => ({
@@ -324,13 +334,15 @@ export default function App() {
             formatHistoryTitle(language, item.scannedAt ? new Date(item.scannedAt) : new Date()),
           date: item.scannedAt ?? new Date().toISOString(),
           menuCount: item.menuCount ?? 0,
-          dangerCount: item.riskyMenuCount ?? 0,
+          dangerCount: item.dangerCount ?? null,
+          cautionCount: item.cautionCount ?? null,
           menus: [],
           store: item.store ?? null,
         })),
       );
     } catch (error) {
       console.warn('Unable to fetch scan history:', error);
+      setHistoryLoadFailed(true);
     }
   };
 
@@ -352,18 +364,22 @@ export default function App() {
     }
     try {
       const result = await getScanResult(item.id);
-      setCurrentAnalysis((result.menus ?? []).map(mapMenuResult));
+      const snapshot = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language);
+      setCurrentAnalysis((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, snapshot)));
       setAnalysisImage(null);
       setActiveScanId(item.id);
       setActiveRecordId(undefined);
-      setHistoryProfile(undefined);
-      setScanProfileUnknown(true);
-      setActiveScanStore(result.store ?? null);
+      // 스캔 당시 식단(dietSnapshot)이 있으면 그 기준으로, 없으면 '판정 기준 확인 불가'로 표시한다.
+      setHistoryProfile(snapshot ?? undefined);
+      setScanProfileUnknown(snapshot === null);
+      setActiveScanStore(result.record?.store ?? result.store ?? null);
       setActiveScanRecord(result.record ?? null);
       writeDemo('selected-restaurant', null);
       navigate('/results');
     } catch (error) {
       console.error('Unable to open scan:', error);
+      // 목록이 실패 알림을 보여 줄 수 있게 다시 던진다.
+      throw error;
     }
   };
 
@@ -374,14 +390,17 @@ export default function App() {
       setAnalysisHistory((prev) => prev.filter((item) => item.id !== id));
     } catch (error) {
       console.error('Delete scan failed:', error);
+      throw error;
     }
   };
 
   const handleRenameHistory = async (id: string, title: string) => {
-    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title } : record)); return; }
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle || normalizedTitle.length > 30) return;
+    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title: normalizedTitle } : record)); return; }
     try {
-      await updateScanTitle(id, title);
-      setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)));
+      await updateScanTitle(id, normalizedTitle);
+      setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title: normalizedTitle } : item)));
     } catch (error) {
       console.error('Rename scan failed:', error);
       throw error;
@@ -393,12 +412,6 @@ export default function App() {
     if (getAccessToken()) {
       loadCurrentUser();
       getConsentStatus().then(status => {
-        if (status.guardianApprovalRequired) {
-          clearAuthData();
-          setConsentAccepted(null);
-          navigate('/login', { replace: true });
-          return;
-        }
         setConsentAccepted(status.hasRequiredConsents);
         if (status.hasRequiredConsents) {
           loadUserProfile();
@@ -472,12 +485,6 @@ export default function App() {
   const handleLogin = async (hasProfile: boolean) => {
     await loadCurrentUser();
     const status = await getConsentStatus();
-    if (status.guardianApprovalRequired) {
-      clearAuthData();
-      setConsentAccepted(null);
-      navigate('/login', { replace: true });
-      return;
-    }
     setConsentAccepted(status.hasRequiredConsents);
     if (!status.hasRequiredConsents) {
       navigate('/terms');
@@ -579,7 +586,7 @@ export default function App() {
           <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurants/:id/menu" element={<PartnerMenuScreen language={language} userProfile={userProfile} />} />
-          <Route path="/history" element={<ScanHistoryScreen language={language} history={combinedHistory} onOpen={openHistory} onDelete={handleDeleteHistory} onRename={handleRenameHistory} />} />
+          <Route path="/history" element={<ScanHistoryScreen language={language} history={combinedHistory} loadFailed={historyLoadFailed} onRetryLoad={() => void loadHistory()} onOpen={openHistory} onDelete={handleDeleteHistory} onRename={handleRenameHistory} />} />
           <Route
             path="/scan"
             element={
@@ -596,7 +603,6 @@ export default function App() {
                 onMyPage={() => navigate('/mypage')}
                 history={combinedHistory}
                 onDeleteHistory={handleDeleteHistory}
-                onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
                 onRenameHistory={handleRenameHistory}
               />
             }
@@ -616,11 +622,13 @@ export default function App() {
               <AnalyzingScreen
                 language={language}
                 image={analysisImage}
+                userProfile={userProfile}
                 fixedResults={demoMode}
-                onComplete={(_scanId, menus, store) => {
+                onComplete={(_scanId, menus, store, appliedProfile) => {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
-                  setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : undefined);
+                  // 새 스캔은 스캔 당시 식단(없으면 지금 식단)이 판정 기준이다.
+                  setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : appliedProfile ?? undefined);
                   setScanProfileUnknown(false);
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
@@ -651,7 +659,9 @@ export default function App() {
                 language={language}
                 menus={currentAnalysis}
                 userProfile={historyProfile === undefined ? userProfile : historyProfile}
+                currentUserProfile={userProfile}
                 sourceScanId={activeScanId}
+                onSavedRecord={loadHistory}
                 store={activeScanStore}
                 record={activeScanRecord}
                 savedRecordId={activeRecordId}
@@ -669,6 +679,12 @@ export default function App() {
               element={<DevResultsPreview fallbackLanguage={language} />}
             />
           )}
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/map-preview"
+              element={DevMapPreview && <Suspense fallback={null}><DevMapPreview fallbackLanguage={language} /></Suspense>}
+            />
+          )}
           <Route
             path="/mypage"
             element={
@@ -679,6 +695,8 @@ export default function App() {
                 currentUser={currentUser}
                 userProfile={userProfile}
                 history={combinedHistory}
+                historyLoadFailed={historyLoadFailed}
+                onRetryHistory={() => void loadHistory()}
                 onBack={() => navigate('/home')}
                 onEditProfile={(section) =>
                   navigate('/onboarding', section ? { state: { editSection: section } } : undefined)

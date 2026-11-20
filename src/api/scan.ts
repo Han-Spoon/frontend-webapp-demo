@@ -2,7 +2,7 @@ import { authFetch } from './authFetch';
 import { ApiError } from './user';
 import type { StoreMatchMethod, StoreSummary } from './store';
 import { normalizeRiskLevel } from './riskLevel';
-import type { MenuAnalysis } from '../app/App';
+import type { Language, MenuAnalysis, UserProfile } from '../app/App';
 
 export type ScanStatus =
   | 'pending'
@@ -31,8 +31,14 @@ export interface OwnerCard {
 
 /** 백엔드 스캔 결과의 메뉴 1건 (MenuResult). */
 export interface MenuResult {
+  scanMenuId?: string;
   displayOrder?: number | null;
-  menuNameKo: string;
+  status?: 'completed' | 'partial_failed' | 'failed';
+  displayName?: string;
+  translatedName?: string | null;
+  description?: string | null;
+  translatedDescription?: string | null;
+  menuNameKo?: string;
   menuNameEn?: string | null;
   descriptionKo?: string | null;
   descriptionEn?: string | null;
@@ -42,8 +48,14 @@ export interface MenuResult {
   isSpicy?: boolean | null;
   /** 판정 못 한 메뉴는 null(명세 V2). 화면 값은 normalizeRiskLevel로 변환. */
   riskLevel?: string | null;
+  evidenceBasis?: 'confirmed' | 'estimated' | 'unknown';
+  informationStatus?: 'complete' | 'partial' | 'none';
+  staffAnswerStatus?: 'none' | 'partial' | 'complete';
+  matchedTags?: string[];
+  riskIngredients?: Array<{ name: Record<string, string>; status: 'present' | 'absent' | 'unknown'; posteriorMean: number | null; matchedTags: string[]; confidence?: number | null; role?: string | null; priorSource?: string | null }>;
+  staffQuestions?: Array<{ questionId: string; cardId: string; questionText: Record<string, string>; status: 'pending' | 'answered' | 'expired'; answer: 'present' | 'absent' | 'unknown' | null; answeredAt?: string | null }>;
   hits?: string[] | null;
-  message?: FinalMessage | null;
+  message?: FinalMessage | { verdict: string; reason?: string | null; notes?: Array<{ code: string; text: string }> } | null;
   ownerCard?: OwnerCard | null;
 }
 
@@ -52,22 +64,18 @@ export interface ScanCreatedResponse {
   status: ScanStatus;
 }
 
-export type ScanFeedbackAnswer = 'yes' | 'no' | 'unknown';
-
 export interface ScanRecordResponse {
   scanId: string;
   store: StoreSummary | null;
   storeLocked: boolean;
   storeMatchMethod: StoreMatchMethod | null;
-  feedback: Record<string, ScanFeedbackAnswer>;
   savedAt: string;
 }
 
 export interface SaveScanRecordPayload {
   /** 스캔 시작 후 가게를 연결할 때만 storeId와 함께 전송한다. */
   storeId?: number;
-  storeMatchMethod?: StoreMatchMethod;
-  feedback: Record<string, ScanFeedbackAnswer>;
+  storeMatchMethod?: Exclude<StoreMatchMethod, 'store_detail'>;
 }
 
 export interface ScanResultResponse {
@@ -75,12 +83,19 @@ export interface ScanResultResponse {
   status: ScanStatus;
   title?: string | null;
   store?: StoreSummary | null;
+  locale?: Language;
   record?: ScanRecordResponse | null;
+  /** 스캔 당시 식단(명세 V2). V8 이전 스캔은 null. */
+  dietSnapshot?: Partial<UserProfile> | null;
   menuCount?: number | null;
+  dangerCount?: number | null;
+  cautionCount?: number | null;
+  safeCount?: number | null;
   riskyMenuCount?: number | null;
   scannedAt?: string | null;
   menus?: MenuResult[] | null;
   retakeReasons?: string[] | null;
+  retakeSuggestions?: string[] | null;
   failureCode?: string | null;
 }
 
@@ -90,6 +105,8 @@ export interface ScanHistoryItem {
   status: ScanStatus;
   store?: StoreSummary | null;
   menuCount?: number | null;
+  dangerCount?: number | null;
+  cautionCount?: number | null;
   riskyMenuCount?: number | null;
   scannedAt?: string | null;
 }
@@ -134,7 +151,7 @@ export async function getScanResult(scanId: string): Promise<ScanResultResponse>
 /** 완료된 스캔을 사용자 기록으로 멱등 저장한다. */
 export async function saveScanRecord(
   scanId: string,
-  payload: SaveScanRecordPayload,
+  payload: SaveScanRecordPayload = {},
 ): Promise<ScanRecordResponse> {
   const response = await authFetch(`/api/v1/scans/${scanId}/record`, {
     method: 'PUT',
@@ -173,12 +190,20 @@ export async function getScanHistory(page = 0, size = 20): Promise<ScanHistoryIt
 }
 
 export async function updateScanTitle(scanId: string, title: string): Promise<ScanHistoryItem> {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle || normalizedTitle.length > 30) throw new Error('Title must be 1–30 characters.');
   const response = await authFetch(`/api/v1/scans/${scanId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title: normalizedTitle }),
   });
   return parse<ScanHistoryItem>(response);
+}
+
+export interface ScanImageResponse { imageUrl: string; contentType: string; expiresAt: string; availableUntil: string }
+export async function getScanImage(scanId: string): Promise<ScanImageResponse> {
+  const response = await authFetch(`/api/v1/scans/${scanId}/image`);
+  return parse<ScanImageResponse>(response);
 }
 
 export async function deleteScan(scanId: string): Promise<void> {
@@ -188,31 +213,69 @@ export async function deleteScan(scanId: string): Promise<void> {
   }
 }
 
+/**
+ * 스캔 당시 식단(dietSnapshot)을 화면용 프로필로 바꾼다.
+ * 스냅샷이 없으면 null을 돌려준다. 현재 프로필로 대신하지 않는다(판정 기준을 잘못 보여 주는 FN 방지).
+ */
+export function appliedScanProfile(snapshot: Partial<UserProfile> | null | undefined, fallback: UserProfile | null, locale: Language): UserProfile | null {
+  if (!snapshot) return null;
+  return {
+    ...(fallback ?? { nationality: '', languageCode: locale, isFirstTime: false, isVegan: false, hasReligion: false, hasAllergies: false, allergies: [], noSpicy: false, noAlcohol: false }),
+    ...snapshot,
+    hasReligion: snapshot.religionType !== undefined ? Boolean(snapshot.religionType) : fallback?.hasReligion ?? false,
+    hasAllergies: snapshot.allergies != null ? snapshot.allergies.length > 0 : fallback?.hasAllergies ?? false,
+    languageCode: locale,
+  };
+}
+
 /** 백엔드 MenuResult → 프론트 MenuAnalysis 매핑. */
-export function mapMenuResult(menu: MenuResult, index: number): MenuAnalysis {
+export function mapMenuResult(menu: MenuResult, index: number, locale: Language = 'ko', profile: UserProfile | null = null): MenuAnalysis {
   // danger 재료(hits: is_*)와 caution 의심재료(ownerCard.flag: has_unclear_*)를 합쳐
   // 위험/의심 재료 태그의 원천으로 보관(코드 그대로, 렌더 시 언어 변환).
   const flagFromOwnerCard = menu.ownerCard?.flag ? [menu.ownerCard.flag] : [];
-  const tags = Array.from(new Set([...(menu.hits ?? []), ...flagFromOwnerCard]));
+  const tags = Array.from(new Set([...(menu.matchedTags ?? menu.hits ?? []), ...flagFromOwnerCard]));
   const isAlcohol = tags.some((tag) => tag.toLowerCase().includes('alcohol'));
+  const v2Message = menu.message && 'verdict' in menu.message ? menu.message : null;
+  const legacyMessage = menu.message && 'ko' in menu.message ? menu.message : null;
+  const localized = (value: string) => ({ ko: value, [locale]: value });
+  const profileIds = profile ? [
+    ...(profile.hasAllergies ? profile.allergies.map(code => `allergy:${code}`) : []),
+    ...(profile.noSpicy ? ['preference:no-spicy'] : []),
+    ...(profile.noAlcohol ? ['preference:no-alcohol'] : []),
+  ] : [];
+  const riskIngredients = (menu.riskIngredients ?? []).map(ingredient => {
+    const matchedProfileIds = profileIds.filter(id => ingredient.matchedTags.includes(`is_${id.split(':').pop()?.replace(/-/g, '_')}`));
+    const probability = ingredient.posteriorMean;
+    return {
+      name: { ko: ingredient.name.ko ?? '', ...(ingredient.name as Record<string, string>) },
+      profileIds: matchedProfileIds,
+      inclusionProbability: typeof probability === 'number' && Number.isFinite(probability) && probability >= 0 && probability <= 1 ? probability * 100 : undefined,
+    };
+  });
+  const name = menu.displayName ?? menu.menuNameKo ?? '';
 
   return {
-    id: String(menu.displayOrder ?? index),
+    id: menu.scanMenuId ?? String(menu.displayOrder ?? index),
     image: menu.imageUrl ?? undefined,
     imageAttribution: menu.imageUrl ? menu.imageAttribution ?? undefined : undefined,
-    menuName: menu.menuNameKo,
-    menuNameEn: menu.menuNameEn ?? menu.menuNameKo,
+    menuName: name,
+    menuNameEn: menu.translatedName ?? menu.menuNameEn ?? name,
+    menuNameLocalized: menu.translatedName ? { ko: name, [locale]: menu.translatedName } : undefined,
     menuNameAr: undefined,
     // message is dietary guidance, not a culinary description under the price.
-    description: menu.descriptionKo ?? '',
+    description: menu.description ?? menu.descriptionKo ?? '',
     descriptionEn: menu.descriptionEn ?? undefined,
-    explainability: menu.message ? { decisionReason: {
-      ko: menu.message.ko || menu.message.en || menu.message.ar || '',
-      en: menu.message.en ?? undefined,
-      ar: menu.message.ar ?? undefined,
-    } } : undefined,
+    descriptionLocalized: menu.translatedDescription ? { ko: menu.description ?? '', [locale]: menu.translatedDescription } : undefined,
+    explainability: v2Message || legacyMessage || riskIngredients.length ? {
+      decisionReason: v2Message ? localized(v2Message.reason || v2Message.verdict) : legacyMessage ? {
+        ko: legacyMessage.ko || legacyMessage.en || legacyMessage.ar || '',
+        en: legacyMessage.en ?? undefined, ar: legacyMessage.ar ?? undefined,
+      } : undefined,
+      ingredients: riskIngredients,
+    } : undefined,
     price: menu.priceText ?? undefined,
     riskLevel: normalizeRiskLevel(menu.riskLevel),
+    staffQuestions: menu.staffQuestions ?? [],
     riskReasons: tags,
     riskReasonsEn: tags,
     riskReasonsAr: tags,

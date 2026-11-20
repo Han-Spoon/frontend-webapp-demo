@@ -17,10 +17,10 @@ interface HomeScreenProps {
   demoMode?: boolean;
   language: Language;
   onScan: (image: PendingMenuImage) => void;
-  onHistory: (item: HistoryItem) => void;
+  onHistory: (item: HistoryItem) => Promise<void>;
   onMyPage: () => void;
   history: HistoryItem[];
-  onDeleteHistory: (id: string) => void;
+  onDeleteHistory: (id: string) => Promise<void>;
   onRenameHistory: (id: string, title: string) => Promise<void>;
   selectedStore: StoreCandidate | null;
   onSelectStore: (store: StoreCandidate | null) => void;

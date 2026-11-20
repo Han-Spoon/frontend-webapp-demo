@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertTriangle, Check, Volume2, XCircle } from 'lucide-react';
 import type { Language, MenuAnalysis, UserProfile } from '../App';
 import { saveCard, type CardType } from '../../api/card';
+import { saveStaffAnswer, type StaffAnswer } from '../../api/staff';
 import { speak, ttsSupported } from '../utils/speech';
 import {
   formatOwnerCommunicationContent,
@@ -15,6 +16,7 @@ import {
 import { createTranslator } from '../locales';
 import { saveDemoCard } from '../demo/cards';
 import { getProfileCommunicationItems, getProfileSummary, localizeMenuText } from '../results/resultViewModel';
+import { ModalSheet } from './common/ModalSheet';
 
 export type OwnerCommunicationType =
   | 'order'
@@ -54,6 +56,8 @@ interface OwnerCommunicationSheetProps {
   demoMode?: boolean;
   initialResponse?: OwnerResponseId | null;
   onResponseSelect?: (type: OwnerCommunicationType, responseId: OwnerResponseId) => void;
+  scanId?: string;
+  onServerAnswer?: () => void;
   onClose: () => void;
 }
 
@@ -65,18 +69,23 @@ export function OwnerCommunicationSheet({
   demoMode = false,
   initialResponse = null,
   onResponseSelect,
+  scanId,
+  onServerAnswer,
   onClose,
 }: OwnerCommunicationSheetProps) {
   const [response, setResponse] = useState<OwnerResponseId | null>(initialResponse);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [answeringQuestion, setAnsweringQuestion] = useState<string | null>(null);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, StaffAnswer>>({});
   const t = createTranslator(language);
 
   // 시트 카드 종류 → 백엔드 CardType (order/ingredient_check/exclude)
   const toCardType = (sheetType: OwnerCommunicationType): CardType => {
     if (sheetType === 'order') return 'order';
     if (sheetType === 'ingredient') return 'ingredient_check';
+    if (sheetType === 'lessSpicy') return 'less_spicy';
     return 'exclude';
   };
 
@@ -174,15 +183,15 @@ export function OwnerCommunicationSheet({
   const selectedResponse = response ? getOwnerResponseOption(type, response) : null;
 
   const selectedButtonClasses: Record<OwnerResponseTone, string> = {
-    success: 'border-brand-primary bg-brand-primary text-white shadow-sm',
-    caution: 'border-brand-primary bg-brand-primary text-white shadow-sm',
-    danger: 'border-brand-primary bg-brand-primary text-white shadow-sm',
+    success: 'border-action-primary bg-action-primary text-action-primary-foreground shadow-sm',
+    caution: 'border-action-primary bg-action-primary text-action-primary-foreground shadow-sm',
+    danger: 'border-action-primary bg-action-primary text-action-primary-foreground shadow-sm',
   };
 
   const summaryClasses: Record<OwnerResponseTone, string> = {
-    success: 'bg-brand-primary-soft border-brand-primary text-brand-primary',
-    caution: 'bg-brand-primary-soft border-brand-primary text-brand-primary',
-    danger: 'bg-brand-primary-soft border-brand-primary text-brand-primary',
+    success: 'bg-action-primary-soft border-action-primary text-action-primary',
+    caution: 'bg-action-primary-soft border-action-primary text-action-primary',
+    danger: 'bg-action-primary-soft border-action-primary text-action-primary',
   };
 
   const getResponseIcon = (tone: OwnerResponseTone) => {
@@ -198,7 +207,18 @@ export function OwnerCommunicationSheet({
   const handleResponseSelect = (option: OwnerResponseOption) => {
     setResponse(option.id);
     onResponseSelect?.(type, option.id);
-    // TODO: 직원 응답 전용 API가 제공되면 이 선택을 서버에도 저장한다.
+  };
+
+  const answerQuestion = async (questionId: string, answer: StaffAnswer) => {
+    if (!scanId) return;
+    setAnsweringQuestion(questionId);
+    setSaveError('');
+    try {
+      await saveStaffAnswer(scanId, questionId, answer);
+      setQuestionAnswers(current => ({ ...current, [questionId]: answer }));
+      onServerAnswer?.();
+    } catch (error) { setSaveError(error instanceof Error ? error.message : String(error)); }
+    finally { setAnsweringQuestion(null); }
   };
 
   const handleSave = async () => {
@@ -209,7 +229,8 @@ export function OwnerCommunicationSheet({
       const request = {
         type: toCardType(type),
         menuNameKo: menu.menuName,
-        text: { ko: content.korean, en: content.english, ar: content.arabic },
+        text: { ko: content.korean, en: content.english, ar: content.arabic, ...(language !== 'ko' && language !== 'en' && language !== 'ar' ? { [language]: translate(language, content.localized) } : {}) },
+        ...(scanId ? { scanId } : {}),
       };
       if (demoMode) saveDemoCard(request);
       else await saveCard(request);
@@ -226,14 +247,7 @@ export function OwnerCommunicationSheet({
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-soy-ink/45" onClick={onClose} />
-      <div
-        className="fixed bottom-0 left-1/2 z-50 max-h-[88dvh] w-full max-w-[430px] -translate-x-1/2 overflow-y-auto rounded-t-[1.5rem] border border-border-warm bg-surface-raised shadow-[var(--shadow-float)] animate-slide-up"
-        role="dialog"
-        aria-modal="true"
-        aria-label={translate(language, ownerCommunicationI18n.labels.selectedMenu)}
-      >
+    <ModalSheet language={language} onClose={onClose} title={translate(language, ownerCommunicationI18n.labels.selectedMenu)}>
         <div className="pt-3 pb-2 flex justify-center">
           <div className="w-12 h-1 bg-border-warm rounded-full" />
         </div>
@@ -251,7 +265,7 @@ export function OwnerCommunicationSheet({
             {ttsSupported && content.korean && (
               <button
                 onClick={() => speak(content.korean, 'ko-KR')}
-                className="flex size-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-primary text-white hover:bg-brand-primary-hover"
+                className="flex size-11 flex-shrink-0 items-center justify-center rounded-full bg-action-primary text-action-primary-foreground hover:bg-action-primary-hover"
                 aria-label={t('음성 듣기', 'Play audio', 'تشغيل الصوت')}
               >
                 <Volume2 className="w-5 h-5" />
@@ -260,7 +274,7 @@ export function OwnerCommunicationSheet({
           </div>
 
           <div className="mb-6 rounded-xl border border-border-warm bg-surface-subtle p-4">
-            <div className="mb-1 text-xs font-semibold text-brand-primary">{translate(language, ownerCommunicationI18n.labels.selectedMenu)}</div>
+            <div className="mb-1 text-xs font-semibold text-action-primary">{translate(language, ownerCommunicationI18n.labels.selectedMenu)}</div>
             <div className="font-bold text-text-primary">
               {language === 'ko'
                 ? menu.menuName
@@ -271,10 +285,16 @@ export function OwnerCommunicationSheet({
                   }, language)}
             </div>
             <div className="mt-1 text-xs text-text-secondary">{language === 'ko' ? menu.menuNameEn : menu.menuName}</div>
-            <p className="mt-2 text-xs font-semibold text-brand-primary">{t('내 식단', 'My dietary needs', 'احتياجاتي الغذائية')}: {getProfileSummary(userProfile, language).join(' · ')}</p>
+            <p className="mt-2 text-xs font-semibold text-action-primary">{t('내 식단', 'My dietary needs', 'احتياجاتي الغذائية')}: {getProfileSummary(userProfile, language).join(' · ')}</p>
           </div>
 
-          <div className="space-y-2 mb-4">
+          {type === 'ingredient' && scanId && (menu.staffQuestions?.length ?? 0) > 0 ? <div className="mb-4 space-y-3">
+            {menu.staffQuestions?.map(question => <div key={question.questionId} className="rounded-xl border border-border-warm bg-surface-subtle p-3">
+              <p className="text-sm font-bold">{question.questionText[language] ?? question.questionText.en ?? question.questionText.ko}</p>
+              <div className="mt-2 grid grid-cols-3 gap-1.5">{([['present', t('있어요', 'Present', 'موجود')], ['absent', t('없어요', 'Absent', 'غير موجود')], ['unknown', t('모름', 'Not sure', 'لا أعرف')]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={(questionAnswers[question.questionId] ?? question.answer) === value} disabled={question.status === 'expired' || answeringQuestion === question.questionId} onClick={() => void answerQuestion(question.questionId, value)} className={`min-h-11 rounded-lg border px-1 text-xs font-bold ${(questionAnswers[question.questionId] ?? question.answer) === value ? 'border-action-primary bg-action-primary text-action-primary-foreground' : 'border-border-warm bg-surface-raised'}`}>{label}</button>)}</div>
+            </div>)}
+            <p className="text-xs text-text-secondary">{t('있어요 답변이 내 식단과 겹치면 서버 판정이 위험으로 바뀔 수 있어요.', 'A present answer that conflicts with your diet can change the result to danger.', 'قد تتحول النتيجة إلى خطر إذا كانت الإجابة موجودة وتعارض نظامك الغذائي.')}</p>
+          </div> : <div className="space-y-2 mb-4">
             <div className="mb-3 text-xs font-semibold text-text-secondary">{translate(language, ownerCommunicationI18n.labels.ownerResponse)}</div>
             {responseButtons.map((btn) => {
               const selected = response === btn.id;
@@ -287,12 +307,12 @@ export function OwnerCommunicationSheet({
                   className={`flex min-h-14 w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors ${
                     selected
                       ? selectedButtonClasses[btn.tone]
-                      : 'border-border-warm bg-surface-raised text-text-primary hover:border-brand-primary hover:bg-surface-subtle'
+                      : 'border-border-warm bg-surface-raised text-text-primary hover:border-action-primary hover:bg-surface-subtle'
                   }`}
                 >
                   <span
                     className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      selected ? 'bg-white/20 text-white' : 'bg-surface-subtle text-brand-primary'
+                      selected ? 'bg-action-primary-foreground/20 text-action-primary-foreground' : 'bg-surface-subtle text-action-primary'
                     }`}
                   >
                     {selected ? getResponseIcon(btn.tone) : btn.id === 'ok' || btn.id === 'possible' ? '✓' : btn.id === 'yes' ? '!' : btn.id === 'unknown' ? '?' : '✗'}
@@ -306,14 +326,14 @@ export function OwnerCommunicationSheet({
                 </button>
               );
             })}
-          </div>
+          </div>}
 
-          {selectedResponse && type === 'ingredient' && (
+          {selectedResponse && type === 'ingredient' && !(scanId && menu.staffQuestions?.length) && (
             <div className={`mb-4 rounded-xl border p-3 text-xs leading-5 ${summaryClasses[selectedResponse.tone]}`} role="status">
               {t(
-                '직원 응답을 기록했어요. 분석 판정은 자동으로 바뀌지 않으며 교차접촉도 별도로 확인해 주세요.',
-                'Response noted. It does not automatically change the result; check cross-contact separately.',
-                'تم تسجيل الرد. لا يغيّر النتيجة تلقائياً؛ تحقق من التلامس العرضي بشكل منفصل.',
+                '이 답변은 현재 화면에만 표시돼요. 판정 확인에는 서버 질문 카드를 사용해 주세요.',
+                'This answer appears only on this screen. Use a server question card to update the result.',
+                'تظهر هذه الإجابة على هذه الشاشة فقط. استخدم بطاقة سؤال الخادم لتحديث النتيجة.',
               )}
             </div>
           )}
@@ -324,8 +344,8 @@ export function OwnerCommunicationSheet({
             disabled={saved || saving}
             className={`min-h-12 w-full rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed ${
               saved
-                ? 'bg-status-safe text-white'
-                : 'bg-brand-primary text-white hover:bg-brand-primary-hover disabled:opacity-60'
+                ? 'bg-action-primary text-action-primary-foreground'
+                : 'bg-action-primary text-action-primary-foreground hover:bg-action-primary-hover disabled:opacity-60'
             }`}
           >
             {saved ? (
@@ -340,7 +360,6 @@ export function OwnerCommunicationSheet({
             )}
           </button>
         </div>
-      </div>
-    </>
+    </ModalSheet>
   );
 }

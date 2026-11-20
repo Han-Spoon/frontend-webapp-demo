@@ -8,6 +8,6 @@
 - 미구현 데이터는 `src/app/demo/` 또는 명시적인 fixture에 둔다. 기존 실제 API 판정을 덮어쓰지 않는다.
 - 스캔 전 식당 연결은 선택 사항이다. 일반 스캔과 식당 연결 기록 모두 유지한다.
 - 7개 언어 fallback과 아랍어 RTL을 보존한다. 번역 상태를 문서에 남긴다.
-- 변경 후 `pnpm build`, `node scripts/check-demo.mjs`, `git diff --check`를 확인한다. UI 변경은 브라우저도 검증한다.
+- 변경 후 `pnpm typecheck`, `pnpm build`, `node scripts/check-demo.mjs`, `git diff --check`를 확인한다. UI 변경은 브라우저도 검증한다.
 - `.pnpm-store/`, node_modules, dist, 비밀 환경파일은 커밋하지 않는다.
 - 커밋/push/PR/병합은 해당 사용자 요청의 범위에 따른다.

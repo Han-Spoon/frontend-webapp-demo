@@ -14,7 +14,7 @@ function ActionButton({ action, primary = false }: { action: CommunicationAction
       onClick={action.onClick}
       className={`inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-normal rounded-xl px-3 py-2.5 text-center text-sm font-bold leading-5 ${
         primary
-          ? 'bg-brand-primary text-white hover:bg-brand-primary-hover'
+          ? 'bg-action-primary text-action-primary-foreground hover:bg-action-primary-hover'
           : 'border border-border-warm bg-surface-raised text-text-primary hover:bg-surface-interactive'
       }`}
     >

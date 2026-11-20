@@ -2,7 +2,7 @@ export const LANGUAGE_CODES = ['ko', 'en', 'ar', 'zh-CN', 'ja', 'zh-TW', 'es'] a
 
 export type Language = (typeof LANGUAGE_CODES)[number];
 export type BaseLanguage = 'ko' | 'en' | 'ar';
-export type BackendLanguage = BaseLanguage;
+export type BackendLanguage = Language;
 export type NewLanguage = Exclude<Language, BaseLanguage>;
 
 export type LocalizedText = Record<BaseLanguage, string> & Partial<Record<NewLanguage, string>>;
@@ -499,7 +499,7 @@ const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '지도 중심 주변': { 'zh-TW': '地圖中心附近' },
   '여행의 맛을 모아두세요. 식당을 연결한 기록과 메뉴 스캔을 모두 볼 수 있어요.': { 'zh-TW': '收藏旅途中的味道。這裡會顯示已連結餐廳的紀錄與所有菜單掃描。' },
   '첫 번째 메뉴를 기록해 보세요.': { 'zh-TW': '記下你的第一份菜單吧。' },
-  '메뉴 스캔하기': { 'zh-TW': '掃描菜單' },
+  '메뉴 스캔하기': { 'zh-CN': '扫描菜单', ja: 'メニューをスキャン', 'zh-TW': '掃描菜單', es: 'Escanear un menú' },
   '홈': { 'zh-TW': '首頁' },
   '지도': { 'zh-TW': '地圖' },
   '지도 언어': { 'zh-TW': '地圖語言' },
@@ -806,8 +806,6 @@ export const isLanguage = (value: string | null | undefined): value is Language 
   Boolean(value && LANGUAGE_CODES.includes(value as Language));
 
 export const isBackendLanguage = (value: string | null | undefined): value is BackendLanguage =>
-  value === 'ko' || value === 'en' || value === 'ar';
+  isLanguage(value);
 
-/** 백엔드 언어 enum이 확장되기 전까지 신규 언어는 영어로 저장하고 UI 선택은 로컬에 보존한다. */
-export const toBackendLanguage = (language: Language): BackendLanguage =>
-  isBackendLanguage(language) ? language : 'en';
+export const toBackendLanguage = (language: Language): BackendLanguage => language;

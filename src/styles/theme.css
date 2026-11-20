@@ -30,6 +30,11 @@
   --brand-primary-soft: var(--brand-green-50);
   --brand-accent: var(--brand-orange-500);
   --brand-accent-soft: var(--brand-orange-100);
+  /* 판정이 보이는 화면(결과·재료 확인 시트)의 행동색. 초록은 '안전' 판정과 혼동되므로 무채색을 쓴다. (UX-06) */
+  --action-primary: var(--soy-ink);
+  --action-primary-hover: #3a3d37;
+  --action-primary-soft: #efece4;
+  --action-primary-foreground: var(--rice-white);
   --status-safe: #176b4d;
   --status-safe-text: #115039;
   --status-safe-surface: #edf7f1;
@@ -105,6 +110,10 @@
   --brand-primary-soft: #20392c;
   --brand-accent: #f3a078;
   --brand-accent-soft: #4a3024;
+  --action-primary: #f1eee6;
+  --action-primary-hover: #ffffff;
+  --action-primary-soft: #2e302b;
+  --action-primary-foreground: #20231f;
   --status-safe: #75cba3;
   --status-safe-text: #d8f6e7;
   --status-safe-surface: #183628;
@@ -214,6 +223,10 @@
   --color-brand-primary: var(--brand-primary);
   --color-brand-primary-hover: var(--brand-primary-hover);
   --color-brand-primary-soft: var(--brand-primary-soft);
+  --color-action-primary: var(--action-primary);
+  --color-action-primary-hover: var(--action-primary-hover);
+  --color-action-primary-soft: var(--action-primary-soft);
+  --color-action-primary-foreground: var(--action-primary-foreground);
   --color-brand-accent: var(--brand-accent);
   --color-brand-accent-soft: var(--brand-accent-soft);
   --color-status-safe: var(--status-safe);

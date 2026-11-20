@@ -8,10 +8,10 @@ import {
 import { createTranslator, translateText, type LocalizedText } from '../locales';
 import {
   localizeMenuText,
-  type ProfileCommunicationItem,
-} from '../results/resultViewModel';
+  type ProfileCommunicationItem, toLocalizedText } from '../results/resultViewModel';
 import { speak, ttsSupported } from '../utils/speech';
 import { CommunicationActions } from './results/CommunicationActions';
+import { ModalSheet, ModalSheetTitle } from './common/ModalSheet';
 
 interface ProfileCommunicationSheetProps {
   items: ProfileCommunicationItem[];
@@ -59,29 +59,24 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
   const content = selectedItem && activeAction
     ? formatOwnerCommunicationContent(activeAction.type, {
       menuName: emptyText,
-      ingredient: selectedItem.label,
-      allergen: selectedItem.label,
+      ingredient: toLocalizedText(selectedItem.label),
+      allergen: toLocalizedText(selectedItem.label),
     })
     : null;
 
   return (
-    <>
-      <button type="button" className="fixed inset-0 z-40 bg-soy-ink/45" onClick={onClose} aria-label={t('닫기', 'Close', 'إغلاق')} />
-      <section
-        className="fixed bottom-0 left-1/2 z-50 max-h-[88dvh] w-full max-w-[430px] -translate-x-1/2 overflow-y-auto rounded-t-[1.5rem] border border-border-warm bg-surface-raised shadow-[var(--shadow-float)] animate-slide-up"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="profile-communication-title"
-      >
+    <ModalSheet language={language} onClose={onClose}>
         <div className="flex items-center gap-2 border-b border-border-warm px-4 py-3">
           {activeAction ? (
             <button type="button" onClick={() => setActiveAction(null)} className="touch-target inline-flex items-center justify-center rounded-full hover:bg-surface-subtle" aria-label={t('다른 항목 선택', 'Choose another item', 'اختر عنصرًا آخر')}>
               <ArrowLeft className="size-5 rtl:rotate-180" />
             </button>
           ) : <span className="size-11" aria-hidden="true" />}
-          <h2 id="profile-communication-title" className="min-w-0 flex-1 text-center text-base font-extrabold">
-            {t('내 식단 전달하기', 'Share my dietary needs', 'شارك احتياجاتي الغذائية')}
-          </h2>
+          <ModalSheetTitle asChild>
+            <h2 className="min-w-0 flex-1 text-center text-base font-extrabold">
+              {t('내 식단 전달하기', 'Share my dietary needs', 'شارك احتياجاتي الغذائية')}
+            </h2>
+          </ModalSheetTitle>
           <button type="button" onClick={onClose} className="touch-target inline-flex items-center justify-center rounded-full hover:bg-surface-subtle" aria-label={t('닫기', 'Close', 'إغلاق')}>
             <X className="size-5" />
           </button>
@@ -91,7 +86,7 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
           {content && selectedItem && activeAction ? (
             <div>
               <div className="mb-4 flex items-center gap-2 text-xs font-bold text-text-secondary">
-                <MessageSquareText className="size-4 text-brand-primary" aria-hidden="true" />
+                <MessageSquareText className="size-4 text-action-primary" aria-hidden="true" />
                 {localizeMenuText(selectedItem.label, language)} · {activeAction.label}
               </div>
               <div className="rounded-[var(--radius-card)] border border-border-warm bg-surface-subtle p-4">
@@ -102,7 +97,7 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
                     {language === 'ko' && <p className="mt-3 border-t border-border-warm pt-3 text-sm leading-6 text-text-secondary" lang="en">{content.english}</p>}
                   </div>
                   {ttsSupported && (
-                    <button type="button" onClick={() => speak(content.korean, 'ko-KR')} className="touch-target inline-flex shrink-0 items-center justify-center rounded-full bg-brand-primary text-white hover:bg-brand-primary-hover" aria-label={t('음성 듣기', 'Play audio', 'تشغيل الصوت')}>
+                    <button type="button" onClick={() => speak(content.korean, 'ko-KR')} className="touch-target inline-flex shrink-0 items-center justify-center rounded-full bg-action-primary text-action-primary-foreground hover:bg-action-primary-hover" aria-label={t('음성 듣기', 'Play audio', 'تشغيل الصوت')}>
                       <Volume2 className="size-5" />
                     </button>
                   )}
@@ -122,7 +117,7 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
                       type="button"
                       onClick={() => { setSelectedId(item.id); setActiveAction(null); }}
                       aria-pressed={selected}
-                      className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-bold ${selected ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : 'border-border-warm bg-surface-raised text-text-primary hover:bg-surface-subtle'}`}
+                      className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-bold ${selected ? 'border-action-primary bg-action-primary-soft text-action-primary' : 'border-border-warm bg-surface-raised text-text-primary hover:bg-surface-subtle'}`}
                     >
                       {localizeMenuText(item.label, language)}
                     </button>
@@ -142,7 +137,6 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
             </div>
           )}
         </div>
-      </section>
-    </>
+    </ModalSheet>
   );
 }

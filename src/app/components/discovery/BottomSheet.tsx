@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import type { Language } from '../../App';
 import { createTranslator } from '../../locales';
+import { useReturnFocus } from '../common/returnFocus';
 
 export function BottomSheet({
   title,
@@ -18,6 +19,7 @@ export function BottomSheet({
   language: Language;
 }) {
   const t = createTranslator(language);
+  const returnFocus = useReturnFocus();
   return (
     <Dialog.Root
       open
@@ -29,6 +31,7 @@ export function BottomSheet({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-soy-ink/45 backdrop-blur-sm" />
         <Dialog.Content
           dir={language === 'ar' ? 'rtl' : 'ltr'}
+          onCloseAutoFocus={returnFocus}
           className="fixed bottom-0 left-1/2 z-50 max-h-[88dvh] w-full max-w-[430px] -translate-x-1/2 overflow-y-auto rounded-t-[28px] border border-border-warm bg-rice-white px-5 pb-6 pt-4 shadow-xl"
         >
           <div className="mx-auto mb-5 h-1 w-9 rounded-full bg-border-warm" />

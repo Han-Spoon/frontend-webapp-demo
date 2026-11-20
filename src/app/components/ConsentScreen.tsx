@@ -73,7 +73,6 @@ export function ConsentScreen({ language, demoMode, onComplete, onBack }: Props)
       setBundle(documents);
       if (!getAccessToken()) { setViewOnly(true); return; }
       const status = await getConsentStatus();
-      setViewOnly(status.guardianManaged);
       if (documents.version === status.version) setDecisions({ ...emptyDecisions(), ...status.decisions });
     } catch {
       setError(true);

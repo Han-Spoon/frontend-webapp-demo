@@ -14,6 +14,8 @@ declare namespace naver.maps {
   }
   class Point {
     constructor(x: number, y: number);
+    x: number;
+    y: number;
   }
   class Size {
     constructor(width: number, height: number);
@@ -35,7 +37,12 @@ declare namespace naver.maps {
     setCenter(latlng: LatLng): void;
     setZoom(zoom: number): void;
     fitBounds(bounds: LatLngBounds, padding?: number | object): void;
+    getProjection(): MapSystemProjection;
     destroy(): void;
+  }
+  interface MapSystemProjection {
+    /** 지도 영역 왼쪽 위 기준 픽셀 좌표 */
+    fromCoordToOffset(coord: LatLng): Point;
   }
   interface MarkerOptions {
     position: LatLng;
@@ -48,6 +55,7 @@ declare namespace naver.maps {
     constructor(options: MarkerOptions);
     setMap(map: Map | null): void;
     setIcon(icon: { content: string; anchor?: Point }): void;
+    setZIndex(zIndex: number): void;
   }
   namespace Event {
     function addListener(target: object, type: string, handler: (...args: unknown[]) => void): unknown;
