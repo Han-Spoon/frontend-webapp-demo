@@ -17,9 +17,6 @@ export interface ConsentStatus {
   version: string;
   decisions: Partial<Record<DocumentId, boolean>>;
   hasRequiredConsents: boolean;
-  /** 명세 V2 응답에는 없다. 오지 않으면 보호자 동선은 열리지 않는다. */
-  guardianManaged?: boolean;
-  guardianApprovalRequired?: boolean;
 }
 
 async function parse<T>(response: Response): Promise<T> {

@@ -407,12 +407,6 @@ export default function App() {
     if (getAccessToken()) {
       loadCurrentUser();
       getConsentStatus().then(status => {
-        if (status.guardianApprovalRequired) {
-          clearAuthData();
-          setConsentAccepted(null);
-          navigate('/login', { replace: true });
-          return;
-        }
         setConsentAccepted(status.hasRequiredConsents);
         if (status.hasRequiredConsents) {
           loadUserProfile();
@@ -486,12 +480,6 @@ export default function App() {
   const handleLogin = async (hasProfile: boolean) => {
     await loadCurrentUser();
     const status = await getConsentStatus();
-    if (status.guardianApprovalRequired) {
-      clearAuthData();
-      setConsentAccepted(null);
-      navigate('/login', { replace: true });
-      return;
-    }
     setConsentAccepted(status.hasRequiredConsents);
     if (!status.hasRequiredConsents) {
       navigate('/terms');
