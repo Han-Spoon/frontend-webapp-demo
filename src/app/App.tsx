@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingScreen } from './components/LandingScreen';
@@ -30,8 +30,12 @@ import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
-import { DevMapPreview } from './components/DevMapPreview';
 import { ScreenErrorBoundary, ScreenErrorFallback } from './components/ScreenErrorBoundary';
+
+// 개발 서버 전용. 운영 빌드에서는 import 자체가 빠져 가상 가게 데이터가 번들에 들어가지 않는다.
+const DevMapPreview = import.meta.env.DEV
+  ? lazy(() => import('./components/DevMapPreview').then((module) => ({ default: module.DevMapPreview })))
+  : null;
 
 export type { Language } from './locales';
 
@@ -678,7 +682,7 @@ export default function App() {
           {import.meta.env.DEV && (
             <Route
               path="/dev/map-preview"
-              element={<DevMapPreview fallbackLanguage={language} />}
+              element={DevMapPreview && <Suspense fallback={null}><DevMapPreview fallbackLanguage={language} /></Suspense>}
             />
           )}
           <Route

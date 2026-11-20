@@ -146,26 +146,26 @@ export function StoreMap({
     if (!map) return;
     try {
       const projection = map.getProjection();
-      const placed: Box[] = [];
       const items = placementsRef.current.map((item) => {
         const point = projection.fromCoordToOffset(item.position);
         return { item, x: point.x, y: point.y };
       });
-      const dots = items.map(({ x, y }) => dotBox(x, y));
+      const pins = items.map(({ item, x, y }) => (item.selected ? null : pinBox(x, y)));
+      // 선택 가게 말풍선은 항상 먼저 놓는다.
+      const placed: Box[] = items.filter(({ item }) => item.selected).map(({ item, x, y }) => selectedBox(x, y, item.selectedWidth));
       // 우선순위: 선택 > 후보 순서(서버가 검증 가게를 앞에 둔다)
-      const order = [...items].sort((a, b) => Number(b.item.selected) - Number(a.item.selected));
-      order.forEach(({ item, x, y }) => {
-        const box = labelBox(x, y, item.labelWidth);
-        const free = item.selected || (
+      items.forEach(({ item, x, y }, index) => {
+        if (item.selected) return;
+        const box = nameBox(x, y, item.nameWidth, item.nameLines);
+        const free =
           !placed.some((other) => overlaps(box, other)) &&
-          !dots.some((dot, index) => items[index].item !== item && overlaps(box, dot))
-        );
+          !pins.some((pin, other) => other !== index && pin !== null && overlaps(box, pin));
         if (free) placed.push(box);
         const mode = free ? 'label' : 'dot';
         if (mode === item.mode) return;
         item.mode = mode;
-        item.marker.setIcon({ content: mode === 'label' ? item.labelHtml : item.dotHtml, anchor: new naver.maps.Point(0, 0) });
-        item.marker.setZIndex(item.selected ? 1000 : mode === 'label' ? 100 : 10);
+        item.marker.setIcon({ content: mode === 'label' ? item.labelHtml : item.pinHtml, anchor: new naver.maps.Point(0, 0) });
+        item.marker.setZIndex(mode === 'label' ? 100 : 10);
       });
     } catch { /* 인증 실패 등으로 지도가 폐기된 경우 */ }
   };
@@ -187,11 +187,12 @@ export function StoreMap({
         const selected = lead.id === selectedId;
         const position = new naver.maps.LatLng(lead.lat, lead.lng);
         bounds.extend(position);
+        const pinHtml = markerPinHtml(group.length);
         const marker = new naver.maps.Marker({
           position,
           map,
           title: group.map((store) => store.name).join(', '),
-          icon: { content: markerDotHtml(selected), anchor: new naver.maps.Point(0, 0) },
+          icon: { content: selected ? markerSelectedHtml(lead.name, group.length - 1) : pinHtml, anchor: new naver.maps.Point(0, 0) },
           zIndex: selected ? 1000 : 10,
         });
         // 같은 건물 묶음은 누를 때마다 다음 가게로 넘어간다.
@@ -202,14 +203,17 @@ export function StoreMap({
           }),
         );
         markersRef.current.push(marker);
+        const name = measureName(lead.name);
         placementsRef.current.push({
           marker,
           position,
           selected,
           mode: 'dot',
-          labelHtml: markerLabelHtml(lead.name, group.length - 1, selected),
-          dotHtml: markerDotHtml(selected),
-          labelWidth: labelWidth(lead.name, group.length - 1),
+          pinHtml,
+          labelHtml: markerLabelHtml(lead.name, group.length),
+          nameWidth: name.width,
+          nameLines: name.lines,
+          selectedWidth: selectedWidth(lead.name, group.length - 1),
         });
       });
 
@@ -285,18 +289,29 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, className }: {
 
 /** 같은 건물로 보는 거리. 층만 다른 가게는 좌표가 거의 같다. */
 const SAME_BUILDING_METERS = 5;
-const LABEL_HEIGHT = 26;
-const LABEL_GAP = 9;
-const DOT_RADIUS = 7;
+/** 핀 반지름. 핀 가운데가 가게 좌표다. */
+const PIN_RADIUS = 11;
+/** 핀 아래 가게 이름. 길면 두 줄까지 줄바꿈한다. */
+const NAME_MAX_WIDTH = 112;
+const NAME_LINE_HEIGHT = 15;
+const NAME_GAP = 2;
+/** 선택 가게 말풍선(핀 위, 꼬리가 좌표를 가리킨다) */
+const SELECTED_HEIGHT = 32;
+const SELECTED_TAIL = 8;
+const PIN_COLOR = '#176449';
+const SELECTED_COLOR = '#D86632';
+const FONT = 'Pretendard, system-ui, sans-serif';
 
 interface Placement {
   marker: naver.maps.Marker;
   position: naver.maps.LatLng;
   selected: boolean;
   mode: 'label' | 'dot';
+  pinHtml: string;
   labelHtml: string;
-  dotHtml: string;
-  labelWidth: number;
+  nameWidth: number;
+  nameLines: number;
+  selectedWidth: number;
 }
 
 interface Box { left: number; top: number; right: number; bottom: number }
@@ -308,7 +323,7 @@ function distanceMeters(a: MapStore, b: MapStore) {
 }
 
 /** 후보 순서를 지키며 5m 안의 가게를 한 묶음으로 모은다. 선택한 가게가 있는 묶음을 맨 앞에 둔다. */
-function groupNearbyStores(stores: MapStore[], selectedId?: string | null) {
+export function groupNearbyStores(stores: MapStore[], selectedId?: string | null) {
   const groups: MapStore[][] = [];
   stores.forEach((store) => {
     const group = groups.find((items) => distanceMeters(items[0], store) <= SAME_BUILDING_METERS);
@@ -318,13 +333,17 @@ function groupNearbyStores(stores: MapStore[], selectedId?: string | null) {
   return groups.sort((a, b) => Number(b.some((s) => s.id === selectedId)) - Number(a.some((s) => s.id === selectedId)));
 }
 
-function labelBox(x: number, y: number, width: number): Box {
-  const bottom = y - LABEL_GAP;
-  return { left: x - width / 2, right: x + width / 2, top: bottom - LABEL_HEIGHT, bottom };
+function pinBox(x: number, y: number): Box {
+  return { left: x - PIN_RADIUS, right: x + PIN_RADIUS, top: y - PIN_RADIUS, bottom: y + PIN_RADIUS };
 }
 
-function dotBox(x: number, y: number): Box {
-  return { left: x - DOT_RADIUS, right: x + DOT_RADIUS, top: y - DOT_RADIUS, bottom: y + DOT_RADIUS };
+function nameBox(x: number, y: number, width: number, lines: number): Box {
+  const top = y + PIN_RADIUS + NAME_GAP;
+  return { left: x - width / 2, right: x + width / 2, top, bottom: top + lines * NAME_LINE_HEIGHT };
+}
+
+function selectedBox(x: number, y: number, width: number): Box {
+  return { left: x - width / 2, right: x + width / 2, top: y - SELECTED_TAIL - SELECTED_HEIGHT, bottom: y };
 }
 
 function overlaps(a: Box, b: Box) {
@@ -333,49 +352,69 @@ function overlaps(a: Box, b: Box) {
 }
 
 let measureContext: CanvasRenderingContext2D | null | undefined;
-function labelWidth(name: string, extra: number) {
+function textWidth(text: string, font: string, fallbackPerChar: number) {
   if (measureContext === undefined) measureContext = document.createElement('canvas').getContext('2d');
-  let text = name.length * 12;
-  if (measureContext) {
-    measureContext.font = '600 12px Pretendard, system-ui, sans-serif';
-    text = measureContext.measureText(name).width;
-  }
-  const badge = extra > 0 ? 8 + String(extra).length * 7 + 10 : 0;
-  return Math.ceil(text + 22 + badge);
+  if (!measureContext) return text.length * fallbackPerChar;
+  measureContext.font = font;
+  return measureContext.measureText(text).width;
+}
+
+/** 핀 아래 이름의 대략적인 크기. 최대 폭을 넘으면 두 줄로 본다. */
+function measureName(name: string) {
+  const width = Math.ceil(textWidth(name, `700 12px ${FONT}`, 12)) + 4;
+  return width > NAME_MAX_WIDTH ? { width: NAME_MAX_WIDTH, lines: 2 } : { width, lines: 1 };
+}
+
+function selectedWidth(name: string, extra: number) {
+  const badge = extra > 0 ? 6 + 12 + String(extra).length * 8 : 0;
+  return Math.ceil(textWidth(name, `800 14px ${FONT}`, 14)) + 28 + badge;
 }
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** 위치 점. 이름표 자리가 없을 때도 이 점은 남아 누를 수 있다. */
-function markerDotHtml(selected: boolean) {
-  const color = selected ? '#B45309' : '#2F6B4F';
-  const size = DOT_RADIUS * 2;
+/** 가게 핀. 같은 건물에 여러 곳이면 가운데에 가게 수를 쓴다. */
+function markerPinHtml(count: number) {
+  const size = PIN_RADIUS * 2;
+  const inner = count > 1
+    ? `<span style="font:800 11px/1 ${FONT};color:#fff">${count}</span>`
+    : '<span style="width:7px;height:7px;border-radius:999px;background:#fff"></span>';
   return (
     `<div style="position:relative;width:0;height:0;cursor:pointer">` +
-    `<span style="position:absolute;left:-${DOT_RADIUS}px;top:-${DOT_RADIUS}px;width:${size}px;height:${size}px;` +
-    `border-radius:999px;background:${color};border:2px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span>` +
+    `<span style="position:absolute;left:-${PIN_RADIUS}px;top:-${PIN_RADIUS}px;width:${size}px;height:${size}px;` +
+    `display:flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:999px;` +
+    `background:${PIN_COLOR};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)">${inner}</span>` +
     `</div>`
   );
 }
 
 /**
- * 점 + 이름표. 마커 라벨은 우리 데이터라 사용자 언어로 그대로 렌더링한다(지도 라벨과 별개).
- * 같은 건물에 가게가 더 있으면 '+N'을 붙인다.
+ * 핀 + 아래 가게 이름(배경 없이 흰 테두리 글자). 마커 라벨은 우리 데이터라 사용자 언어로 그대로 렌더링한다.
  */
-function markerLabelHtml(name: string, extra: number, selected: boolean) {
-  const tone = selected ? 'background:#B45309;color:#fff' : 'background:#fff;color:#1F2937';
-  const badgeTone = selected ? 'background:rgba(255,255,255,.25);color:#fff' : 'background:#EEF4EF;color:#2F6B4F';
+function markerLabelHtml(name: string, count: number) {
+  return (
+    markerPinHtml(count).replace(/<\/div>$/, '') +
+    `<div dir="auto" style="position:absolute;left:0;top:${PIN_RADIUS + NAME_GAP}px;transform:translateX(-50%);` +
+    `width:max-content;max-width:${NAME_MAX_WIDTH}px;text-align:center;font:700 12px/${NAME_LINE_HEIGHT}px ${FONT};color:#20231F;` +
+    `word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;` +
+    `text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 3px #fff">${escapeHtml(name)}</div>` +
+    `</div>`
+  );
+}
+
+/** 선택 가게: 핀 대신 꼬리 달린 말풍선. 같은 건물 가게가 더 있으면 '+N'. */
+function markerSelectedHtml(name: string, extra: number) {
   const badge = extra > 0
-    ? `<span style="${badgeTone};margin-inline-start:6px;border-radius:999px;padding:0 5px;font-size:11px;font-weight:700">+${extra}</span>`
+    ? `<span style="margin-inline-start:6px;border-radius:999px;padding:1px 6px;background:rgba(255,255,255,.25);font:700 12px/16px ${FONT}">+${extra}</span>`
     : '';
   return (
-    markerDotHtml(selected).replace('</div>', '') +
-    `<div dir="auto" style="${tone};position:absolute;left:0;bottom:${LABEL_GAP}px;transform:translateX(-50%);` +
-    `height:${LABEL_HEIGHT}px;box-sizing:border-box;display:flex;align-items:center;` +
-    `border:1px solid rgba(0,0,0,.12);border-radius:999px;padding:0 10px;font-size:12px;font-weight:600;white-space:nowrap;` +
-    `box-shadow:0 1px 4px rgba(0,0,0,.18)">${escapeHtml(name)}${badge}</div>` +
+    `<div style="position:relative;width:0;height:0;cursor:pointer">` +
+    `<div dir="auto" style="position:absolute;left:0;bottom:${SELECTED_TAIL}px;transform:translateX(-50%);height:${SELECTED_HEIGHT}px;` +
+    `box-sizing:border-box;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:${SELECTED_COLOR};color:#fff;` +
+    `font:800 14px/18px ${FONT};white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.25)">${escapeHtml(name)}${badge}</div>` +
+    `<span style="position:absolute;left:-7px;bottom:0;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;` +
+    `border-top:${SELECTED_TAIL + 1}px solid ${SELECTED_COLOR}"></span>` +
     `</div>`
   );
 }
