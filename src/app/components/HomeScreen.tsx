@@ -25,6 +25,7 @@ import { StoreMap } from './discovery/StoreMap';
 import { PartnershipBadge } from './discovery/PartnershipBadge';
 import { RestaurantPicker } from './discovery/RestaurantPicker';
 import { BottomNav } from './BottomNav';
+import { DietPromptCard } from './DietPromptCard';
 import { RestaurantRecommendations } from './discovery/RestaurantRecommendations';
 import { restaurantRecommendationPhotos } from './discovery/restaurantPhotos';
 import { menuPrice } from '../demo/currency';
@@ -34,6 +35,7 @@ import { OfflineBanner } from './OfflineBanner';
 
 export function HomeScreen({
   language,
+  userProfile,
   demoMode,
   selectedStore,
   onSelectStore,
@@ -275,6 +277,7 @@ export function HomeScreen({
         </section>
 
         <div className="px-5">
+          <DietPromptCard language={language} userProfile={userProfile} />
           <button
             onClick={() => setPicker(true)}
             className="mb-9 flex w-full items-center gap-3 rounded-[22px] bg-brand-primary px-4 py-4 text-start text-white shadow-[0_10px_26px_rgba(23,100,73,.18)]"

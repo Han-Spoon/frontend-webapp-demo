@@ -119,6 +119,9 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const userProfile = filmingScenario ? { ...FILMING_PROFILE, languageCode: language } : suppliedProfile;
   // 판정 기준을 모르면 userProfile은 지금 식단(직원 전달용)일 뿐, 판정 기준이 아니다.
   const basisUnknown = scanProfileUnknown && !filmingScenario;
+  // 식단 정보를 불러오지 못함(null). '식단 없음'과 다르다. 서버 판정은 그대로 보여 준다.
+  const profileUnknown = !basisUnknown && !filmingScenario && userProfile === null;
+  const verdictBasisUnknown = basisUnknown || profileUnknown;
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -159,7 +162,11 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const canLoadServerPhoto = !menuPhotoUrl && Boolean(sourceScanId) && !demoMode;
   const profileSummary = getProfileSummary(userProfile, language);
   const profileCommunicationItems = getProfileCommunicationItems(userProfile);
-  const showVerdicts = basisUnknown || profileSummary.length > 0;
+  // 식단 조건이 없으면 판정 배지 대신 재료만 보여 준다. 단, 위험·주의가 하나라도 있으면 숨기지 않는다(FN 방지).
+  const showVerdicts = verdictBasisUnknown || profileSummary.length > 0
+    || menuList.some(menu => menu.riskLevel === 'danger' || menu.riskLevel === 'caution');
+  const dietEmpty = !verdictBasisUnknown && profileSummary.length === 0;
+  const editDiet = () => navigate('/onboarding', { state: { editSection: 'diet' } });
   const startReview = () => {
     const knownStore = store ?? savedRecord?.store;
     if (knownStore) { setReviewStore({ id: knownStore.storeId, name: knownStore.name, linkedToScan: true }); return; }
@@ -269,12 +276,22 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             <p className="eyebrow mb-3">{t('YOUR MENU, MADE CLEAR', 'YOUR MENU, MADE CLEAR', 'قائمتك بوضوح')}</p>
             <h2 className="text-[27px] font-extrabold leading-[1.25] tracking-[-0.03em]">{t('나를 위한 메뉴 가이드', 'Your menu, understood.', 'قائمتك، بكل وضوح.')}</h2>
           </>}
-          <p className="mt-1.5 text-sm text-text-secondary">{basisUnknown
+          <p className="mt-1.5 text-sm text-text-secondary">{!showVerdicts
+            ? translateText(language, { ko: `메뉴 ${menuList.length}개의 재료를 정리했어요.`, en: `Ingredients for ${menuList.length} dishes.`, ar: `مكونات ${menuList.length} أطباق.`, 'zh-CN': `已整理 ${menuList.length} 道菜的食材。`, ja: `${menuList.length}品のメニューの材料をまとめました。`, 'zh-TW': `已整理 ${menuList.length} 道菜的食材。`, es: `Ingredientes de ${menuList.length} platos.` })
+            : profileUnknown
+            ? translateText(language, { ko: `메뉴 ${menuList.length}개를 살펴봤어요.`, en: `We checked ${menuList.length} dishes.`, ar: `فحصنا ${menuList.length} أطباق.`, 'zh-CN': `已查看 ${menuList.length} 道菜。`, ja: `${menuList.length}品のメニューを確認しました。`, 'zh-TW': `已查看 ${menuList.length} 道菜。`, es: `Revisamos ${menuList.length} platos.` })
+            : basisUnknown
             ? t(`메뉴 ${menuList.length}개를 스캔 당시 식단 기준으로 살펴봤어요.`, `${menuList.length} dishes, checked against your dietary needs at scan time.`, `تم فحص ${menuList.length} أطباق حسب احتياجاتك الغذائية وقت المسح.`)
             : t(`메뉴 ${menuList.length}개를 내 식단 기준으로 살펴봤어요.`, `${menuList.length} dishes, checked against your dietary needs.`, `تم فحص ${menuList.length} أطباق حسب احتياجاتك الغذائية.`)}</p>
           {storeName && <div className="mt-4"><button type="button" disabled={(!photoUrl && !canLoadServerPhoto) || scanImageLoading} onClick={() => { if (photoUrl) setPhotoOpen(true); else void showScanImage(); }} className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-border-warm px-4 text-sm font-bold disabled:opacity-40"><ImageIcon className="size-4" />{scanImageLoading ? t('사진 불러오는 중…', 'Loading photo…', 'جار تحميل الصورة…') : t('메뉴판 사진 보기', 'View menu photo', 'عرض صورة القائمة')}</button>{!photoUrl && !canLoadServerPhoto && <p className="mt-1 text-xs text-text-secondary">{t('사진은 아직 제공되지 않아요.', 'Menu photo is not available yet.', 'صورة القائمة غير متاحة بعد.')}</p>}{scanImageError && <p role="alert" className="mt-1 text-xs text-status-danger-text">{scanImageError}</p>}</div>}
           <div className="mt-4 rounded-xl border border-border-warm bg-surface-subtle px-3.5 py-3">
-            {basisUnknown ? <>
+            {profileUnknown ? <>
+              <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-status-unknown-text">
+                <CircleHelp className="size-4 text-status-unknown" aria-hidden="true" />
+                {t('판정 기준 식단', 'Diet used for this result', 'النظام الغذائي المستخدم لهذه النتيجة')}
+              </div>
+              <p className="text-xs leading-5 text-text-secondary">{translateText(language, { ko: '내 식단 정보를 불러오지 못했어요. 아래 판정은 받은 그대로 보여 드려요. 먹기 전에 직원에게 재료를 확인하세요.', en: 'We couldn’t load your dietary settings. The results below are shown as received. Check the ingredients with staff before eating.', ar: 'تعذر تحميل إعداداتك الغذائية. النتائج أدناه معروضة كما وصلت. تحقق من المكونات مع الموظفين قبل الأكل.', 'zh-CN': '无法加载你的饮食设置。以下判定按收到的结果显示。用餐前请向店员确认食材。', ja: '食事設定を読み込めませんでした。下の判定は受け取ったまま表示しています。食べる前にスタッフに材料を確認してください。', 'zh-TW': '無法載入你的飲食設定。以下判定按收到的結果顯示。用餐前請向店員確認食材。', es: 'No pudimos cargar tus preferencias alimentarias. Los resultados se muestran tal como llegaron. Confirma los ingredientes con el personal antes de comer.' })}</p>
+            </> : basisUnknown ? <>
               <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-status-unknown-text">
                 <CircleHelp className="size-4 text-status-unknown" aria-hidden="true" />
                 {t('판정 기준 식단', 'Diet used for this result', 'النظام الغذائي المستخدم لهذه النتيجة')}
@@ -288,7 +305,12 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             </div>
             {profileSummary.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">{profileSummary.map((item) => <span key={item} className="rounded-md bg-surface-raised px-2 py-1 text-xs font-semibold text-text-primary">{item}</span>)}</div>
-            ) : <p className="text-xs leading-5 text-text-secondary">{t('설정된 식단 조건이 없어요', 'No dietary conditions are set.', 'لا توجد شروط غذائية محددة.')}</p>}
+            ) : <>
+              <p className="text-xs leading-5 text-text-secondary">{showVerdicts
+                ? translateText(language, { ko: '설정된 식단 조건이 없어요.', en: 'No dietary conditions are set.', ar: 'لا توجد شروط غذائية محددة.', 'zh-CN': '尚未设置饮食条件。', ja: '食事の条件が設定されていません。', 'zh-TW': '尚未設定飲食條件。', es: 'No has indicado condiciones alimentarias.' })
+                : translateText(language, { ko: '설정된 식단 조건이 없어서 위험·주의 판정 없이 재료만 보여 드려요. 알레르기나 피하는 음식이 있다면 설정해 주세요.', en: 'No dietary conditions are set, so we show ingredients without Danger or Caution labels. If you have allergies or foods you avoid, set them up.', ar: 'لا توجد شروط غذائية محددة، لذلك نعرض المكونات دون تصنيف خطر أو حذر. إذا كانت لديك حساسية أو أطعمة تتجنبها، فحددها.', 'zh-CN': '尚未设置饮食条件，所以只显示食材，不显示危险或注意判定。如果你有过敏或忌口，请进行设置。', ja: '食事の条件が設定されていないため、危険・注意の判定なしで材料だけを表示しています。アレルギーや避けたい食べ物があれば設定してください。', 'zh-TW': '尚未設定飲食條件，所以只顯示食材，不顯示危險或注意判定。如果你有過敏或忌口，請進行設定。', es: 'No has indicado condiciones alimentarias, así que mostramos los ingredientes sin etiquetas de Peligro o Precaución. Si tienes alergias o evitas algún alimento, indícalo.' })}</p>
+              {dietEmpty && <button type="button" onClick={editDiet} className="mt-1 inline-flex min-h-11 items-center text-sm font-bold text-action-primary underline underline-offset-2">{translateText(language, { ko: '식단 설정하기', en: 'Set up my diet', ar: 'حدد نظامي الغذائي', 'zh-CN': '设置饮食条件', ja: '食事の条件を設定', 'zh-TW': '設定飲食條件', es: 'Indicar mi dieta' })}</button>}
+            </>}
             </>}
             {profileCommunicationItems.length > 0 && (
               <button type="button" onClick={() => setProfileSheetOpen(true)} className="mt-3 min-h-11 w-full rounded-xl border border-action-primary bg-surface-raised px-3 py-2 text-sm font-bold text-action-primary hover:bg-action-primary-soft">
@@ -299,13 +321,15 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
 
           <div className="mt-4 flex items-start gap-2 px-0.5 text-xs leading-5 text-text-tertiary">
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <p>{t('판정은 참고용이에요. 재료는 매장에 꼭 확인하세요.', 'This judgment is a guide. Confirm ingredients with the restaurant.', 'هذا التقييم إرشادي. تحقق من المكونات لدى المطعم.')}</p>
+            <p>{showVerdicts
+              ? t('판정은 참고용이에요. 재료는 매장에 꼭 확인하세요.', 'This judgment is a guide. Confirm ingredients with the restaurant.', 'هذا التقييم إرشادي. تحقق من المكونات لدى المطعم.')
+              : translateText(language, { ko: '재료는 매장에 꼭 확인하세요.', en: 'Confirm ingredients with the restaurant.', ar: 'تحقق من المكونات لدى المطعم.', 'zh-CN': '请务必向店家确认食材。', ja: '材料は必ずお店に確認してください。', 'zh-TW': '請務必向店家確認食材。', es: 'Confirma los ingredientes con el restaurante.' })}</p>
           </div>
         </section>
 
         {favoriteError && <p role="alert" className="mx-5 mt-3 rounded-xl bg-status-danger-surface p-3 text-xs text-status-danger-text">{favoriteError}</p>}
 
-        <nav className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b border-border-warm bg-surface-base/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t('결과 필터', 'Result filters', 'مرشحات النتائج')}>
+        {showVerdicts && <nav className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b border-border-warm bg-surface-base/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t('결과 필터', 'Result filters', 'مرشحات النتائج')}>
           {([
             { value: 'all' as const, label: t('전체', 'All', 'الكل'), count: menuList.length },
             ...(['safe', 'caution', 'danger', 'unknown'] as const)
@@ -316,7 +340,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
               {item.label} <span className="ms-1 opacity-70">{item.count}</span>
             </button>
           ))}
-        </nav>
+        </nav>}
 
         <div className="space-y-4 px-4 py-5 sm:px-5">
           {filter !== 'all' && <StatusGuidance level={filter} t={t} />}
@@ -339,7 +363,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             const activeProfileIds = new Set(profileCommunicationItems.map(item => item.id));
             const causeItems = menu.riskLevel === 'safe' || !showVerdicts ? []
               : menu.explainability?.ingredients
-                ? viewModel.ingredients.filter(item => basisUnknown ? (item.profileIds?.length ?? 0) > 0 : item.profileIds?.some(id => activeProfileIds.has(id)))
+                ? viewModel.ingredients.filter(item => verdictBasisUnknown ? (item.profileIds?.length ?? 0) > 0 : item.profileIds?.some(id => activeProfileIds.has(id)))
                 : viewModel.ingredients;
             const displayedCauses = causeItems.slice(0, 2);
             const hiddenCauseCount = Math.max(0, causeItems.length - displayedCauses.length);
