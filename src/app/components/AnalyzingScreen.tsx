@@ -6,6 +6,7 @@ import type { StoreSummary } from '../../api/store';
 import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../App';
 import { createTranslator } from '../locales';
 import { FILMING_MENUS } from '../results/filmingFixtures';
+import { ConfirmDialog } from './common/ConfirmDialog';
 
 interface AnalyzingScreenProps {
   language: Language;
@@ -38,7 +39,17 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
     activeScanId.current = null;
     onCancel();
   };
-  const cancelDialog = confirmCancel && <div role="dialog" aria-modal="true" aria-label={t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')} className="fixed inset-0 z-50 flex items-center justify-center bg-soy-ink/45 p-5"><div className="w-full max-w-sm rounded-2xl bg-surface-raised p-5"><h2 className="text-lg font-extrabold">{t('분석을 취소할까요?', 'Cancel the analysis?', 'هل تريد إلغاء التحليل؟')}</h2><p className="mt-2 text-sm leading-6 text-text-secondary">{t('이 사진의 분석 화면에서 나가요.', 'You will leave this photo’s analysis.', 'ستغادر تحليل هذه الصورة.')}</p><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setConfirmCancel(false)} className="min-h-12 rounded-[18px] border border-border-warm text-sm font-bold">{t('계속 분석', 'Keep analyzing', 'متابعة التحليل')}</button><button type="button" onClick={cancel} className="min-h-12 rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')}</button></div></div></div>;
+  const cancelDialog = confirmCancel && (
+    <ConfirmDialog
+      language={language}
+      title={t('분석을 취소할까요?', 'Cancel the analysis?', 'هل تريد إلغاء التحليل؟')}
+      description={t('이 사진의 분석 화면에서 나가요.', 'You will leave this photo’s analysis.', 'ستغادر تحليل هذه الصورة.')}
+      cancelLabel={t('계속 분석', 'Keep analyzing', 'متابعة التحليل')}
+      confirmLabel={t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')}
+      onCancel={() => setConfirmCancel(false)}
+      onConfirm={cancel}
+    />
+  );
 
   const steps = [
     { icon: ScanText, label: t('메뉴 이름과 설명을 읽고 있어요', 'Reading menu names and descriptions', 'جار قراءة أسماء الأطباق وأوصافها') },

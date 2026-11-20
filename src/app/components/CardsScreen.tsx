@@ -6,6 +6,7 @@ import { deleteCard, getSavedCards, type CardType, type SavedCard } from '../../
 import { BottomNav } from './BottomNav';
 import { createTranslator, translateText, type LocalizedText } from '../locales';
 import { OfflineBanner } from './OfflineBanner';
+import { ModalSheet } from './common/ModalSheet';
 import { deleteDemoCard, listDemoCards } from '../demo/cards';
 
 interface CardsScreenProps {
@@ -216,14 +217,12 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
 
       {/* 카드 팝업 + 한국어 음성 */}
       {selected && (
-        <>
-          <div className="fixed inset-0 bg-soy-ink/55 z-40" onClick={closePopup} />
-          <div
-            className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 bg-rice-white rounded-t-[2rem] shadow-2xl animate-slide-up"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('요청 카드', 'Request card', 'بطاقة الطلب')}
-          >
+        <ModalSheet
+          language={language}
+          onClose={closePopup}
+          title={t('요청 카드', 'Request card', 'بطاقة الطلب')}
+          className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 bg-rice-white rounded-t-[2rem] shadow-2xl animate-slide-up focus:outline-none"
+        >
             <div className="pt-3 pb-2 flex justify-center">
               <div className="w-12 h-1 bg-border-warm rounded-full" />
             </div>
@@ -257,8 +256,7 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
                 {t('닫기', 'Close', 'إغلاق')}
               </button>
             </div>
-          </div>
-        </>
+        </ModalSheet>
       )}
     </div>
   );

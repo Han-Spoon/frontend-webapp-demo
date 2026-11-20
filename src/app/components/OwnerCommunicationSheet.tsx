@@ -16,6 +16,7 @@ import {
 import { createTranslator } from '../locales';
 import { saveDemoCard } from '../demo/cards';
 import { getProfileCommunicationItems, getProfileSummary, localizeMenuText } from '../results/resultViewModel';
+import { ModalSheet } from './common/ModalSheet';
 
 export type OwnerCommunicationType =
   | 'order'
@@ -246,14 +247,7 @@ export function OwnerCommunicationSheet({
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-soy-ink/45" onClick={onClose} />
-      <div
-        className="fixed bottom-0 left-1/2 z-50 max-h-[88dvh] w-full max-w-[430px] -translate-x-1/2 overflow-y-auto rounded-t-[1.5rem] border border-border-warm bg-surface-raised shadow-[var(--shadow-float)] animate-slide-up"
-        role="dialog"
-        aria-modal="true"
-        aria-label={translate(language, ownerCommunicationI18n.labels.selectedMenu)}
-      >
+    <ModalSheet language={language} onClose={onClose} title={translate(language, ownerCommunicationI18n.labels.selectedMenu)}>
         <div className="pt-3 pb-2 flex justify-center">
           <div className="w-12 h-1 bg-border-warm rounded-full" />
         </div>
@@ -366,7 +360,6 @@ export function OwnerCommunicationSheet({
             )}
           </button>
         </div>
-      </div>
-    </>
+    </ModalSheet>
   );
 }

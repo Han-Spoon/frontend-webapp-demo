@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Check, MapPin, Pencil, Trash2, X } from 'lucide-react';
 import type { HistoryItem, Language } from '../App';
 import { createTranslator, LANGUAGE_LOCALES, translateText, type LocalizedText } from '../locales';
+import { ConfirmDialog } from './common/ConfirmDialog';
 
 interface ScanHistoryListProps {
   language: Language;
@@ -92,12 +93,6 @@ export function ScanHistoryList({ language, history, onOpen, onDelete, onRename 
     }
   };
 
-  useEffect(() => {
-    if (!confirmingDelete) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !deletingId) setConfirmingDelete(null); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [confirmingDelete, deletingId]);
   const scanTime = (date: string) => {
     const parsed = new Date(date);
     return Number.isNaN(parsed.getTime()) ? '' : new Intl.DateTimeFormat(LANGUAGE_LOCALES[language], {
@@ -199,49 +194,26 @@ export function ScanHistoryList({ language, history, onOpen, onDelete, onRename 
       ))}
 
       {confirmingDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-soy-ink/45 p-5" onClick={() => { if (!deletingId) setConfirmingDelete(null); }}>
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="history-delete-title"
-            aria-describedby="history-delete-body"
-            className="w-full max-w-sm rounded-2xl bg-surface-raised p-5"
-            onClick={event => event.stopPropagation()}
-          >
-            <h2 id="history-delete-title" className="font-extrabold text-text-primary">
-              {tx({
-                ko: '이 기록을 삭제할까요?', en: 'Delete this record?', ar: 'هل تريد حذف هذا السجل؟',
-                'zh-CN': '要删除这条记录吗？', ja: 'この記録を削除しますか？', 'zh-TW': '要刪除這筆記錄嗎？', es: '¿Eliminar este registro?',
-              })}
-            </h2>
-            <p id="history-delete-body" className="mt-2 text-sm text-text-secondary">
-              <span className="block font-semibold text-text-primary" dir="auto">{confirmingDelete.title}</span>
-              {tx({
-                ko: '삭제하면 되돌릴 수 없어요.', en: 'This cannot be undone.', ar: 'لا يمكن التراجع عن هذا الإجراء.',
-                'zh-CN': '删除后无法恢复。', ja: '削除すると元に戻せません。', 'zh-TW': '刪除後無法復原。', es: 'No se puede deshacer.',
-              })}
-            </p>
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                autoFocus
-                onClick={() => setConfirmingDelete(null)}
-                disabled={deletingId !== null}
-                className="min-h-11 flex-1 rounded-xl border border-border-warm text-sm font-bold text-text-primary"
-              >
-                {t('취소', 'Cancel', 'إلغاء')}
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmDelete()}
-                disabled={deletingId !== null}
-                className="min-h-11 flex-1 rounded-xl border border-status-danger-text text-sm font-bold text-status-danger-text disabled:opacity-50"
-              >
-                {t('삭제', 'Delete', 'حذف')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          language={language}
+          tone="danger"
+          title={tx({
+            ko: '이 기록을 삭제할까요?', en: 'Delete this record?', ar: 'هل تريد حذف هذا السجل؟',
+            'zh-CN': '要删除这条记录吗？', ja: 'この記録を削除しますか？', 'zh-TW': '要刪除這筆記錄嗎？', es: '¿Eliminar este registro?',
+          })}
+          description={<>
+            <span className="block font-semibold text-text-primary" dir="auto">{confirmingDelete.title}</span>
+            {tx({
+              ko: '삭제하면 되돌릴 수 없어요.', en: 'This cannot be undone.', ar: 'لا يمكن التراجع عن هذا الإجراء.',
+              'zh-CN': '删除后无法恢复。', ja: '削除すると元に戻せません。', 'zh-TW': '刪除後無法復原。', es: 'No se puede deshacer.',
+            })}
+          </>}
+          cancelLabel={t('취소', 'Cancel', 'إلغاء')}
+          confirmLabel={t('삭제', 'Delete', 'حذف')}
+          busy={deletingId !== null}
+          onCancel={() => setConfirmingDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
     </div>
   );

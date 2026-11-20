@@ -5,6 +5,7 @@ import { createReview, updateReview, type RestaurantReview, type ReviewAnswer, t
 import type { Language, UserProfile } from '../../App';
 import { saveDemoReview } from '../../demo/reviews';
 import { createTranslator } from '../../locales';
+import { useReturnFocus } from '../common/returnFocus';
 import { getProfileCommunicationItems, localizeMenuText } from '../../results/resultViewModel';
 
 type Store = { id: string | number; name: string };
@@ -17,6 +18,7 @@ export function MealReviewSheet({ language, profile, store, menuNames = [], scan
   onClose: () => void; onSaved: (review: RestaurantReview) => void;
 }) {
   const t = createTranslator(language);
+  const returnFocus = useReturnFocus();
   const items = getProfileCommunicationItems(profile);
   const initialNames = initialReview?.menus.map(menu => menu.name) ?? menuNames;
   const [available, setAvailable] = useState<string[]>(initialNames);
@@ -73,7 +75,7 @@ export function MealReviewSheet({ language, profile, store, menuNames = [], scan
   return <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-50 bg-soy-ink/45 backdrop-blur-sm" />
-      <Dialog.Content dir={language === 'ar' ? 'rtl' : 'ltr'} className="fixed bottom-0 left-1/2 z-50 flex max-h-[min(743px,88dvh)] w-full max-w-[430px] -translate-x-1/2 flex-col rounded-t-[24px] border border-border-warm bg-surface-raised shadow-[0_16px_44px_rgba(35,42,37,.12)]">
+      <Dialog.Content dir={language === 'ar' ? 'rtl' : 'ltr'} onCloseAutoFocus={returnFocus} className="fixed bottom-0 left-1/2 z-50 flex max-h-[min(743px,88dvh)] w-full max-w-[430px] -translate-x-1/2 flex-col rounded-t-[24px] border border-border-warm bg-surface-raised shadow-[0_16px_44px_rgba(35,42,37,.12)]">
         <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border-warm" />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3">
           <div className="mb-5 flex items-start gap-3">

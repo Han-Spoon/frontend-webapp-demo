@@ -15,6 +15,7 @@ import {
 } from '../constants/onboarding';
 import { ScanHistoryList } from './ScanHistoryList';
 import { HistoryLoadError } from './HistoryLoadError';
+import { ConfirmDialog } from './common/ConfirmDialog';
 import { OfflineBanner } from './OfflineBanner';
 
 type ProfileSection = 'language' | 'country' | 'diet';
@@ -61,6 +62,8 @@ export function MyPageScreen({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  // 로그아웃·탈퇴 요청 중에는 확인창을 닫거나 두 번 누를 수 없게 한다.
+  const [accountBusy, setAccountBusy] = useState(false);
   const [consentStatus, setConsentStatus] = useState<ConsentStatus | null>(null);
   const [consentError, setConsentError] = useState(false);
   const [consentLoading, setConsentLoading] = useState(false);
@@ -99,16 +102,22 @@ export function MyPageScreen({
   );
 
   const handleLogout = async () => {
+    if (accountBusy) return;
+    setAccountBusy(true);
     try {
       await logout();
     } catch (error) {
       console.error(error);
     } finally {
+      setAccountBusy(false);
       onLogout();
     }
   };
 
   const handleDeleteAccount = async () => {
+    if (accountBusy) return;
+    setAccountBusy(true);
+    setDeleteError('');
     try {
       await deleteMe();
       clearAuthData();
@@ -122,6 +131,8 @@ export function MyPageScreen({
             ? error.message
             : t('계정 삭제에 실패했습니다.', 'Account deletion failed.', 'فشل حذف الحساب.'),
       );
+    } finally {
+      setAccountBusy(false);
     }
   };
 
@@ -320,66 +331,35 @@ export function MyPageScreen({
       </div>
 
       {showLogoutConfirm && (
-        <>
-          <div className="fixed inset-0 bg-soy-ink/55 z-40" onClick={() => setShowLogoutConfirm(false)} />
-          <div className="fixed inset-x-5 top-1/2 z-50 mx-auto max-w-[350px] -translate-y-1/2">
-            <div className="bg-rice-white border border-border-warm rounded-[1.5rem] p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-description">
-              <h3 id="logout-dialog-title" className="text-lg font-bold text-soy-ink mb-2">{t('로그아웃', 'Log out', 'تسجيل الخروج')}</h3>
-              <p id="logout-dialog-description" className="text-sm text-sesame-gray mb-6">
-                {t('정말 로그아웃하시겠습니까?', 'Are you sure you want to log out?', 'هل أنت متأكد أنك تريد تسجيل الخروج؟')}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="flex-1 h-12 bg-brand-green-50 text-brand-green-700 rounded-2xl text-sm font-bold hover:bg-brand-green-100 transition-colors"
-                >
-                  {t('취소', 'Cancel', 'إلغاء')}
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex-1 h-12 bg-brand-green-700 text-white rounded-2xl text-sm font-bold hover:bg-brand-green-900 transition-colors"
-                >
-                  {t('로그아웃', 'Log out', 'تسجيل الخروج')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
+        <ConfirmDialog
+          language={language}
+          title={t('로그아웃', 'Log out', 'تسجيل الخروج')}
+          description={t('정말 로그아웃하시겠습니까?', 'Are you sure you want to log out?', 'هل أنت متأكد أنك تريد تسجيل الخروج؟')}
+          cancelLabel={t('취소', 'Cancel', 'إلغاء')}
+          confirmLabel={t('로그아웃', 'Log out', 'تسجيل الخروج')}
+          busy={accountBusy}
+          onCancel={() => setShowLogoutConfirm(false)}
+          onConfirm={() => void handleLogout()}
+        />
       )}
 
       {showDeleteConfirm && (
-        <>
-          <div className="fixed inset-0 bg-soy-ink/55 z-40" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="fixed inset-x-5 top-1/2 z-50 mx-auto max-w-[350px] -translate-y-1/2">
-            <div className="bg-rice-white border border-border-warm rounded-[1.5rem] p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-description">
-              <h3 id="delete-dialog-title" className="text-lg font-bold text-soy-ink mb-2">
-                {t('회원 탈퇴', 'Delete account', 'حذف الحساب')}
-              </h3>
-              <p id="delete-dialog-description" className="text-sm text-sesame-gray mb-4">
-                {t(
-                  '정말 계정을 삭제하시겠습니까? 모든 데이터가 삭제됩니다.',
-                  'Delete your account? All data will be removed.',
-                  'هل تريد حذف حسابك؟ سيتم حذف جميع البيانات.',
-                )}
-              </p>
-              {deleteError && <p className="text-sm text-red-500 mb-3" role="alert">{deleteError}</p>}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 h-12 bg-rice-white border border-border-warm rounded-2xl text-sm font-bold text-soy-ink hover:bg-brand-green-50 transition-colors"
-                >
-                  {t('취소', 'Cancel', 'إلغاء')}
-                </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  className="flex-1 h-12 bg-red-600 text-white rounded-2xl text-sm font-bold hover:bg-red-700 transition-colors"
-                >
-                  {t('삭제', 'Delete', 'حذف')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
+        <ConfirmDialog
+          language={language}
+          tone="danger"
+          title={t('회원 탈퇴', 'Delete account', 'حذف الحساب')}
+          description={t(
+            '정말 계정을 삭제하시겠습니까? 모든 데이터가 삭제됩니다.',
+            'Delete your account? All data will be removed.',
+            'هل تريد حذف حسابك؟ سيتم حذف جميع البيانات.',
+          )}
+          cancelLabel={t('취소', 'Cancel', 'إلغاء')}
+          confirmLabel={t('삭제', 'Delete', 'حذف')}
+          busy={accountBusy}
+          error={deleteError}
+          onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+          onConfirm={() => void handleDeleteAccount()}
+        />
       )}
     </div>
   );

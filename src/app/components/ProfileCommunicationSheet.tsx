@@ -11,6 +11,7 @@ import {
   type ProfileCommunicationItem, toLocalizedText } from '../results/resultViewModel';
 import { speak, ttsSupported } from '../utils/speech';
 import { CommunicationActions } from './results/CommunicationActions';
+import { ModalSheet, ModalSheetTitle } from './common/ModalSheet';
 
 interface ProfileCommunicationSheetProps {
   items: ProfileCommunicationItem[];
@@ -64,23 +65,18 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
     : null;
 
   return (
-    <>
-      <button type="button" className="fixed inset-0 z-40 bg-soy-ink/45" onClick={onClose} aria-label={t('닫기', 'Close', 'إغلاق')} />
-      <section
-        className="fixed bottom-0 left-1/2 z-50 max-h-[88dvh] w-full max-w-[430px] -translate-x-1/2 overflow-y-auto rounded-t-[1.5rem] border border-border-warm bg-surface-raised shadow-[var(--shadow-float)] animate-slide-up"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="profile-communication-title"
-      >
+    <ModalSheet language={language} onClose={onClose}>
         <div className="flex items-center gap-2 border-b border-border-warm px-4 py-3">
           {activeAction ? (
             <button type="button" onClick={() => setActiveAction(null)} className="touch-target inline-flex items-center justify-center rounded-full hover:bg-surface-subtle" aria-label={t('다른 항목 선택', 'Choose another item', 'اختر عنصرًا آخر')}>
               <ArrowLeft className="size-5 rtl:rotate-180" />
             </button>
           ) : <span className="size-11" aria-hidden="true" />}
-          <h2 id="profile-communication-title" className="min-w-0 flex-1 text-center text-base font-extrabold">
-            {t('내 식단 전달하기', 'Share my dietary needs', 'شارك احتياجاتي الغذائية')}
-          </h2>
+          <ModalSheetTitle asChild>
+            <h2 className="min-w-0 flex-1 text-center text-base font-extrabold">
+              {t('내 식단 전달하기', 'Share my dietary needs', 'شارك احتياجاتي الغذائية')}
+            </h2>
+          </ModalSheetTitle>
           <button type="button" onClick={onClose} className="touch-target inline-flex items-center justify-center rounded-full hover:bg-surface-subtle" aria-label={t('닫기', 'Close', 'إغلاق')}>
             <X className="size-5" />
           </button>
@@ -141,7 +137,6 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
             </div>
           )}
         </div>
-      </section>
-    </>
+    </ModalSheet>
   );
 }

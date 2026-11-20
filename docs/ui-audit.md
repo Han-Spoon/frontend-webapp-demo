@@ -80,7 +80,7 @@
 | UX-11 | P1 | `AnalyzingScreen.tsx:145-157` | 스캔 시작 오류를 상태 코드로만 나눈다. `503 SCAN_CAPACITY_EXCEEDED`(2초 뒤 재시도)는 "잠시 후 다시 시도"로, `404 UPLOAD_NOT_FOUND`(새 업로드 필요)는 같은 키 재시도로 떨어진다. 폴링 중 일시적 네트워크 오류 1회로 전체 분석이 실패 처리된다 | 불필요한 실패·막다른 재시도 | [코드][문서] No 15 |
 | UX-12 | P1 ✅ 해결 | `App.tsx:359-361, 369-371` | 기록 열기·삭제 실패가 `console.error`뿐이다. 눌러도 아무 일이 없다 | 사용자: 고장으로 인식 | [코드] |
 | UX-13 | P1 | `App.tsx:200`, `docs/routes.md` | `/results`는 메모리 상태라 새로고침·뒤로 갔다 오기에 사라진다 | 데이터 손실처럼 보임 | [코드] 문서에도 기재 |
-| UX-14 | P1 | `OwnerCommunicationSheet.tsx:234`, `ProfileCommunicationSheet.tsx:73`, `AnalyzingScreen.tsx:33`, `CardsScreen`, `MyPageScreen`, `MyReviewsScreen` | 손으로 만든 `role="dialog"` 6곳에 Escape 닫기·포커스 가두기·포커스 복귀가 없다(Radix를 쓰는 `BottomSheet`는 있음). 직원 카드 시트가 포함된다 | 접근성, 키보드·스크린리더 | [코드] `Escape` 처리 0건 |
+| UX-14 | P1 ✅ 해결 | `OwnerCommunicationSheet.tsx:234`, `ProfileCommunicationSheet.tsx:73`, `AnalyzingScreen.tsx:33`, `CardsScreen`, `MyPageScreen`, `MyReviewsScreen` | 손으로 만든 `role="dialog"` 6곳에 Escape 닫기·포커스 가두기·포커스 복귀가 없다(Radix를 쓰는 `BottomSheet`는 있음). 직원 카드 시트가 포함된다 | 접근성, 키보드·스크린리더 | [코드] `Escape` 처리 0건 |
 | UX-15 | P1 | `ResultsScreen.tsx:310` 외 | 문구: "Check 1 ingredients"(복수형), 분석 중 설명의 "OCR"·"백엔드", 판정 안내 "판정은 참고용이에요"가 카드마다 다른 말투. 결과 제목 "YOUR MENU, MADE CLEAR"·"Your menu, understood."는 장식 | 이해 저하 | [실행][코드] |
 | UX-16 | P1 | 결과 320px | 필터 칩 4개 중 "위험"이 잘려 가로 스크롤해야 보인다. 위험이 가장 중요한 칩이다 | 위험 메뉴 찾기 어려움 | [실행] |
 | UX-17 | P2 | `AnalyzingScreen.tsx:224-232` | 4단계 목록이 정지 상태라 진행감이 없다(명세상 서버는 단계를 주지 않음). 실패 화면에서도 "취소"가 "계속 분석" 확인창을 띄운다 | 불안·혼란 | [실행][코드] |
@@ -143,7 +143,7 @@
 | T-09 | P1 | B | `demo/storage.ts` 사용처 | "데모 저장소"가 실제 모드에서도 쓰인다: 기기 기록(`records`)이 서버 기록과 합쳐지고, 식당 연결(`selected-restaurant`)·찜(서버 스캔 ID 없을 때)이 데모 키에 저장된다. AGENTS.md의 "미구현 데이터는 demo/에" 규칙과 "실제 저장 상태" 경계가 흐리다 | [코드] |
 | T-10 | P1 | A | `ResultsScreen.tsx` 357줄 | 한 줄 300자 이상 JSX가 다수. 메뉴 카드가 화면 안에 인라인으로 있어 `PartnerMenuScreen`과 공유가 어렵다. 메뉴 카드·필터·결과 머리는 분리 후보 | [코드] |
 | T-11 | P1 | E | `locales.ts:789` | `createTranslator`가 `(ko, en, ar)` 3인자라 새 언어는 한국어 원문을 키로 한 사전에서 찾는다. 문구 수정 시 키가 깨져 조용히 영어로 떨어진다(UX-23) | [코드] |
-| T-12 | P1 | C | 손으로 만든 dialog 6곳 | Escape·포커스 관리 없음(UX-14). Radix Dialog로 통일 가능 | [코드] |
+| T-12 | P1 ✅ 해결 | C | 손으로 만든 dialog 6곳 | Escape·포커스 관리 없음(UX-14). Radix Dialog로 통일 가능 | [코드] |
 | T-13 | P2 | C | `AnalyzingScreen.tsx:21-22` | 1.5초 고정 폴링, 최대 200회. 백오프·탭 숨김 시 중지 없음. 폴링 1회 실패에 전체 실패 | [코드] |
 | T-14 | P2 | E | `ScanScreen` 외 | 하드코딩 색(UX-22), 사용자 문구가 컴포넌트에 직접(i18n 키 아님) | [코드] |
 | T-15 | P2 | A | `ScanScreen.tsx:16` | props 인터페이스 이름이 `HomeScreenProps`(촬영 화면). `package.json` 이름이 `@figma/my-make-file`. `vite.config.ts`에 Figma 자산 리졸버 잔존 | [코드] |
@@ -167,6 +167,7 @@
 ### 1단계: UI/UX (B, 고른 것부터)
 
 4. 결과 위계 재배치: 판정 → 메뉴명 → 이유 한 줄을 카드 첫 줄로, 머리 영역 축소, 위험 카드 문구를 "피하세요" 중심으로. (UX-05, UX-15, UX-16)
+    - A안(`design/results-layout-a`) 합칠 때 함께 할 것: `DietCardSheet`를 `ModalSheet`로 교체, 결과 사진 보기 Dialog에 `useReturnFocus` 연결, `brand-primary` → `action-primary` 충돌 정리.
 5. ✅ (2026-11-20) 상태 색과 브랜드 강조색 분리. 판정 화면의 행동색을 무채색 `action-primary`로 분리. (UX-06)
 6. 촬영 화면: 사진 선택 후 "분석 시작"을 고정 하단으로, 업로드 사진엔 "다른 사진 선택". (UX-09)
 7. 분석 중·다시 찍기: `retakeReasons/Suggestions` 표시, 촬영 가이드 한 줄, 실패 화면의 취소 확인 제거, 전문 용어 제거. (UX-10, UX-15, UX-17)
@@ -177,7 +178,10 @@
     - 목록을 불러오지 못하면 '기록 없음' 대신 다시 시도 안내(기록 화면, 마이페이지 스캔 탭).
     - 기록에 `메뉴 n개`·`위험 n`·`주의 n` 칩. 값이 없거나 0이면 칩을 숨기고, '안전' 표시는 넣지 않음.
     - 저장 카드에 제목, 빈 상태 설명, [메뉴 스캔하기]. 마이페이지 스캔 탭 빈 상태에도 같은 버튼.
-11. 시트·다이얼로그 접근성 통일. (UX-14, T-12)
+11. ✅ (2026-11-21) 시트·다이얼로그 접근성 통일. (UX-14, T-12)
+    - 손으로 만든 모달 8곳(확인창 5, 하단 시트 3)을 Radix 기반 공용 `ConfirmDialog`·`ModalSheet`로 교체. 규칙은 `design-system.md` "모달".
+    - Radix 모달이 Trigger 없이 쓰여 닫을 때 초점이 body로 떨어지던 문제를 `useReturnFocus`로 수정(`BottomSheet`·후기 작성 시트 포함).
+    - 남은 것: 결과 화면 사진 보기(`ResultsScreen`)의 초점 복귀는 4번 A안과 겹쳐 A안 합칠 때 처리.
 
 ### 2단계: 프론트 문제 해결 (B)
 
