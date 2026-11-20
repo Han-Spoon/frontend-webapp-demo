@@ -21,6 +21,7 @@ export function StoreMap({
   onCenterChange,
   fitStores = true,
   demoMode = false,
+  demoInsets,
   className = 'h-56 w-full overflow-hidden rounded-2xl',
 }: {
   language: Language;
@@ -35,6 +36,8 @@ export function StoreMap({
   fitStores?: boolean;
   /** 시연 모드에서는 외부 지도 키 없이 fixture 위치를 선택할 수 있는 개요를 그린다. */
   demoMode?: boolean;
+  /** 시연 개요에서 위(검색창)·아래(카드)에 가리는 높이(px). 안내 칩과 핀을 그 사이에만 둔다. */
+  demoInsets?: { top: number; bottom: number };
   className?: string;
 }) {
   const t = createTranslator(language);
@@ -232,7 +235,7 @@ export function StoreMap({
   // key 를 달아 에러/지도 전환 시 DOM 을 새로 만든다.
   // 같은 div 를 재사용하면 네이버가 컨테이너에 직접 주입한 노드(에러 화면·타일)가 남아 겹친다.
   if (demoMode) {
-    return <DemoStoreMap language={language} stores={stores} selectedId={selectedId} onSelect={onSelect} className={className} />;
+    return <DemoStoreMap language={language} stores={stores} selectedId={selectedId} onSelect={onSelect} insets={demoInsets} className={className} />;
   }
 
   if (status === 'error') {
@@ -254,7 +257,16 @@ export function StoreMap({
   return <div key="store-map" ref={containerRef} className={className} aria-busy={status === 'loading'} />;
 }
 
-function DemoStoreMap({ language, stores, selectedId, onSelect, className }: {
+/** 개요 핀 세로 위치. 기본은 28–73%, 가리는 높이가 있으면 그 사이 영역에 같은 비율로 둔다. */
+function demoPinTop(y: number, insets?: { top: number; bottom: number }) {
+  const percent = Math.min(73, Math.max(28, y));
+  if (!insets) return `${percent}%`;
+  const top = insets.top + 48;
+  return `calc(${top}px + (100% - ${top + insets.bottom}px) * ${((percent - 28) / 45).toFixed(3)})`;
+}
+
+function DemoStoreMap({ language, stores, selectedId, onSelect, insets, className }: {
+  insets?: { top: number; bottom: number };
   language: Language;
   stores: MapStore[];
   selectedId?: string | null;
@@ -280,8 +292,8 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, className }: {
 
   return <div className={`${className} relative isolate overflow-hidden bg-[#dce9df]`} role="group" aria-label={t('시연용 식당 위치 개요', 'Demo restaurant location overview', 'نظرة عامة على مواقع المطاعم التجريبية')}>
     <div className="absolute inset-0" aria-hidden="true" style={{ backgroundImage: 'linear-gradient(26deg, transparent 46%, #f9f7ed 46%, #f9f7ed 50%, transparent 50%), linear-gradient(111deg, transparent 44%, #f9f7ed 44%, #f9f7ed 49%, transparent 49%), linear-gradient(90deg, transparent 68%, #c8dece 68%, #c8dece 71%, transparent 71%)', backgroundSize: '140px 120px, 170px 130px, 100% 100%' }} />
-    <span className="absolute start-3 top-3 z-10 rounded-full bg-rice-white/90 px-3 py-1.5 text-[10px] font-bold text-brand-green-900 shadow-sm">{t('시연용 위치 개요', 'Demo location overview', 'خريطة مواقع تجريبية')}</span>
-    {coordinates.map(({ store, x, y }) => <button key={store.id} type="button" disabled={!onSelect} onClick={() => onSelect?.(store)} aria-pressed={store.id === selectedId} aria-label={store.name} className={`absolute z-10 flex max-w-[120px] -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-extrabold shadow-md ${store.id === selectedId ? 'bg-brand-primary text-white' : 'bg-rice-white text-soy-ink'}`} style={{ left: `${Math.min(85, Math.max(15, x))}%`, top: `${Math.min(73, Math.max(28, y))}%` }}>
+    <span style={{ top: insets?.top ?? 12 }} className="absolute start-3 z-10 rounded-full bg-rice-white/90 px-3 py-1.5 text-[10px] font-bold text-brand-green-900 shadow-sm">{t('시연용 위치 개요', 'Demo location overview', 'خريطة مواقع تجريبية')}</span>
+    {coordinates.map(({ store, x, y }) => <button key={store.id} type="button" disabled={!onSelect} onClick={() => onSelect?.(store)} aria-pressed={store.id === selectedId} aria-label={store.name} className={`absolute z-10 flex max-w-[120px] -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-extrabold shadow-md ${store.id === selectedId ? 'bg-brand-primary text-white' : 'bg-rice-white text-soy-ink'}`} style={{ left: `${Math.min(85, Math.max(15, x))}%`, top: demoPinTop(y, insets) }}>
       <MapPin className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{store.name}</span>
     </button>)}
   </div>;

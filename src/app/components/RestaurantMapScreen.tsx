@@ -7,10 +7,6 @@ import {
   ArrowLeft,
   Camera,
   Utensils,
-  ChevronRight,
-  Heart,
-  MapPin,
-  Navigation,
   Search,
   Loader2,
   LocateFixed,
@@ -22,12 +18,13 @@ import type { StoreCandidate } from '../../api/store';
 import type { Language, UserProfile } from '../App';
 import {
   AREAS,
+  AREA_CENTERS,
   RESTAURANTS,
   profileMatches,
-  restaurantsInArea,
   type AreaId,
   type Restaurant,
 } from '../demo/restaurants';
+import { demoAreaName, demoRestaurantOf, demoStoreId, searchDemoStores } from '../demo/mapDemoStores';
 import { useDemoValue } from '../demo/storage';
 import { createTranslator, translateText, type LocalizedText } from '../locales';
 import {
@@ -41,7 +38,7 @@ import { PartnershipBadge } from './discovery/PartnershipBadge';
 import { MapStorePanel, storeDisplayName, type StoreCardExtras } from './discovery/MapStorePanel';
 import { FOOD_CATEGORY_ICONS, FOOD_CATEGORY_LABELS, FOOD_CATEGORY_ORDER, foodCategoryOf, type FoodCategoryId } from './discovery/foodCategories';
 import { SEOUL_AREAS, areaAt, type SeoulArea } from './discovery/seoulAreas';
-import { useStoreCandidates } from '../hooks/useStoreCandidates';
+import { useStoreCandidates, type StoreCoordinates, type StoreLocationStatus, type StoreSearchOrigin } from '../hooks/useStoreCandidates';
 import { getStoreReviews, reportReview, type RestaurantReview } from '../../api/reviews';
 import { listDemoStoreReviews, reportDemoReview } from '../demo/reviews';
 import { MealReviewSheet } from './reviews/MealReviewSheet';
@@ -90,239 +87,111 @@ function DemoRestaurantMapScreen({
 }) {
   const t = createTranslator(language);
   const navigate = useNavigate();
-  const goBack = useGoBack();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedArea = searchParams.get('area');
-  const initialRestaurant = RESTAURANTS.find(
-    (restaurant) => restaurant.id === searchParams.get('restaurant'),
-  );
-  const initialArea: AreaId = initialRestaurant?.area
-    ?? (isAreaId(requestedArea) ? requestedArea : 'seongsu');
-  const initialCandidates = restaurantsInArea(initialArea);
-  const area = initialArea;
-  const [selectedId, setSelectedId] = useState(
-    initialRestaurant?.id ?? initialCandidates[0].id,
-  );
-  const detail = initialRestaurant ?? null;
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<'loading' | 'ready' | 'fallback'>('loading');
-  useEffect(() => {
-    if (area !== 'nearby' || location) return;
-    let cancelled = false;
-    if (!navigator.geolocation) { setLocationStatus('fallback'); return; }
-    navigator.geolocation.getCurrentPosition(position => {
-      if (cancelled) return;
-      setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-      setLocationStatus('ready');
-    }, () => { if (!cancelled) setLocationStatus('fallback'); }, { timeout: 8000, maximumAge: 300000 });
-    return () => { cancelled = true; };
-  }, [area, location]);
+  const detail = RESTAURANTS.find((restaurant) => restaurant.id === searchParams.get('restaurant')) ?? null;
+  // 첫 위치: 식당을 지정해 들어오면 그 식당의 지역 중심(그 식당 선택), 지역이면 그 지역 중심, 없으면 성수. '내 주변'이면 위치를 한 번 요청한다.
+  const [initial] = useState(() => {
+    if (detail) {
+      const [latitude, longitude] = AREA_CENTERS[detail.area];
+      return { location: { latitude, longitude }, selectedId: demoStoreId(detail) };
+    }
+    if (isAreaId(requestedArea) && requestedArea !== 'nearby') {
+      const [latitude, longitude] = AREA_CENTERS[requestedArea];
+      return { location: { latitude, longitude }, selectedId: null };
+    }
+    const seongsu = SEOUL_AREAS.find((area) => area.id === 'seongsu')!;
+    return { location: { latitude: seongsu.latitude, longitude: seongsu.longitude }, selectedId: null };
+  });
   const [query, setQuery] = useState('');
-  const [saved, setSaved] = useDemoValue<string[]>('saved-restaurants', []);
+  const [search, setSearch] = useState<{ location: StoreCoordinates; origin: StoreSearchOrigin }>({ location: initial.location, origin: 'map-center' });
+  const [locationStatus, setLocationStatus] = useState<StoreLocationStatus>('ready');
   const [reviewing, setReviewing] = useState(false);
   const [reviewVersion, setReviewVersion] = useState(0);
-  const [, setSelectedRestaurant] = useDemoValue<string | null>(
-    'selected-restaurant',
-    null,
-  );
-  const restaurants = useMemo(() => {
-    const reviewCount = (restaurant: Restaurant) => restaurant.feedback.reduce((total, item) => total + item.total, 0);
-    if (area !== 'nearby') return restaurantsInArea(area);
-    if (!location) return [...restaurantsInArea(area)].sort((a, b) => reviewCount(b) - reviewCount(a));
-    const distance = (r: Restaurant) => Math.hypot((r.lat - location.lat) * 111, (r.lng - location.lng) * 111 * Math.cos(location.lat * Math.PI / 180));
-    return RESTAURANTS.filter(r => distance(r) <= 10).sort((a, b) => {
-      const gapMeters = (distance(a) - distance(b)) * 1000;
-      return Math.abs(gapMeters) <= 50 ? reviewCount(b) - reviewCount(a) || gapMeters : gapMeters;
-    }).slice(0, 6);
-  }, [area, location]);
-  const mapStores = useMemo(
-    () =>
-      restaurants.map((restaurant) => ({
-        id: restaurant.id,
-        name: localizeMenuText(restaurant.name, language),
-        lat: restaurant.lat,
-        lng: restaurant.lng,
-      })),
-    [language, restaurants],
-  );
-  const selected =
-    initialRestaurant ?? restaurants.find((restaurant) => restaurant.id === selectedId) ??
-    restaurants[0];
+  const [, setSelectedRestaurant] = useDemoValue<string | null>('selected-restaurant', null);
   const profileItems = getProfileCommunicationItems(userProfile);
-  const searchResults = query.trim()
-    ? RESTAURANTS.filter((restaurant) =>
-        `${Object.values(restaurant.name).join(' ')} ${Object.values(AREAS.find((item) => item.id === restaurant.area)!).join(' ')} ${restaurant.address}`
-          .toLocaleLowerCase()
-          .includes(query.trim().toLocaleLowerCase()),
-      ).slice(0, 6)
-    : [];
 
-  const chooseArea = (nextArea: AreaId) => {
-    const first = restaurantsInArea(nextArea)[0];
-    setSelectedId(first.id);
-    setSearchParams({ area: nextArea }, { replace: true });
-  };
-
-  const openRestaurant = (restaurant: Restaurant) => {
-    setSelectedId(restaurant.id);
-    setQuery('');
-    setSearchParams(
-      { area: restaurant.area, restaurant: restaurant.id },
-      { replace: true },
+  const searchAtCurrentLocation = () => {
+    if (!navigator.geolocation) { setLocationStatus('unsupported'); return; }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSearch({ location: { latitude: position.coords.latitude, longitude: position.coords.longitude }, origin: 'current-location' });
+        setLocationStatus('ready');
+      },
+      // 실패해도 보고 있던 지역은 그대로 둔다.
+      () => setLocationStatus('denied'),
+      { timeout: 8000, maximumAge: 300000 },
     );
   };
+  useEffect(() => {
+    if (!detail && requestedArea === 'nearby') searchAtCurrentLocation();
+  }, []);
 
-  const closeDetail = () => {
-    setSearchParams({ area }, { replace: true });
-  };
-
+  const candidates = useMemo(
+    () => searchDemoStores(language, { query, location: search.location }),
+    [language, query, search, reviewVersion],
+  );
+  const restaurantOf = (store: StoreCandidate) => demoRestaurantOf(store);
   const scanRestaurant = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant.id);
     navigate(restaurant.partnership === 'recipe-verified' ? `/restaurants/${restaurant.id}/menu` : '/scan');
   };
+  const closeDetail = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('restaurant');
+    setSearchParams(next, { replace: true });
+  };
 
   return (
-    <div className="relative h-dvh overflow-hidden bg-[#e9eee5] text-soy-ink">
-      <div className="absolute inset-0 isolate">
-        <StoreMap
-          language={language}
-          stores={mapStores}
-          demoMode
-          center={area === 'nearby' ? location ?? undefined : undefined}
-          selectedId={selected?.id}
-          onSelect={(store) => {
-            const restaurant = restaurants.find((item) => item.id === store.id);
-            if (restaurant) openRestaurant(restaurant);
-          }}
-          className="h-full min-h-[560px] w-full bg-[#e9eee5]"
-        />
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-44 bg-gradient-to-b from-rice-cream via-rice-cream/90 to-transparent" />
-
-      <header className="absolute inset-x-0 top-0 z-30 flex h-16 items-center gap-3 px-4 pt-[env(safe-area-inset-top)]">
-        <button
-          onClick={goBack}
-          aria-label={translateText(language, { ko: '뒤로', en: 'Back', ar: 'رجوع', 'zh-CN': '返回', ja: '戻る', 'zh-TW': '返回', es: 'Volver' })}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border-warm bg-rice-white/95 shadow-sm backdrop-blur"
-        >
-          <ArrowLeft className="size-5 rtl:rotate-180" />
-        </button>
-        <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border-warm bg-rice-white/95 px-4 shadow-sm backdrop-blur">
-          <Search className="size-4 shrink-0 text-text-secondary" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t(
-              '식당 또는 지역 검색',
-              'Search restaurants or areas',
-              'ابحث عن مطعم أو منطقة',
-            )}
-            aria-label={t('식당 검색', 'Search restaurants', 'ابحث عن مطعم')}
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-text-tertiary"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery('')}
-              aria-label={t('검색 지우기', 'Clear search', 'مسح البحث')}
-              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-subtle"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-        </label>
-      </header>
-
-      {query.trim() && (
-        <div className="absolute inset-x-4 top-[60px] z-40 overflow-hidden rounded-[22px] border border-border-warm bg-rice-white p-2 shadow-[var(--shadow-float)]">
-          {searchResults.map((restaurant) => (
-            <button
-              key={restaurant.id}
-              onClick={() => openRestaurant(restaurant)}
-              className="flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 text-start hover:bg-brand-primary-soft"
-            >
-              <MapPin className="size-4 shrink-0 text-brand-primary" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-bold">{localizeMenuText(restaurant.name, language)}</span>
-                <span className="block truncate text-xs text-text-secondary">{localizeMenuText(AREAS.find((item) => item.id === restaurant.area)!, language)} · {localizeMenuText(restaurant.category, language)}</span>
-              </span>
-              <PartnershipBadge restaurant={restaurant} language={language} compact />
-            </button>
-          ))}
-          {searchResults.length === 0 && (
-            <p className="px-3 py-5 text-center text-sm text-text-secondary">{t('검색 결과가 없어요.', 'No matches found.', 'لا توجد نتائج.')}</p>
-          )}
-        </div>
-      )}
-
-      <nav
-        aria-label={t('지역 선택', 'Choose area', 'اختر المنطقة')}
-        className="absolute inset-x-0 top-[68px] z-30 flex gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none]"
-      >
-        {AREAS.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => chooseArea(item.id)}
-            aria-pressed={item.id === area}
-            className={
-              'inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold shadow-sm ' +
-              (item.id === area
-                ? 'border-brand-primary bg-brand-primary text-white'
-                : 'border-border-warm bg-rice-white/95 text-text-secondary backdrop-blur')
-            }
-          >
-            {item.id === 'nearby' && <Navigation className="size-3" />}
-            {localizeMenuText(item, language)}
-          </button>
-        ))}
-      </nav>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-52 bg-gradient-to-t from-rice-cream via-rice-cream/85 to-transparent" />
-      <section className="absolute inset-x-0 bottom-0 z-30 px-3 pb-[max(14px,env(safe-area-inset-bottom))]">
-        {area === 'nearby' && locationStatus !== 'ready' && <p role="status" className="mb-2 rounded-2xl bg-rice-white/95 p-3 text-xs shadow-sm">{locationStatus === 'loading' ? t('현재 위치를 확인하고 있어요.', 'Finding your location…', 'جارٍ تحديد موقعك…') : t('위치를 확인하지 못해 성수 식당을 보여드려요. 지역을 선택할 수 있어요.', 'Location unavailable. Showing Seongsu; you can choose another area.', 'تعذر تحديد الموقع. نعرض سونغسو ويمكنك اختيار منطقة أخرى.')}</p>}
-        <div className="mb-2 flex items-center justify-between px-2">
-          <p className="text-xs font-extrabold">
-            {t('이 지역의 식당', 'Places in this area', 'مطاعم في هذه المنطقة')}{' '}
-            · {restaurants.length}
-          </p>
-        </div>
-        {selected ? <button
-          onClick={() => openRestaurant(selected)}
-          className="flex min-h-[106px] w-full items-center gap-3 rounded-[26px] border border-border-warm bg-rice-white/95 p-3 text-start shadow-[0_18px_50px_rgba(35,42,37,.18)] backdrop-blur"
-        >
-          <img
-            src={selected.image}
-            alt=""
-            className="size-20 shrink-0 rounded-[20px] object-cover"
-          />
-          <span className="min-w-0 flex-1">
-            <PartnershipBadge
-              restaurant={selected}
-              language={language}
-              compact
-            />
-            <span className="mt-2 block truncate font-extrabold">
-              {localizeMenuText(selected.name, language)}
-            </span>
-            <span className="mt-1 block truncate text-xs text-text-secondary">
-              <MapPin className="me-1 inline size-3" />
-              {localizeMenuText(AREAS.find((item) => item.id === selected.area)!, language)} · {localizeMenuText(selected.category, language)}
-            </span>
-            <span className="mt-1 flex flex-col gap-1 text-[11px] font-semibold text-brand-primary">
-              <span>{t('1인 예상', 'Per person', 'تقدير للفرد')} <span className="whitespace-nowrap">{menuPrice(String(selected.price), language)?.original}</span></span>
-              <span className="flex items-center gap-1"><Users className="size-3 shrink-0" />{selected.feedback.reduce((total, item) => total + item.total, 0)} {t('식단 경험', 'dietary experiences', 'تجربة غذائية')}</span>
-            </span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 rtl:rotate-180" />
-        </button> : <div className="rounded-[24px] bg-rice-white p-5 shadow-lg"><p className="font-bold">{t('주변에 등록된 식당이 아직 없어요.', 'No listed restaurants nearby yet.', 'لا توجد مطاعم مسجلة بالقرب منك بعد.')}</p><p className="mt-2 text-xs text-text-secondary">{t('위의 지역 버튼으로 다른 동네를 둘러보세요.', 'Choose a neighborhood above to explore.', 'اختر حياً من الأعلى للاستكشاف.')}</p></div>}
-      </section>
+    <>
+      <StoreMapView
+        language={language}
+        query={query}
+        onQueryChange={setQuery}
+        demoMode
+        discovery={{
+          candidates,
+          error: false,
+          isLoading: false,
+          locationStatus,
+          retryLocation: searchAtCurrentLocation,
+          retrySearch: () => setReviewVersion((value) => value + 1),
+          searchAt: (location) => setSearch({ location, origin: 'map-center' }),
+          searchAtCurrentLocation,
+          searchLocation: search.location,
+          searchOrigin: search.origin,
+        }}
+        initialSelectedId={initial.selectedId}
+        extras={(store) => {
+          const restaurant = restaurantOf(store);
+          if (!restaurant) return undefined;
+          return {
+            photos: [restaurant.image],
+            area: demoAreaName(restaurant, language) ?? undefined,
+            badge: <PartnershipBadge restaurant={restaurant} language={language} compact />,
+            primaryAction: restaurant.partnership === 'recipe-verified' ? 'menu' : 'scan',
+          };
+        }}
+        onOpenDetail={(store) => {
+          const restaurant = restaurantOf(store);
+          if (!restaurant) return;
+          const next = new URLSearchParams(searchParams);
+          next.set('restaurant', restaurant.id);
+          setSearchParams(next, { replace: true });
+        }}
+        onScan={(store) => {
+          const restaurant = restaurantOf(store);
+          if (restaurant) scanRestaurant(restaurant);
+        }}
+      />
 
       {detail && (
         <BottomSheet
           language={language}
           onClose={closeDetail}
           title={localizeMenuText(detail.name, language)}
-          description={`${localizeMenuText(AREAS.find((item) => item.id === detail.area)!, language)} · ${localizeMenuText(detail.category, language)} · ${t('1인 예상', 'Est. per person', 'تقدير للفرد')} ${menuPrice(String(detail.price), language)?.original}`}
+          description={`${demoAreaName(detail, language) ?? ''} · ${localizeMenuText(detail.category, language)} · ${t('1인 예상', 'Est. per person', 'تقدير للفرد')} ${menuPrice(String(detail.price), language)?.original}`}
         >
           <div className="relative mb-4 overflow-hidden rounded-[24px]">
             <img
@@ -363,24 +232,6 @@ function DemoRestaurantMapScreen({
                 'Scan this restaurant’s menu',
                 'امسح قائمة هذا المطعم',
               )}
-            </button>
-            <button
-              aria-pressed={saved.includes(detail.id)}
-              aria-label={t('식당 찜하기', 'Save restaurant', 'احفظ المطعم')}
-              onClick={() =>
-                setSaved(
-                  saved.includes(detail.id)
-                    ? saved.filter((id) => id !== detail.id)
-                    : [...saved, detail.id],
-                )
-              }
-              className="flex size-13 items-center justify-center rounded-2xl border border-border-warm text-brand-accent"
-            >
-              <Heart
-                className={
-                  'size-5 ' + (saved.includes(detail.id) ? 'fill-current' : '')
-                }
-              />
             </button>
           </div>
 
@@ -442,9 +293,10 @@ function DemoRestaurantMapScreen({
         </BottomSheet>
       )}
       {reviewing && detail && <MealReviewSheet language={language} profile={userProfile} store={{ id: detail.id, name: localizeMenuText(detail.name, language) }} demoMode onClose={() => setReviewing(false)} onSaved={() => setReviewVersion(value => value + 1)} />}
-    </div>
+    </>
   );
 }
+
 
 function LiveRestaurantMapScreen({
   language,
@@ -629,6 +481,7 @@ export function StoreMapView({
   discovery,
   initialSelectedId = null,
   extras,
+  demoMode = false,
   onOpenDetail,
   onScan,
 }: {
@@ -636,6 +489,8 @@ export function StoreMapView({
   query: string;
   onQueryChange: (query: string) => void;
   discovery: StoreDiscovery;
+  /** 시연 모드: 네이버 지도 대신 시연용 위치 개요(끌기·이 지역에서 검색 없음) */
+  demoMode?: boolean;
   initialSelectedId?: number | null;
   extras?: (store: StoreCandidate) => StoreCardExtras | undefined;
   onOpenDetail: (store: StoreCandidate) => void;
@@ -751,6 +606,9 @@ export function StoreMapView({
             onSelect={(mapStore) => selectStore(Number(mapStore.id))}
             onCenterChange={(center) => { setViewCenter({ latitude: center.lat, longitude: center.lng }); setMovedByUser(true); }}
             fitStores={false}
+            demoMode={demoMode}
+            // 위: 검색창·지역 태그 / 아래: 카드 넘기기(약 330px)와 그 위 버튼 줄
+            demoInsets={{ top: 112, bottom: 400 }}
             className="h-full w-full bg-[#e9eee5]"
           />
         ) : (

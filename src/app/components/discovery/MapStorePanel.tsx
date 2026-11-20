@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { Bookmark, Camera, ChevronRight, Clock, List, Map as MapIcon, Star } from 'lucide-react';
+import { Bookmark, Camera, ChevronRight, Clock, List, Map as MapIcon, Star, Utensils } from 'lucide-react';
 import type { StoreCandidate } from '../../../api/store';
 import type { StoreSearchOrigin } from '../../hooks/useStoreCandidates';
 import { createTranslator, translateText, type Language } from '../../locales';
@@ -7,7 +7,7 @@ import { groupNearbyStores } from './StoreMap';
 import { FOOD_CATEGORY_LABELS, foodCategoryOf } from './foodCategories';
 
 /**
- * 후보 API에 아직 없는 카드 항목. 백엔드 필드가 생기기 전까지는 개발용 fixture에서만 채운다.
+ * 후보 API에 아직 없는 카드 항목. 백엔드 필드가 생기기 전까지는 개발용 fixture·시연 데이터에서만 채운다.
  * 값이 없으면 카드에서 해당 줄을 숨긴다.
  */
 export interface StoreCardExtras {
@@ -18,6 +18,12 @@ export interface StoreCardExtras {
   hours?: string;
   /** 예: "6층" */
   floorInfo?: string;
+  /** 주소의 구·군 대신 보여 줄 지역 이름(시연 식당처럼 주소가 없을 때) */
+  area?: string;
+  /** 가게명 위 배지(시연의 입점·레시피 인증) */
+  badge?: ReactNode;
+  /** 'menu'면 아래 버튼이 [내 프로필로 메뉴 보기](레시피 인증 시연 식당) */
+  primaryAction?: 'scan' | 'menu';
 }
 
 type ExtrasLookup = (store: StoreCandidate) => StoreCardExtras | undefined;
@@ -92,7 +98,7 @@ function StoreCard({
   const category = foodCategoryOf(store);
   // 기타(기타 한식 음식점·대분류 '음식' 등)는 '기타'라고 쓰지 않고, 한국어 화면에서만 원래 분류 이름을 보여 준다.
   const categoryText = category !== 'other' ? translateText(language, FOOD_CATEGORY_LABELS[category]) : language === 'ko' ? store.categoryName?.trim() || null : null;
-  const meta = [areaFromAddress(store.roadAddress), categoryText, extras?.floorInfo].filter(Boolean);
+  const meta = [extras?.area ?? areaFromAddress(store.roadAddress), categoryText, extras?.floorInfo].filter(Boolean);
   const photos = extras?.photos?.slice(0, 3) ?? [];
   const distance = store.distanceMeters !== null && origin ? formatDistance(store.distanceMeters) : null;
 
@@ -105,6 +111,7 @@ function StoreCard({
       )}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
+          {extras?.badge && <div className="mb-1.5">{extras.badge}</div>}
           <button type="button" onClick={onOpenDetail} className="flex max-w-full items-center gap-0.5 text-start">
             <span className="truncate text-base font-extrabold text-text-primary">{storeDisplayName(store)}</span>
             <ChevronRight className="size-4 shrink-0 text-text-tertiary rtl:rotate-180" aria-hidden="true" />
@@ -147,8 +154,17 @@ function StoreCard({
         </button>
       </div>
       <button type="button" onClick={onScan} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-primary px-4 text-sm font-bold text-white">
-        <Camera className="size-4" aria-hidden="true" />
-        {t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}
+        {extras?.primaryAction === 'menu' ? (
+          <>
+            <Utensils className="size-4" aria-hidden="true" />
+            {t('내 프로필로 메뉴 보기', 'View menus for my profile', 'القائمة حسب ملفي')}
+          </>
+        ) : (
+          <>
+            <Camera className="size-4" aria-hidden="true" />
+            {t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}
+          </>
+        )}
       </button>
     </article>
   );
