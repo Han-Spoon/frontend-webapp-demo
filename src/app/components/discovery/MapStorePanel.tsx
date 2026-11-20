@@ -90,7 +90,7 @@ function StoreCard({
   const rating = validRating(extras?.rating);
   const reviewCount = store.reviewCount ?? 0;
   const category = foodCategoryOf(store);
-  // 기타(기타 한식 음식점·중분류 '한식' 등)는 '기타'라고 쓰지 않고, 한국어 화면에서만 원래 분류 이름을 보여 준다.
+  // 기타(기타 한식 음식점·대분류 '음식' 등)는 '기타'라고 쓰지 않고, 한국어 화면에서만 원래 분류 이름을 보여 준다.
   const categoryText = category !== 'other' ? translateText(language, FOOD_CATEGORY_LABELS[category]) : language === 'ko' ? store.categoryName?.trim() || null : null;
   const meta = [areaFromAddress(store.roadAddress), categoryText, extras?.floorInfo].filter(Boolean);
   const photos = extras?.photos?.slice(0, 3) ?? [];

@@ -3,7 +3,7 @@ import type { LocalizedText } from '../../locales';
 /**
  * 가게 후보의 업종 코드(`categoryCode`, 소상공인 상권업종 분류)를 지도 목록용 짧은 음식 종류로 묶는다.
  * 상가정보 가게는 한식 소분류(I201xx)와 분식(I21007)만, LOCALDATA 가게는 중분류(I201~I210)나 대분류(I2)만 온다.
- * 코드가 없으면 같은 표의 분류 이름으로 찾고, 표에 없는 값·중분류 '한식'·대분류 '음식'은 기타.
+ * 코드가 없으면 같은 표의 분류 이름으로 찾고, 표에 없는 값·기타 한식 음식점·대분류 '음식'은 기타.
  */
 export type FoodCategoryId =
   | 'korean' | 'soup' | 'meat' | 'seafood' | 'noodle' | 'snack'
@@ -12,6 +12,8 @@ export type FoodCategoryId =
 const BY_CODE: Record<string, { id: FoodCategoryId; name: string }> = {
   I20101: { id: 'korean', name: '백반/한정식' },
   I20104: { id: 'korean', name: '전/부침개' },
+  // LOCALDATA 업태 '한식'(소분류 없음)
+  I201: { id: 'korean', name: '한식' },
   I20102: { id: 'soup', name: '국/탕/찌개류' },
   I20103: { id: 'meat', name: '족발/보쌈' },
   I20107: { id: 'meat', name: '돼지고기 구이/찜' },
@@ -30,7 +32,6 @@ const BY_CODE: Record<string, { id: FoodCategoryId; name: string }> = {
   I203: { id: 'japanese', name: '일식' },
   I204: { id: 'western', name: '서양식' },
   I20199: { id: 'other', name: '기타 한식 음식점' },
-  I201: { id: 'other', name: '한식' },
   I2: { id: 'other', name: '음식' },
 };
 
