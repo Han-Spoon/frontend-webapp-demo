@@ -14,6 +14,9 @@ import {
   getCountryName,
 } from '../constants/onboarding';
 import { ScanHistoryList } from './ScanHistoryList';
+import { SavedMenuList } from './SavedMenuList';
+import { MyReviewsList } from './MyReviewsList';
+import { useNavigate } from 'react-router-dom';
 
 type ProfileSection = 'language' | 'country' | 'diet';
 
@@ -36,12 +39,13 @@ interface MyPageScreenProps {
   /** section 미지정 시 전체 온보딩(신규 생성), 지정 시 해당 단위만 수정 */
   onEditProfile: (section?: ProfileSection) => void;
   onHistoryClick: (item: HistoryItem) => void;
+  onOpenSavedScan: (scanId: string) => void;
   onEditHistoryTitle: (id: string, title: string) => void;
   onDeleteHistory: (id: string) => void;
   onLogout: () => void;
 }
 
-type TabType = 'profile' | 'scan' | 'setting';
+type TabType = 'profile' | 'scan' | 'saved' | 'reviews' | 'setting';
 
 export function MyPageScreen({
   language,
@@ -51,6 +55,7 @@ export function MyPageScreen({
   onBack,
   onEditProfile,
   onHistoryClick,
+  onOpenSavedScan,
   onEditHistoryTitle,
   onDeleteHistory,
   onLogout,
@@ -61,6 +66,7 @@ export function MyPageScreen({
   const [deleteError, setDeleteError] = useState('');
 
   const t = createTranslator(language);
+  const navigate = useNavigate();
   const mapLanguage = useMapLanguage();
 
   const getAllergyDisplayName = (allergy: string | UserAllergy) => getAllergyName(allergy, language);
@@ -156,6 +162,8 @@ export function MyPageScreen({
         {[
           { value: 'profile', label: t('프로필', 'Profile', 'الملف') },
           { value: 'scan', label: t('스캔 기록', 'Scans', 'عمليات المسح') },
+          { value: 'saved', label: t('저장한 메뉴', 'Saved', 'المحفوظات') },
+          { value: 'reviews', label: t('내 후기', 'Reviews', 'تقييماتي') },
           { value: 'setting', label: t('설정', 'Setting', 'الإعدادات') },
         ].map(({ value, label }) => (
           <button
@@ -297,8 +305,12 @@ export function MyPageScreen({
           </div>
         )}
 
+        {activeTab === 'saved' && <SavedMenuList language={language} onOpenScan={onOpenSavedScan} />}
+        {activeTab === 'reviews' && <MyReviewsList language={language} profile={userProfile} />}
+
         {activeTab === 'setting' && (
           <div className="px-5 py-6 space-y-3">
+            <button type="button" onClick={() => navigate('/consent')} className="min-h-12 w-full rounded-2xl border border-border-warm bg-rice-white px-4 text-start text-sm font-bold text-soy-ink">{t('약관 및 동의 설정', 'Terms and consent', 'الشروط والموافقة')}</button>
             {/* 지도 언어 — 앱 언어와 독립된 로컬 표시 설정이라 프로필 편집 플로우를 타지 않는다.
                 네이버 지도가 ko/en/zh/ja 4개만 지원해서 앱 언어(7개)와 1:1 대응이 불가능하다. */}
             <section>

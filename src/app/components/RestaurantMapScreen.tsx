@@ -36,6 +36,7 @@ import { BottomSheet } from './discovery/BottomSheet';
 import { PartnershipBadge } from './discovery/PartnershipBadge';
 import { BottomNav } from './BottomNav';
 import { useStoreCandidates } from '../hooks/useStoreCandidates';
+import { ReviewSheet } from './ReviewSheet';
 
 function isAreaId(value: string | null): value is AreaId {
   return AREAS.some((area) => area.id === value);
@@ -55,7 +56,7 @@ export function RestaurantMapScreen({
   onSelectStore: (store: StoreCandidate | null) => void;
 }) {
   if (!demoMode) {
-    return <LiveRestaurantMapScreen language={language} selectedStore={selectedStore} onSelectStore={onSelectStore} />;
+    return <LiveRestaurantMapScreen language={language} userProfile={userProfile} selectedStore={selectedStore} onSelectStore={onSelectStore} />;
   }
 
   return <DemoRestaurantMapScreen language={language} userProfile={userProfile} />;
@@ -418,10 +419,12 @@ function DemoRestaurantMapScreen({
 
 function LiveRestaurantMapScreen({
   language,
+  userProfile,
   selectedStore,
   onSelectStore,
 }: {
   language: Language;
+  userProfile: UserProfile | null;
   selectedStore: StoreCandidate | null;
   onSelectStore: (store: StoreCandidate | null) => void;
 }) {
@@ -435,6 +438,7 @@ function LiveRestaurantMapScreen({
   )?.searchCenter;
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(selectedStore?.storeId ?? null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const {
     candidates,
     error,
@@ -450,6 +454,7 @@ function LiveRestaurantMapScreen({
     locateUser: !initialSearchCenter,
   });
   const selected = candidates.find((store) => store.storeId === selectedId) ?? candidates[0] ?? null;
+  const mapCenter = searchLocation ?? (selected ? { latitude: selected.latitude, longitude: selected.longitude } : null);
 
   const storeName = (store: StoreCandidate) =>
     store.branchName ? `${store.name} ${store.branchName}` : store.name;
@@ -468,11 +473,11 @@ function LiveRestaurantMapScreen({
   return (
     <div className="relative h-dvh overflow-hidden bg-[#e9eee5] text-soy-ink">
       <div className="absolute inset-x-0 top-0 bottom-[72px]">
-        {searchLocation ? (
+        {mapCenter ? (
           <StoreMap
             language={language}
             stores={mapStores}
-            center={searchLocation ? { lat: searchLocation.latitude, lng: searchLocation.longitude } : undefined}
+            center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
             selectedId={selected ? String(selected.storeId) : null}
             onSelect={(mapStore) => setSelectedId(Number(mapStore.id))}
             onCenterChange={(center) => searchAt({ latitude: center.lat, longitude: center.lng })}
@@ -512,10 +517,9 @@ function LiveRestaurantMapScreen({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            disabled={!searchLocation}
             placeholder={t('식당 이름 검색', 'Search by restaurant name', 'ابحث باسم المطعم')}
             aria-label={t('식당 검색', 'Search restaurants', 'ابحث عن مطعم')}
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-text-tertiary disabled:cursor-not-allowed"
+            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-text-tertiary"
           />
           {query && <button type="button" onClick={() => setQuery('')} aria-label={t('검색 지우기', 'Clear search', 'مسح البحث')} className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-subtle"><X className="size-4" /></button>}
         </label>
@@ -539,7 +543,7 @@ function LiveRestaurantMapScreen({
         </button>
       )}
 
-      {searchLocation && (
+      {(searchLocation || query.trim()) && (
         <section className="absolute inset-x-0 bottom-[72px] z-30 px-3 pb-[max(14px,env(safe-area-inset-bottom))]">
           <div className="mb-2 flex items-center justify-between rounded-full bg-rice-white/90 px-3 py-2 text-xs font-extrabold shadow-sm backdrop-blur">
             <span>{query.trim()
@@ -561,13 +565,14 @@ function LiveRestaurantMapScreen({
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-extrabold">{storeName(selected)}</p>
                   <p className="mt-1 truncate text-xs text-text-secondary">{selected.roadAddress || selected.categoryName || t('주소 정보 없음', 'Address unavailable', 'العنوان غير متوفر')}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-brand-primary">{selected.distanceMeters < 1000 ? `${Math.round(selected.distanceMeters)}m` : `${(selected.distanceMeters / 1000).toFixed(1)}km`}</p>
+                  {selected.distanceMeters !== null && <p className="mt-1 text-[11px] font-semibold text-brand-primary">{selected.distanceMeters < 1000 ? `${Math.round(selected.distanceMeters)}m` : `${(selected.distanceMeters / 1000).toFixed(1)}km`}</p>}
                 </div>
               </div>
               <button type="button" onClick={() => selectAndScan(selected)} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-primary px-4 text-sm font-bold text-white">
                 <Camera className="size-4" />
                 {t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}
               </button>
+              <button type="button" onClick={() => setReviewOpen(true)} className="mt-2 min-h-11 w-full rounded-xl border border-border-warm text-sm font-bold text-brand-primary">{t('식사 후기 보기·작성', 'View or write reviews', 'عرض التقييمات أو كتابتها')} · {selected.reviewCount ?? 0}</button>
             </div>
           ) : !isLoading ? (
             <div className="rounded-[24px] bg-rice-white p-5 text-center shadow-lg">
@@ -579,6 +584,7 @@ function LiveRestaurantMapScreen({
       )}
 
       <div className="absolute inset-x-0 bottom-0 z-30"><BottomNav language={language} /></div>
+      {reviewOpen && selected && <ReviewSheet language={language} storeId={selected.storeId} storeName={storeName(selected)} profile={userProfile} onClose={() => setReviewOpen(false)} />}
     </div>
   );
 }

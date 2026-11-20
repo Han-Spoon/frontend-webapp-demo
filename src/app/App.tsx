@@ -19,10 +19,13 @@ import { CurationDetailScreen } from './components/CurationDetailScreen';
 import { CardsScreen } from './components/CardsScreen';
 import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
-import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
+import { appliedScanProfile, deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
+import { ConsentScreen } from './components/ConsentScreen';
+import { getConsentStatus } from '../api/consent';
+import { getAccessToken } from '../api/auth';
 
 export type { Language } from './locales';
 
@@ -301,7 +304,7 @@ export default function App() {
     }
     try {
       const result = await getScanResult(item.id);
-      const snapshot = result.dietSnapshot ? { ...userProfile, ...result.dietSnapshot, languageCode: result.locale ?? language } as UserProfile : null;
+      const snapshot = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language);
       setCurrentAnalysis((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, snapshot)));
       setAnalysisImage(null);
       setActiveScanId(item.id);
@@ -342,6 +345,10 @@ export default function App() {
     loadCurrentUser();
     loadUserProfile();
     loadHistory();
+    if (getAccessToken() && !['/', '/login', '/consent'].includes(window.location.pathname)) {
+      getConsentStatus().then(status => { if (!status.hasRequiredConsents) navigate(`/consent?next=${window.location.pathname === '/onboarding' ? 'onboarding' : 'home'}`); })
+        .catch(error => console.warn('Unable to load consent status:', error));
+    }
 
     return () => {
       if (analysisImage?.previewUrl.startsWith('blob:')) {
@@ -407,6 +414,11 @@ export default function App() {
 
   const handleLogin = async (hasProfile: boolean) => {
     await loadCurrentUser();
+    const consent = await getConsentStatus();
+    if (!consent.hasRequiredConsents) {
+      navigate(`/consent?next=${hasProfile ? 'home' : 'onboarding'}`);
+      return;
+    }
 
     if (hasProfile) {
       await loadUserProfile();
@@ -446,6 +458,7 @@ export default function App() {
               />
             }
           />
+          <Route path="/consent" element={<ConsentScreen language={language} />} />
           <Route
             path="/home"
             element={<HomeScreen language={language} userProfile={userProfile} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
@@ -527,7 +540,10 @@ export default function App() {
                 language={language}
                 menus={currentAnalysis}
                 userProfile={historyProfile === undefined ? userProfile : historyProfile}
+                currentUserProfile={userProfile}
                 sourceScanId={activeScanId}
+                demoMode={demoMode}
+                onSavedRecord={loadHistory}
                 store={activeScanStore}
                 savedRecordId={activeRecordId}
                 onBack={() => navigate('/home')}
@@ -555,6 +571,7 @@ export default function App() {
                   navigate('/onboarding', section ? { state: { editSection: section } } : undefined)
                 }
                 onHistoryClick={openHistory}
+                onOpenSavedScan={(scanId) => void openHistory({ id: scanId, title: '', date: '', menuCount: 0, dangerCount: 0, menus: [] })}
                 onEditHistoryTitle={handleRenameHistory}
                 onDeleteHistory={handleDeleteHistory}
                 onLogout={() => {

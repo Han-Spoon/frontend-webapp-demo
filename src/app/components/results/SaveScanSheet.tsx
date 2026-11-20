@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, ChevronRight, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Language, MenuAnalysis, UserProfile } from '../../App';
@@ -12,6 +12,8 @@ import {
   localizeMenuText,
 } from '../../results/resultViewModel';
 import { readDemo, writeDemo } from '../../demo/storage';
+import { getScanResult, saveScanRecord } from '../../../api/scan';
+import type { StoreCandidate, StoreSummary } from '../../../api/store';
 
 export function SaveScanSheet({
   language,
@@ -20,6 +22,8 @@ export function SaveScanSheet({
   recordId,
   sourceScanId,
   restaurantId,
+  store,
+  demoMode,
   onClose,
   onSaved,
 }: {
@@ -29,8 +33,10 @@ export function SaveScanSheet({
   recordId: string;
   sourceScanId?: string;
   restaurantId: string | null;
+  store?: StoreSummary | null;
+  demoMode: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (store: StoreSummary | null) => void;
 }) {
   const t = createTranslator(language);
   const navigate = useNavigate();
@@ -42,21 +48,46 @@ export function SaveScanSheet({
   );
   const [picker, setPicker] = useState(false);
   const [done, setDone] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [liveStore, setLiveStore] = useState<StoreCandidate | null>(null);
+  const [linkedStore, setLinkedStore] = useState<StoreSummary | null>(store ?? null);
+  const [linkedMethod, setLinkedMethod] = useState<'gps_candidate' | 'name_search' | 'kakao_fallback' | null>(null);
+  const [storeLocked, setStoreLocked] = useState(Boolean(store));
   const [feedback, setFeedback] = useState<VisitRecord['feedback']>(
     existing?.feedback ?? {},
   );
   const restaurant = RESTAURANTS.find((r) => r.id === selected);
   const items = getProfileCommunicationItems(profile);
+  useEffect(() => {
+    if (demoMode || !sourceScanId) return;
+    let active = true;
+    getScanResult(sourceScanId).then(result => {
+      if (!active) return;
+      setStoreLocked(result.record?.storeLocked ?? Boolean(result.store));
+      setLinkedStore(result.record?.store ?? result.store ?? null);
+      const method = result.record?.storeMatchMethod;
+      setLinkedMethod(method && method !== 'store_detail' ? method : null);
+    }).catch(requestError => { if (active) setError(requestError instanceof Error ? requestError.message : String(requestError)); });
+    return () => { active = false; };
+  }, [demoMode, sourceScanId]);
   if (picker)
     return (
       <RestaurantPicker
         language={language}
-        demoMode
+        demoMode={demoMode}
         selectedId={selected}
+        selectedStore={liveStore}
         onClose={() => setPicker(false)}
         onSelectDemo={(r) => {
           setSelected(r?.id ?? null);
           setFeedback({});
+          setPicker(false);
+        }}
+        onSelectStore={(candidate) => {
+          setLiveStore(candidate);
+          setLinkedStore(candidate ? { storeId: candidate.storeId, name: candidate.name } : null);
+          setLinkedMethod(candidate?.matchMethod && candidate.matchMethod !== 'store_detail' ? candidate.matchMethod : null);
           setPicker(false);
         }}
       />
@@ -103,36 +134,40 @@ export function SaveScanSheet({
       ) : (
         <>
           <button
-            onClick={() => setPicker(true)}
+            onClick={() => { if (!storeLocked) setPicker(true); }}
+            disabled={!demoMode && storeLocked}
             className="mb-4 flex min-h-20 w-full items-center gap-3 rounded-2xl border border-border-warm p-4 text-start"
           >
             <MapPin className="size-5 shrink-0 text-brand-primary" />
             <span className="flex-1">
               <span className="block text-sm font-bold">
-                {restaurant
+                {demoMode ? (restaurant
                   ? localizeMenuText(restaurant.name, language)
                   : t(
                       '식당 연결하기 · 선택',
                       'Add a restaurant · optional',
                       'أضف مطعماً · اختياري',
-                    )}
+                    )) : linkedStore?.name ?? t('식당 연결하기 · 선택', 'Add a restaurant · optional', 'أضف مطعماً · اختياري')}
               </span>
               <span className="mt-1 block text-xs text-text-secondary">
-                {restaurant
+                {demoMode ? (restaurant
                   ? restaurant.name.ko
                   : t(
                       '연결하지 않아도 기록이 저장돼요',
                       'Your scan is saved even without a restaurant',
                       'يُحفظ المسح حتى بدون مطعم',
-                    )}
+                    )) : storeLocked ? t('스캔 때 선택한 식당은 바꿀 수 없어요', 'The restaurant chosen for this scan is fixed', 'المطعم المحدد أثناء المسح ثابت') : t('연결하지 않아도 기록이 저장돼요', 'Your scan is saved even without a restaurant', 'يُحفظ المسح حتى بدون مطعم')}
               </span>
             </span>
             <ChevronRight className="size-4 rtl:rotate-180" />
           </button>
-          {restaurant && (
+          {(demoMode ? restaurant : linkedStore && !storeLocked) && (
             <button
               onClick={() => {
                 setSelected(null);
+                setLiveStore(null);
+                setLinkedStore(null);
+                setLinkedMethod(null);
                 setFeedback({});
               }}
               className="mb-4 min-h-11 text-xs font-semibold text-text-secondary underline"
@@ -140,7 +175,7 @@ export function SaveScanSheet({
               {t('식당 연결 해제', 'Remove restaurant', 'إزالة المطعم')}
             </button>
           )}
-          {restaurant && items.length > 0 && (
+          {demoMode && restaurant && items.length > 0 && (
             <section className="mb-5">
               <h3 className="text-sm font-extrabold">
                 {t(
@@ -200,7 +235,20 @@ export function SaveScanSheet({
             </section>
           )}
           <button
-            onClick={() => {
+            disabled={saving}
+            onClick={async () => {
+              if (!demoMode && sourceScanId) {
+                setSaving(true);
+                setError('');
+                try {
+                  const savedRecord = await saveScanRecord(sourceScanId, !storeLocked && linkedStore && linkedMethod ? { storeId: linkedStore.storeId, storeMatchMethod: linkedMethod } : undefined);
+                  setDone(true);
+                  onSaved(savedRecord.store);
+                } catch (requestError) {
+                  setError(requestError instanceof Error ? requestError.message : String(requestError));
+                } finally { setSaving(false); }
+                return;
+              }
               saveVisit({
                 id: recordId,
                 sourceScanId,
@@ -226,12 +274,13 @@ export function SaveScanSheet({
               });
               writeDemo('selected-restaurant', selected);
               setDone(true);
-              onSaved();
+              onSaved(null);
             }}
             className="min-h-12 w-full rounded-xl bg-brand-primary text-sm font-extrabold text-white"
           >
-            {t('기록 저장하기', 'Save to my journal', 'احفظ في سجلي')}
+            {saving ? t('저장 중…', 'Saving…', 'جار الحفظ…') : t('기록 저장하기', 'Save to my journal', 'احفظ في سجلي')}
           </button>
+          {error && <p role="alert" className="mt-2 text-sm text-status-danger-text">{error}</p>}
         </>
       )}
     </BottomSheet>

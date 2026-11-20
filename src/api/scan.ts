@@ -197,6 +197,17 @@ export async function deleteScan(scanId: string): Promise<void> {
   }
 }
 
+export function appliedScanProfile(snapshot: Partial<UserProfile> | null | undefined, fallback: UserProfile | null, locale: Language): UserProfile | null {
+  if (!snapshot) return fallback;
+  return {
+    ...(fallback ?? { nationality: '', languageCode: locale, isFirstTime: false, isVegan: false, hasReligion: false, hasAllergies: false, allergies: [], noSpicy: false, noAlcohol: false }),
+    ...snapshot,
+    hasReligion: snapshot.religionType !== undefined ? Boolean(snapshot.religionType) : fallback?.hasReligion ?? false,
+    hasAllergies: snapshot.allergies != null ? snapshot.allergies.length > 0 : fallback?.hasAllergies ?? false,
+    languageCode: locale,
+  };
+}
+
 /** 백엔드 MenuResult → 프론트 MenuAnalysis 매핑. */
 export function mapMenuResult(menu: MenuResult, index: number, locale: Language = 'ko', profile: UserProfile | null = null): MenuAnalysis {
   // danger 재료(hits: is_*)와 caution 의심재료(ownerCard.flag: has_unclear_*)를 합쳐

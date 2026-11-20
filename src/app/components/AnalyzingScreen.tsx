@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, ChevronDown, CircleDashed, Database, Loader2, ScanText, Search, ShieldCheck, Users } from 'lucide-react';
-import { deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
+import { appliedScanProfile, deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
 import type { StoreSummary } from '../../api/store';
 import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../App';
 import { createTranslator } from '../locales';
@@ -115,7 +115,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
 
           if (status === 'completed') {
             activeScanId.current = null;
-            const appliedProfile = result.dietSnapshot ? { ...userProfile, ...result.dietSnapshot, languageCode: result.locale ?? language } as UserProfile : userProfile;
+            const appliedProfile = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language);
             onComplete(scanId, (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, appliedProfile)), result.record?.store ?? result.store ?? null, appliedProfile);
             return;
           }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertTriangle, Check, Volume2, XCircle } from 'lucide-react';
 import type { Language, MenuAnalysis, UserProfile } from '../App';
 import { saveCard, type CardType } from '../../api/card';
+import { saveStaffAnswer, type StaffAnswer } from '../../api/staff';
 import { speak, ttsSupported } from '../utils/speech';
 import {
   formatOwnerCommunicationContent,
@@ -52,6 +53,8 @@ interface OwnerCommunicationSheetProps {
   language: Language;
   initialResponse?: OwnerResponseId | null;
   onResponseSelect?: (type: OwnerCommunicationType, responseId: OwnerResponseId) => void;
+  scanId?: string;
+  onServerAnswer?: () => void;
   onClose: () => void;
 }
 
@@ -62,12 +65,16 @@ export function OwnerCommunicationSheet({
   language,
   initialResponse = null,
   onResponseSelect,
+  scanId,
+  onServerAnswer,
   onClose,
 }: OwnerCommunicationSheetProps) {
   const [response, setResponse] = useState<OwnerResponseId | null>(initialResponse);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [answeringQuestion, setAnsweringQuestion] = useState<string | null>(null);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, StaffAnswer>>({});
   const t = createTranslator(language);
 
   // 시트 카드 종류 → 백엔드 CardType (order/ingredient_check/exclude)
@@ -196,7 +203,18 @@ export function OwnerCommunicationSheet({
   const handleResponseSelect = (option: OwnerResponseOption) => {
     setResponse(option.id);
     onResponseSelect?.(type, option.id);
-    // TODO: 직원 응답 전용 API가 제공되면 이 선택을 서버에도 저장한다.
+  };
+
+  const answerQuestion = async (questionId: string, answer: StaffAnswer) => {
+    if (!scanId) return;
+    setAnsweringQuestion(questionId);
+    setSaveError('');
+    try {
+      await saveStaffAnswer(scanId, questionId, answer);
+      setQuestionAnswers(current => ({ ...current, [questionId]: answer }));
+      onServerAnswer?.();
+    } catch (error) { setSaveError(error instanceof Error ? error.message : String(error)); }
+    finally { setAnsweringQuestion(null); }
   };
 
   const handleSave = async () => {
@@ -207,7 +225,8 @@ export function OwnerCommunicationSheet({
       await saveCard({
         type: toCardType(type),
         menuNameKo: menu.menuName,
-        text: { ko: content.korean, en: content.english, ar: content.arabic },
+        text: { ko: content.korean, en: content.english, ar: content.arabic, ...(language !== 'ko' && language !== 'en' && language !== 'ar' ? { [language]: translate(language, content.localized) } : {}) },
+        ...(scanId ? { scanId } : {}),
       });
       setSaved(true);
       setTimeout(() => {
@@ -270,7 +289,13 @@ export function OwnerCommunicationSheet({
             <p className="mt-2 text-xs font-semibold text-brand-primary">{t('내 식단', 'My dietary needs', 'احتياجاتي الغذائية')}: {getProfileSummary(userProfile, language).join(' · ')}</p>
           </div>
 
-          <div className="space-y-2 mb-4">
+          {type === 'ingredient' && scanId && (menu.staffQuestions?.length ?? 0) > 0 ? <div className="mb-4 space-y-3">
+            {menu.staffQuestions?.map(question => <div key={question.questionId} className="rounded-xl border border-border-warm bg-surface-subtle p-3">
+              <p className="text-sm font-bold">{question.questionText[language] ?? question.questionText.en ?? question.questionText.ko}</p>
+              <div className="mt-2 grid grid-cols-3 gap-1.5">{([['present', t('있어요', 'Present', 'موجود')], ['absent', t('없어요', 'Absent', 'غير موجود')], ['unknown', t('모름', 'Not sure', 'لا أعرف')]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={(questionAnswers[question.questionId] ?? question.answer) === value} disabled={question.status === 'expired' || answeringQuestion === question.questionId} onClick={() => void answerQuestion(question.questionId, value)} className={`min-h-11 rounded-lg border px-1 text-xs font-bold ${(questionAnswers[question.questionId] ?? question.answer) === value ? 'border-brand-primary bg-brand-primary text-white' : 'border-border-warm bg-surface-raised'}`}>{label}</button>)}</div>
+            </div>)}
+            <p className="text-xs text-text-secondary">{t('있어요 답변이 내 식단과 겹치면 서버 판정이 위험으로 바뀔 수 있어요.', 'A present answer that conflicts with your diet can change the result to danger.', 'قد تتحول النتيجة إلى خطر إذا كانت الإجابة موجودة وتعارض نظامك الغذائي.')}</p>
+          </div> : <div className="space-y-2 mb-4">
             <div className="mb-3 text-xs font-semibold text-text-secondary">{translate(language, ownerCommunicationI18n.labels.ownerResponse)}</div>
             {responseButtons.map((btn) => {
               const selected = response === btn.id;
@@ -302,14 +327,14 @@ export function OwnerCommunicationSheet({
                 </button>
               );
             })}
-          </div>
+          </div>}
 
-          {selectedResponse && type === 'ingredient' && (
+          {selectedResponse && type === 'ingredient' && !(scanId && menu.staffQuestions?.length) && (
             <div className={`mb-4 rounded-xl border p-3 text-xs leading-5 ${summaryClasses[selectedResponse.tone]}`} role="status">
               {t(
-                '직원 응답을 기록했어요. 분석 판정은 자동으로 바뀌지 않으며 교차접촉도 별도로 확인해 주세요.',
-                'Response noted. It does not automatically change the result; check cross-contact separately.',
-                'تم تسجيل الرد. لا يغيّر النتيجة تلقائياً؛ تحقق من التلامس العرضي بشكل منفصل.',
+                '이 답변은 현재 화면에만 표시돼요. 판정 확인에는 서버 질문 카드를 사용해 주세요.',
+                'This answer appears only on this screen. Use a server question card to update the result.',
+                'تظهر هذه الإجابة على هذه الشاشة فقط. استخدم بطاقة سؤال الخادم لتحديث النتيجة.',
               )}
             </div>
           )}

@@ -18,12 +18,16 @@ import { createTranslator, translateText } from '../locales';
 import logo from '../../assets/brand/han-spoon-logo.svg';
 import { findMenuImageByName } from '../../api/image';
 import type { StoreSummary } from '../../api/store';
+import { getScanImage, getScanResult, mapMenuResult } from '../../api/scan';
+import { ApiError } from '../../api/user';
+import { deleteSavedMenu, getSavedMenus, saveMenu } from '../../api/savedMenus';
 import { getMenuPronunciation } from '../constants/menuNames';
 import { CURATION_ARTICLES } from '../constants/curation';
 import { menuPrice } from '../demo/currency';
 import { useDemoValue } from '../demo/storage';
 import { RESTAURANTS } from '../demo/restaurants';
 import { SaveScanSheet } from './results/SaveScanSheet';
+import { ReviewSheet } from './ReviewSheet';
 import {
   OwnerCommunicationSheet,
   type OwnerCommunicationType,
@@ -45,12 +49,15 @@ interface ResultsScreenProps {
   language: Language;
   menus: MenuAnalysis[];
   userProfile: UserProfile | null;
+  currentUserProfile?: UserProfile | null;
   onBack: () => void;
   onRescan: () => void;
   sourceScanId?: string;
   savedRecordId?: string;
   partnerRestaurantId?: string;
   store?: StoreSummary | null;
+  demoMode?: boolean;
+  onSavedRecord?: () => void;
 }
 
 interface MenuImageProps {
@@ -112,7 +119,7 @@ export function MenuImage({ menu, translatedName, t }: MenuImageProps) {
   );
 }
 
-export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store }: ResultsScreenProps) {
+export function ResultsScreen({ language, menus, userProfile: suppliedProfile, currentUserProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, demoMode = false, onSavedRecord }: ResultsScreenProps) {
   const userProfile = menus.some(menu => menu.demoScenario === 'bunsik-vegan-shrimp')
     ? { ...FILMING_PROFILE, languageCode: language } : suppliedProfile;
   const navigate = useNavigate();
@@ -123,17 +130,58 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const [ownerResponses, setOwnerResponses] = useState<Record<string, OwnerResponseId>>({});
   const [likedMenus, setLikedMenus] = useDemoValue<string[]>('liked-menus', []);
+  const [savedMenuIds, setSavedMenuIds] = useState<string[]>([]);
+  const [favoritePending, setFavoritePending] = useState<string | null>(null);
+  const [favoriteError, setFavoriteError] = useState('');
   const [selectedRestaurantId] = useDemoValue<string | null>('selected-restaurant', null);
-  const restaurantId = partnerRestaurantId ?? selectedRestaurantId;
+  const restaurantId = partnerRestaurantId ?? (demoMode ? selectedRestaurantId : null);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [scanImageUrl, setScanImageUrl] = useState<string | null>(null);
+  const [scanImageError, setScanImageError] = useState('');
+  const [scanImageLoading, setScanImageLoading] = useState(false);
+  const [updatedMenus, setUpdatedMenus] = useState<MenuAnalysis[] | null>(null);
+  const [linkedStore, setLinkedStore] = useState<StoreSummary | null>(store ?? null);
   const [saved, setSaved] = useState(Boolean(savedRecordId));
   const [recordId] = useState(() => savedRecordId ?? (sourceScanId ? `local-${sourceScanId}` : `local-${crypto.randomUUID()}`));
   const restaurant = RESTAURANTS.find(r => r.id === restaurantId);
-  const storeName = store?.name ?? (restaurant ? localizeMenuText(restaurant.name, language) : null);
+  const storeName = linkedStore?.name ?? (restaurant ? localizeMenuText(restaurant.name, language) : null);
   const t = createTranslator(language);
-  const menuList = Array.isArray(menus) ? menus : [];
+  const menuList = updatedMenus ?? (Array.isArray(menus) ? menus : []);
+  useEffect(() => { setUpdatedMenus(null); setLinkedStore(store ?? null); }, [sourceScanId, store]);
   const profileSummary = getProfileSummary(userProfile, language);
   const profileCommunicationItems = getProfileCommunicationItems(userProfile);
+  useEffect(() => {
+    if (demoMode || !sourceScanId) return;
+    let active = true;
+    getSavedMenus().then(items => { if (active) setSavedMenuIds(items.map(item => item.scanMenuId)); })
+      .catch(error => { if (active) setFavoriteError(error instanceof Error ? error.message : String(error)); });
+    return () => { active = false; };
+  }, [demoMode, sourceScanId]);
+
+  const toggleFavorite = async (menu: MenuAnalysis) => {
+    const key = menu.menuName.trim().toLocaleLowerCase();
+    if (demoMode || !sourceScanId) {
+      setLikedMenus(likedMenus.includes(key) ? likedMenus.filter(item => item !== key) : [...likedMenus, key]);
+      return;
+    }
+    if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(menu.id)) {
+      setFavoriteError(t('이 메뉴는 아직 찜할 수 없어요.', 'This menu cannot be saved yet.', 'لا يمكن حفظ هذا الطبق بعد.'));
+      return;
+    }
+    setFavoritePending(menu.id);
+    setFavoriteError('');
+    try {
+      if (savedMenuIds.includes(menu.id)) {
+        await deleteSavedMenu(menu.id);
+        setSavedMenuIds(current => current.filter(id => id !== menu.id));
+      } else {
+        await saveMenu(menu.id);
+        setSavedMenuIds(current => [...current, menu.id]);
+      }
+    } catch (error) { setFavoriteError(error instanceof Error ? error.message : String(error)); }
+    finally { setFavoritePending(null); }
+  };
 
   const counts = useMemo(() => ({
     safe: menuList.filter((menu) => menu.riskLevel === 'safe').length,
@@ -159,6 +207,24 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
     });
   };
   const recommendedArticles = Array.from(new Set(menuList.map(menu => buildMenuResultViewModel(menu, language).curationId))).flatMap(id => CURATION_ARTICLES.filter(article => article.id === id)).slice(0, 3);
+  const showScanImage = async () => {
+    if (!sourceScanId) return;
+    setScanImageLoading(true);
+    setScanImageError('');
+    try { setScanImageUrl((await getScanImage(sourceScanId)).imageUrl); }
+    catch (error) {
+      setScanImageError(error instanceof ApiError && error.status === 410
+        ? t('보관 기간이 지나 사진을 볼 수 없어요', 'This photo is past its retention period.', 'انتهت مدة حفظ هذه الصورة.')
+        : t('사진을 불러오지 못했어요. 다시 시도해 주세요.', 'Could not load the photo. Please try again.', 'تعذر تحميل الصورة. حاول مجددًا.'));
+    } finally { setScanImageLoading(false); }
+  };
+  const refreshServerResult = async () => {
+    if (!sourceScanId) return;
+    try {
+      const result = await getScanResult(sourceScanId);
+      setUpdatedMenus((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, userProfile)));
+    } catch (error) { console.warn('Unable to refresh staff result:', error); }
+  };
 
   return (
     <div className="relative flex h-dvh flex-col bg-surface-base text-text-primary">
@@ -175,6 +241,12 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
           <h2 className="text-[27px] font-extrabold leading-tight tracking-[-0.03em]">{t('나를 위한 메뉴 가이드', 'Your menu, understood.', 'قائمتك، بكل وضوح.')}</h2>
           {partnerRestaurantId && <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-primary-soft px-3 py-2 text-xs font-bold text-brand-primary"><ShieldCheck className="size-3.5" />{t('등록 레시피로 바로 확인', 'Directly from supplied recipes', 'مباشرة من الوصفات المسجلة')}</p>}
           <p className="mt-2 text-sm text-text-secondary">{t(`메뉴 ${menuList.length}개를 내 식단 기준으로 살펴봤어요.`, `${menuList.length} dishes, checked against your dietary needs.`, `تم فحص ${menuList.length} أطباق حسب احتياجاتك الغذائية.`)}</p>
+          {sourceScanId && !demoMode && <div className="mt-3">
+            <button type="button" onClick={showScanImage} disabled={scanImageLoading} className="min-h-11 rounded-xl border border-border-warm bg-surface-raised px-3 text-sm font-bold text-brand-primary">{scanImageLoading ? t('사진 불러오는 중…', 'Loading photo…', 'جار تحميل الصورة…') : t('메뉴판 사진 보기', 'View menu photo', 'عرض صورة القائمة')}</button>
+            {scanImageError && <p role="alert" className="mt-2 text-xs text-status-danger-text">{scanImageError}</p>}
+            {scanImageUrl && <img src={scanImageUrl} alt={t('스캔한 메뉴판', 'Scanned menu', 'القائمة الممسوحة')} className="mt-3 max-h-72 w-full rounded-xl object-contain" onError={() => { setScanImageUrl(null); setScanImageError(t('사진 주소가 만료되었어요. 다시 불러와 주세요.', 'The photo link expired. Load it again.', 'انتهت صلاحية رابط الصورة. حمّلها مجددًا.')); }} />}
+          </div>}
+          {sourceScanId && linkedStore && !demoMode && <button type="button" onClick={() => setReviewOpen(true)} className="mt-3 min-h-11 w-full rounded-xl border border-border-warm bg-surface-raised px-3 text-sm font-bold text-brand-primary">{t('식사 후기 보기·작성', 'View or write reviews', 'عرض التقييمات أو كتابتها')}</button>}
           <div className="mt-4 rounded-xl border border-border-warm bg-surface-subtle px-3.5 py-3">
             <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-text-secondary">
               <ShieldCheck className="size-4 text-brand-primary" aria-hidden="true" />
@@ -222,7 +294,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             const isSpicy = Boolean(menu.isSpicy || menu.is_spicy);
             const price = menuPrice(menu.price, language);
             const likeKey = menu.menuName.trim().toLocaleLowerCase();
-            const liked = likedMenus.includes(likeKey);
+            const liked = demoMode || !sourceScanId ? likedMenus.includes(likeKey) : savedMenuIds.includes(menu.id);
             const requestActions = [
               ...(menu.riskLevel !== 'safe' ? [{ id: 'request', label: t('빼고 요청', 'Request removal', 'طلب الإزالة'), onClick: () => openSheet(menu, 'request') }] : []),
               ...(isSpicy ? [{ id: 'less-spicy', label: t('덜 맵게 요청', 'Less spicy', 'أقل حدة'), onClick: () => openSheet(menu, 'lessSpicy') }] : []),
@@ -236,7 +308,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                     <div className="min-w-0 flex-1 py-0.5">
                       <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                         <RiskBadge level={menu.riskLevel} t={t} />
-                        <button aria-label={`${t('메뉴 라이킷', 'Like menu', 'أعجبني الطبق')}: ${menu.menuName}`} aria-pressed={liked} onClick={() => setLikedMenus(liked ? likedMenus.filter(key => key !== likeKey) : [...likedMenus, likeKey])} className={`-mt-1 flex size-11 shrink-0 items-center justify-center rounded-full ${liked ? 'bg-brand-accent-soft text-brand-accent' : 'bg-surface-subtle text-text-tertiary'}`}><Heart className={`size-5 ${liked ? 'fill-current' : ''}`} /></button>
+                        <button aria-label={`${t('메뉴 찜', 'Save menu', 'احفظ الطبق')}: ${menu.menuName}`} aria-pressed={liked} disabled={favoritePending === menu.id} onClick={() => void toggleFavorite(menu)} className={`-mt-1 flex size-11 shrink-0 items-center justify-center rounded-full ${liked ? 'bg-brand-accent-soft text-brand-accent' : 'bg-surface-subtle text-text-tertiary'}`}><Heart className={`size-5 ${liked ? 'fill-current' : ''}`} /></button>
                       </div>
                       <h3 className="break-words text-lg font-extrabold tracking-[-0.015em]">{menu.menuName}</h3>
                       {language !== 'ko' && translatedName.trim() !== menu.menuName.trim() && <p className="mt-0.5 break-words text-sm font-semibold text-text-secondary">{translatedName}</p>}
@@ -275,6 +347,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
           })}
 
           {menuList.length > 0 && <p className="px-1 text-center text-[10px] leading-5 text-text-tertiary">{t('환율은 매일 00:00 (한국 시간)에 업데이트돼요. 환산 가격은 참고용이에요.', 'Exchange rates update daily at 00:00 KST. Converted prices are estimates.', 'تُحدّث أسعار الصرف يومياً عند 00:00 بتوقيت كوريا. الأسعار المحوّلة تقريبية.')}</p>}
+          {favoriteError && <p role="alert" className="text-center text-xs text-status-danger-text">{favoriteError}</p>}
           {recommendedArticles.length > 0 && <section className="border-t border-border-warm pt-6"><p className="eyebrow">{t('A LITTLE MORE KOREA', 'A LITTLE MORE KOREA', 'المزيد عن كوريا')}</p><h3 className="mb-4 mt-1 text-lg font-extrabold">{t('메뉴를 골랐다면, 한식 이야기', 'Chosen your dish? Discover its story.', 'اخترت طبقك؟ اكتشف قصته.')}</h3><div className="space-y-2">{recommendedArticles.map(article => <button key={article.id} onClick={() => navigate(`/curation/${article.id}`)} className="flex w-full items-center gap-3 rounded-2xl border border-border-warm bg-rice-white p-3 text-start"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-accent-soft text-2xl">{article.emoji}</span><span className="min-w-0 flex-1"><span className="block text-sm font-bold">{translateText(language, article.title)}</span><span className="mt-1 block line-clamp-1 text-xs text-text-secondary">{translateText(language, article.excerpt)}</span></span><ChevronRight className="size-4 rtl:rotate-180" /></button>)}</div></section>}
 
           {filteredMenus.length === 0 && (
@@ -292,9 +365,10 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
         <button disabled={menuList.length === 0} onClick={() => setSaveOpen(true)} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-primary px-3 text-sm font-extrabold text-white disabled:opacity-40"><Bookmark className="size-4" />{saved ? t('기록 수정', 'Edit record', 'تعديل السجل') : t('기록하기', 'Keep this scan', 'احفظ المسح')}</button>
       </footer>
 
-      {saveOpen && <SaveScanSheet language={language} menus={menuList} profile={userProfile} recordId={recordId} sourceScanId={sourceScanId} restaurantId={restaurantId} onClose={() => setSaveOpen(false)} onSaved={() => setSaved(true)} />}
+      {saveOpen && <SaveScanSheet language={language} menus={menuList} profile={userProfile} recordId={recordId} sourceScanId={sourceScanId} restaurantId={restaurantId} store={linkedStore} demoMode={demoMode || !sourceScanId} onClose={() => setSaveOpen(false)} onSaved={savedStore => { setSaved(true); setLinkedStore(savedStore); onSavedRecord?.(); }} />}
+      {reviewOpen && linkedStore && <ReviewSheet language={language} storeId={linkedStore.storeId} storeName={linkedStore.name} scanId={sourceScanId} scanMenus={menuList} profile={currentUserProfile ?? userProfile} onClose={() => setReviewOpen(false)} />}
 
-      {sheetType && selectedMenu && <OwnerCommunicationSheet menu={selectedMenu} type={sheetType} userProfile={userProfile} language={language} initialResponse={getStoredResponse(selectedMenu, sheetType)} onResponseSelect={handleOwnerResponseSelect} onClose={closeSheet} />}
+      {sheetType && selectedMenu && <OwnerCommunicationSheet menu={selectedMenu} type={sheetType} userProfile={userProfile} language={language} scanId={sourceScanId} onServerAnswer={() => void refreshServerResult()} initialResponse={getStoredResponse(selectedMenu, sheetType)} onResponseSelect={handleOwnerResponseSelect} onClose={closeSheet} />}
       {profileSheetOpen && <ProfileCommunicationSheet items={profileCommunicationItems} language={language} onClose={() => setProfileSheetOpen(false)} />}
     </div>
   );

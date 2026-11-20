@@ -149,7 +149,7 @@ export function LiveHomeDiscovery({
               </span>
               <span className="mt-0.5 block truncate text-[11px] text-text-secondary">
                 {selected.categoryName || selected.roadAddress || t('등록된 식당', 'Registered restaurant', 'مطعم مسجل')}{' · '}
-                {formatDistance(selected.distanceMeters)}
+                {selected.distanceMeters !== null ? formatDistance(selected.distanceMeters) : ''}
               </span>
             </span>
             <ArrowRight className="size-5 shrink-0 rtl:rotate-180" />

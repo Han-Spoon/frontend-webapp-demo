@@ -227,7 +227,7 @@ function LiveRestaurantPicker({
 
   const storeName = (store: StoreCandidate) =>
     store.branchName ? `${store.name} ${store.branchName}` : store.name;
-  const distance = (meters: number) => meters < 1000
+  const distance = (meters: number | null) => meters === null ? '' : meters < 1000
     ? `${Math.round(meters)}m`
     : `${(meters / 1000).toFixed(1)}km`;
 
@@ -248,21 +248,20 @@ function LiveRestaurantPicker({
           autoComplete="off"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          disabled={locationStatus !== 'ready'}
-          className="min-h-12 min-w-0 flex-1 bg-transparent text-sm outline-none disabled:cursor-not-allowed"
+          className="min-h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
           placeholder={t('식당 이름 검색', 'Search by restaurant name', 'ابحث باسم المطعم')}
           aria-label={t('식당 검색', 'Search restaurants', 'ابحث عن مطعم')}
         />
       </label>
 
-      {locationStatus === 'loading' && (
+      {locationStatus === 'loading' && !query.trim() && (
         <div role="status" className="flex min-h-36 flex-col items-center justify-center gap-3 text-sm text-text-secondary">
           <Loader2 className="size-6 animate-spin text-brand-primary" />
           {t('현재 위치를 확인하고 있어요.', 'Finding your current location…', 'جارٍ تحديد موقعك الحالي…')}
         </div>
       )}
 
-      {(locationStatus === 'denied' || locationStatus === 'unsupported') && (
+      {(locationStatus === 'denied' || locationStatus === 'unsupported') && !query.trim() && (
         <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="flex items-start gap-2 font-bold">
             <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -280,7 +279,7 @@ function LiveRestaurantPicker({
         </div>
       )}
 
-      {locationStatus === 'ready' && (
+      {(locationStatus === 'ready' || Boolean(query.trim())) && (
         <>
           <div className="mb-3 flex items-center justify-between">
             <p className="inline-flex items-center gap-1.5 text-xs font-bold text-text-secondary">
@@ -312,7 +311,7 @@ function LiveRestaurantPicker({
                   lat: store.latitude,
                   lng: store.longitude,
                 }))}
-                center={location ? { lat: location.latitude, lng: location.longitude } : undefined}
+                center={location ? { lat: location.latitude, lng: location.longitude } : candidates[0] ? { lat: candidates[0].latitude, lng: candidates[0].longitude } : undefined}
                 selectedId={selectedStore ? String(selectedStore.storeId) : null}
                 onSelect={(mapStore) => {
                   const picked = candidates.find((store) => String(store.storeId) === mapStore.id);
