@@ -13,12 +13,13 @@ interface CardsScreenProps {
   onMyPage: () => void;
 }
 
-type Speakable = { ko: string; en?: string | null; ar?: string | null } & Partial<LocalizedText>;
+type Speakable = { ko: string } & Partial<Record<Exclude<keyof LocalizedText, 'ko'>, string | null>>;
 
 const CARD_TYPE_LABEL: Record<CardType, LocalizedText> = {
   order: { ko: '주문', en: 'Order', ar: 'طلب' },
   ingredient_check: { ko: '재료 확인', en: 'Ingredient check', ar: 'فحص المكونات' },
   exclude: { ko: '요청', en: 'Request', ar: 'طلب خاص' },
+  less_spicy: { ko: '덜 맵게 요청', en: 'Ask for less spicy', ar: 'اطلبه أقل حدة' },
 };
 
 // 식당에서 가장 많이 쓰는 문장 (고정, 모든 사용자 공통). 음성은 항상 ko.
@@ -54,10 +55,10 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
     ko: item.ko,
     en: item.en || item.ko,
     ar: item.ar || item.ko,
-    'zh-CN': item['zh-CN'],
-    ja: item.ja,
-    'zh-TW': item['zh-TW'],
-    es: item.es,
+    'zh-CN': item['zh-CN'] ?? undefined,
+    ja: item.ja ?? undefined,
+    'zh-TW': item['zh-TW'] ?? undefined,
+    es: item.es ?? undefined,
   });
   const koSub = (item: Speakable) => (language === 'ko' ? '' : item.ko);
 

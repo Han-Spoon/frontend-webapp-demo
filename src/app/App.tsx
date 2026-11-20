@@ -600,7 +600,6 @@ export default function App() {
                 onMyPage={() => navigate('/mypage')}
                 history={combinedHistory}
                 onDeleteHistory={handleDeleteHistory}
-                onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
                 onRenameHistory={handleRenameHistory}
               />
             }

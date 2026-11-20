@@ -227,7 +227,8 @@ export function LoginScreen({ onLogin, language, setLanguage, demoMode, onTryDem
                   size="large"
                   shape="pill"
                   text="continue_with"
-                  locale={language === 'zh-TW' ? 'zh_TW' : LANGUAGE_LOCALES[language]}
+                  // @react-oauth/google 타입에는 없지만 라이브러리가 남은 props를 initialize 설정으로 넘긴다. 기존 동작 유지.
+                  {...{ locale: language === 'zh-TW' ? 'zh_TW' : LANGUAGE_LOCALES[language] }}
                   width={String(googleButtonWidth)}
                 />
               </div>

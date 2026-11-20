@@ -8,8 +8,7 @@ import {
 import { createTranslator, translateText, type LocalizedText } from '../locales';
 import {
   localizeMenuText,
-  type ProfileCommunicationItem,
-} from '../results/resultViewModel';
+  type ProfileCommunicationItem, toLocalizedText } from '../results/resultViewModel';
 import { speak, ttsSupported } from '../utils/speech';
 import { CommunicationActions } from './results/CommunicationActions';
 
@@ -59,8 +58,8 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
   const content = selectedItem && activeAction
     ? formatOwnerCommunicationContent(activeAction.type, {
       menuName: emptyText,
-      ingredient: selectedItem.label,
-      allergen: selectedItem.label,
+      ingredient: toLocalizedText(selectedItem.label),
+      allergen: toLocalizedText(selectedItem.label),
     })
     : null;
 

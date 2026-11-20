@@ -9,7 +9,7 @@ import type {
 } from '../App';
 import { getAllergyName, getHitTagLabel } from '../i18n';
 import { getCurationIdForMenu } from '../constants/menuCuration';
-import { translateText } from '../locales';
+import { translateText, type LocalizedText } from '../locales';
 
 export const CONFIDENCE_LABELS: Record<EvidenceConfidence, LocalizedMenuText> = {
   high: { ko: '높음', en: 'High', ar: 'مرتفع', 'zh-CN': '高', ja: '高い', 'zh-TW': '高', es: 'Alta' },
@@ -46,13 +46,17 @@ export interface MenuResultViewModel {
   curationId?: string;
 }
 
-export function localizeMenuText(text: LocalizedMenuText, language: Language): string {
-  return translateText(language, {
-    ko: text.ko,
+/** 빠진 en·ar을 대체값으로 채운다. 펼친 값의 undefined가 대체값을 덮지 않도록 펼침을 먼저 둔다. */
+export function toLocalizedText(text: LocalizedMenuText): LocalizedText {
+  return {
+    ...text,
     en: text.en ?? text.ko,
     ar: text.ar ?? text.en ?? text.ko,
-    ...text,
-  });
+  };
+}
+
+export function localizeMenuText(text: LocalizedMenuText, language: Language): string {
+  return translateText(language, toLocalizedText(text));
 }
 
 const hiddenTags = new Set(['unknown menu', 'unknown remain', 'hidden animal']);
@@ -73,7 +77,7 @@ export function buildMenuResultViewModel(menu: MenuAnalysis, language: Language)
     .filter((label): label is string => Boolean(label))
     .filter((label) => !hiddenTags.has(label.trim().toLowerCase()))
     .map((label) => ({ name: { ko: label, en: label } }));
-  const ingredients = explainability?.ingredients ?? fallbackIngredients;
+  const ingredients: MenuIngredientEvidence[] = explainability?.ingredients ?? fallbackIngredients;
 
   const localizedIngredients = ingredients.map((ingredient) => ({
     ...ingredient,

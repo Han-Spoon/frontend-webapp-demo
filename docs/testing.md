@@ -3,13 +3,14 @@
 ## 명령
 
 ```bash
+pnpm typecheck
 pnpm build
 node scripts/check-demo.mjs
 git diff --check
 pnpm dev --host 127.0.0.1 --port 5173
 ```
 
-`pnpm build`는 번들 검증이며 전체 TypeScript 타입 검사가 아니다. demo 체크는 Vite의 TS 로더로 실제 소스 모듈을 실행한다. 외부 테스트 패키지는 추가하지 않는다.
+`pnpm typecheck`는 `tsconfig.json`(`strict`, `src` 전체)으로 `tsc --noEmit`을 실행한다. `pnpm build`는 번들 검증이며 타입 오류를 잡지 않으므로 둘 다 실행한다. demo 체크는 Vite의 TS 로더로 실제 소스 모듈을 실행한다. 외부 테스트 패키지는 추가하지 않는다.
 
 ## 자동 확인 범위
 

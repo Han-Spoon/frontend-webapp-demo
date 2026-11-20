@@ -10,6 +10,7 @@ pnpm dev
 개발 서버에서 `/home?demo=1&lang=ko`로 API 없는 시연을 시작하거나 `/dev/results-preview?lang=en`으로 결과 화면을 확인한다. 실제 API 모드의 개발 프록시는 localhost:8080을 사용한다.
 
 ```bash
+pnpm typecheck
 pnpm build
 node scripts/check-demo.mjs
 git diff --check

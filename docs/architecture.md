@@ -1,6 +1,6 @@
 # 프론트엔드 아키텍처
 
-React 18 + TypeScript + React Router + Vite 6 + Tailwind 4. pnpm 10.12.1. 이 저장소에는 서버 구현이 없다. `pnpm build`는 Vite 번들 빌드이며 별도의 TypeScript 전체 타입 검사 명령은 아직 없다.
+React 18 + TypeScript + React Router + Vite 6 + Tailwind 4. pnpm 10.12.1. 이 저장소에는 서버 구현이 없다. `pnpm build`는 Vite 번들 빌드이고 타입은 검사하지 않는다. 타입 검사는 `pnpm typecheck`(TypeScript 5.8.3, `tsconfig.json`의 `strict`, `src` 전체)로 따로 실행한다.
 
 ## 책임
 

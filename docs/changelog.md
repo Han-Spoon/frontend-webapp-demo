@@ -1,5 +1,13 @@
 # 변경 기록
 
+## 2026-11-20 — 타입 검사 도입
+
+- `typescript` 5.8.3(devDependency)과 `tsconfig.json`(`strict`, `src` 전체, `noEmit`) 추가. `pnpm typecheck`로 실행.
+- 처음 검사에서 나온 15건 수정. 실제 화면 문제였던 것:
+  - 카드 화면에 V2의 `less_spicy` 카드 이름이 없어 해당 카드가 있으면 화면 오류가 났음. `덜 맵게 요청` 이름 추가.
+  - `localizeMenuText`가 `en: undefined`처럼 값이 비어 있는 키를 받으면 대체값을 덮어써 빈 글자가 될 수 있었음. 대체값을 마지막에 두는 `toLocalizedText`로 정리하고 직원 전달 문구에도 사용.
+- 나머지는 동작 변화 없는 타입 정리(쓰지 않는 `onTerms` 전달 제거, 카드 문구의 null 허용, Google 버튼 `locale` 전달 방식).
+
 ## 2026-11-20 — API V2 연동 브랜치 병합 (`feat/home-discovery-scan-flow`)
 
 - 화면은 main(동의·보호자 동의·후기·저장한 메뉴·결과 카드·P0 수정)을 유지하고, 서버 요청·응답은 V2 필드로 맞춤. 상세는 `api-v2-integration.md`.

@@ -83,7 +83,8 @@ type FilterType = 'all' | MenuAnalysis['riskLevel'];
 
 function getTranslatedMenuName(menu: MenuAnalysis, language: Language) {
   if (language === 'ko') return menu.menuName;
-  if (menu.menuNameLocalized) return translateText(language, menu.menuNameLocalized) || menu.menuNameEn || menu.menuName;
+  // 언어별 이름이 없으면 빈 문자열로 두어 아래 영문·원문 대체로 넘어간다(이전과 같은 동작).
+  if (menu.menuNameLocalized) return translateText(language, { ...menu.menuNameLocalized, en: menu.menuNameLocalized.en ?? '', ar: menu.menuNameLocalized.ar ?? '' }) || menu.menuNameEn || menu.menuName;
   return translateText(language, {
     ko: menu.menuName,
     en: menu.menuNameEn || menu.menuName,
@@ -92,7 +93,7 @@ function getTranslatedMenuName(menu: MenuAnalysis, language: Language) {
 }
 
 function getDescription(menu: MenuAnalysis, language: Language) {
-  if (menu.descriptionLocalized) return translateText(language, menu.descriptionLocalized);
+  if (menu.descriptionLocalized) return translateText(language, { ...menu.descriptionLocalized, en: menu.descriptionLocalized.en ?? '', ar: menu.descriptionLocalized.ar ?? '' });
   return translateText(language, {
     ko: menu.description,
     en: menu.descriptionEn ?? menu.description,
