@@ -135,8 +135,8 @@
 | T-01 | **P0** ✅ 해결 | C | `main.tsx`, `App.tsx` | Error Boundary 없음(UX-03) | [코드] |
 | T-02 | **P0** ✅ 해결 | C | `api/scan.ts:190-221` | 매퍼가 `riskLevel`·enum을 검증하지 않고 넘긴다. 모르는 값의 기본값이 없다(UX-01) | [코드][실행] |
 | T-03 | P1 ✅ 해결 | E | 레포 루트 | tsconfig·타입 검사 없음. `pnpm build`는 타입 오류를 잡지 않는다 | [코드] |
-| T-04 | P1 | A | `src/app/components/ui/` | 48개 파일이 화면에서 한 번도 import되지 않는다. 화면은 Radix Dialog와 직접 쓴 Tailwind로 만들어졌다. `react-hook-form`도 `ui/form`에서만 쓰인다 | [실행] 스크립트 집계 |
-| T-05 | P1 | D | `package.json` | import 0건 의존성 14개: `@emotion/react`, `@emotion/styled`, `@mui/material`, `@mui/icons-material`, `@popperjs/core`, `canvas-confetti`, `date-fns`, `motion`, `react-dnd`, `react-dnd-html5-backend`, `react-popper`, `react-responsive-masonry`, `react-slick`, `react-router`(직접 import 없음). `ui/`를 지우면 Radix 23개(`react-dialog` 제외)·`cmdk`·`embla`·`vaul`·`recharts`·`sonner`·`input-otp`·`react-day-picker`·`react-resizable-panels`·`next-themes`·`react-hook-form`도 빠진다 | [실행] |
+| T-04 | P1 ✅ 해결 | A | `src/app/components/ui/` | 48개 파일이 화면에서 한 번도 import되지 않는다. 화면은 Radix Dialog와 직접 쓴 Tailwind로 만들어졌다. `react-hook-form`도 `ui/form`에서만 쓰인다 | [실행] 스크립트 집계 |
+| T-05 | P1 ✅ 해결 | D | `package.json` | import 0건 의존성 14개: `@emotion/react`, `@emotion/styled`, `@mui/material`, `@mui/icons-material`, `@popperjs/core`, `canvas-confetti`, `date-fns`, `motion`, `react-dnd`, `react-dnd-html5-backend`, `react-popper`, `react-responsive-masonry`, `react-slick`, `react-router`(직접 import 없음). `ui/`를 지우면 Radix 23개(`react-dialog` 제외)·`cmdk`·`embla`·`vaul`·`recharts`·`sonner`·`input-otp`·`react-day-picker`·`react-resizable-panels`·`next-themes`·`react-hook-form`도 빠진다 | [실행] |
 | T-06 | P1 | D | 번들 | JS 762kB / gzip 256kB 단일 청크. 구성(소스맵 기준): react-dom 128kB, `locales.ts` 53kB, react-router 37kB, 큐레이션 상수 3개 52kB, lucide 24kB, 결과 fixture 12kB(실제 모드에도 포함). 라우트 lazy loading이 없다 | [실행] |
 | T-07 | P1 | A·B | `App.tsx` 686줄 | 인증·동의·프로필·기록·스캔 결과·데모 세션·문서 제목·라우팅을 한 컴포넌트가 가진다. `useState` 15개, 결과 화면에만 props 12개를 내려 준다 | [코드] |
 | T-08 | P1 | B | `App.tsx:200-260` | 같은 사실을 여러 곳에 저장: 결과는 `currentAnalysis`+`activeScanId`+`activeScanStore`+`activeScanRecord`+`historyProfile`+`resultPhotoUrl`. URL에 스캔 ID가 없다(UX-13) | [코드] |
@@ -178,7 +178,11 @@
 ### 2단계: 프론트 문제 해결 (B)
 
 12. ✅ (2026-11-20) chore: tsconfig·`typecheck` 스크립트 도입. 측정해 보니 `src` 전체 strict 오류가 15건이라 처음부터 전체 strict로 적용. (T-03)
-13. chore: 쓰지 않는 `ui/` 48개와 의존성 제거, 전후 번들 기록. (T-04, T-05)
+13. ✅ (2026-11-21) chore: 쓰지 않는 `ui/` 48개와 의존성 제거, 전후 번들 기록. (T-04, T-05)
+    - 의존성 58개 → 6개(52개 제거). 남은 것: `@radix-ui/react-dialog`, `@react-oauth/google`, `lucide-react`, `pretendard`, `react-router-dom`, `tw-animate-css`.
+    - 번들(전 → 후): JS 779.21kB(gzip 261.17kB) → 778.71kB(gzip 260.89kB), CSS 195.82kB(gzip 38.38kB) → 131.65kB(gzip 29.59kB). 새로 설치한 `node_modules` 522MB → 225MB.
+    - JS 0.5kB 차이는 `react-dialog`가 자기 선언 버전의 `compose-refs`(1.1.2 → 1.1.1)를 쓰게 된 것. CSS는 Tailwind가 `ui/` 안 클래스까지 만들던 것이 빠진 것.
+    - `theme.css`의 `--chart-*`·`--sidebar-*` 토큰은 이번엔 유지.
 14. refactor: `App.tsx` 분리 — 인증·동의 가드, 스캔 결과 상태, 라우트 정의. (T-07, T-08)
 15. refactor: 결과 메뉴 카드를 도메인 컴포넌트로 분리. (T-10)
 16. perf: 라우트 lazy loading, 큐레이션 본문·fixture를 해당 화면 청크로. (T-06) 목표: 첫 화면 JS 절반 이하[추정].

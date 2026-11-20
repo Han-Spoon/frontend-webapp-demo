@@ -1,5 +1,12 @@
 # 변경 기록
 
+## 2026-11-21 — 쓰지 않는 UI 컴포넌트와 의존성 제거
+
+- 화면에서 한 번도 import되지 않던 `src/app/components/ui/` 48개 파일 삭제. 화면은 Radix Dialog와 직접 쓴 Tailwind로 만들어져 있어 동작 변화 없음. (T-04)
+- `package.json` 의존성 58개 → 6개. import가 없던 14개(MUI·emotion·react-dnd 등)와 `ui/`에서만 쓰던 38개(Radix 25개, `cva`·`clsx`·`tailwind-merge`, `recharts`, `sonner` 등) 제거. (T-05)
+- 번들: CSS 195.82kB → 131.65kB(gzip 38.38 → 29.59kB), JS 779.21kB → 778.71kB. 새로 설치한 `node_modules` 522MB → 225MB.
+- 기존 체크아웃은 `pnpm install`을 한 번 실행하면 빠진 패키지가 정리된다.
+
 ## 2026-11-20 — 판정 화면 행동색 분리
 
 - 브랜드 주색(`#176449`)과 안전 색(`#176b4d`)이 같은 초록이라, 주의 카드의 꽉 찬 초록 버튼이 '안전·진행'으로 읽히던 문제 수정. (UX-06)
