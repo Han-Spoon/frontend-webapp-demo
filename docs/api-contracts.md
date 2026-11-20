@@ -1,8 +1,8 @@
 # 현재 API와 제안 출력 계약
 
-2026-09-15 기준. 아래 현재 API는 `src/api/`를 근거로 한다. 제안 구조는 서버 구현/합의가 완료되었다는 의미가 아니다.
+이 문서는 2026-09-15 기준의 이전 계약을 보존한다. 2026-11-20 API V2 연동 상태는 [api-v2-integration.md](api-v2-integration.md)를 따른다.
 
-일반 스캔은 업로드 티켓 발급·S3 PUT·분석 시작·결과 폴링을 사용한다. 고정 결과는 명시적 데모 모드와 개발 전용 `/dev/results-preview`에만 남긴다. 4분할 `checks` UI는 제거했으며 상세 시연 계약은 `scan-result-filming.md`를 참조한다.
+일반 스캔은 업로드 티켓 발급·S3 PUT·분석 시작·결과 폴링을 사용한다. 고정 결과는 명시적 데모 모드와 개발 전용 `/dev/results-preview`에만 남긴다. 4분할 `checks` UI는 제거했으며 상세 시연 계약은 `scan-result-filming.md`를 참조한다. 현재 요청·응답과 연동 상태는 `api-v2-integration.md`를 따른다.
 
 ## 현재 API
 
@@ -53,7 +53,7 @@
 
 현재 메뉴: `menuNameKo`, `menuNameEn?`, `descriptionKo?`, `descriptionEn?`, `priceText?`, `imageUrl?`, `imageAttribution?`, `riskLevel`, `isSpicy?`, `hits?`, `message?`, `ownerCard?`. 음식 설명은 결과 카드 가격 아래, `message`는 판정 이유에 매핑한다. `imageUrl`은 스캔 가게의 가게 메뉴 사진(없으면 null)으로 결과 카드 사진(`image`)에, `imageAttribution`은 원문 그대로(번역 없음) 상세 근거 아래 출처 표기에 쓴다.
 스캔 상세·이력의 `store`는 `{ storeId, name } | null`이다. 응답은 data 래핑이 있거나 직접 전달될 수 있다.
-`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. `riskLevel`은 `normalizeRiskLevel`(`src/api/riskLevel.ts`)을 거쳐 safe·caution·danger 외의 값, null, 누락을 모두 화면 상태 `unknown`(확인 필요)으로 바꾼다. 명세 V2는 판정하지 못한 메뉴에 `riskLevel: null`을 준다. 찜 응답의 `riskLevel`도 같은 함수를 거친다. 서버 기록 상세(`GET /scans/{id}`)를 열 때는 판정 당시 식단을 아직 쓰지 않으므로 결과 화면이 `scanProfileUnknown`으로 "판정 기준 식단 확인 불가"를 표시한다. 명세 V2의 `dietSnapshot`을 연동하면 이 표시를 스냅샷으로 바꾼다. 메뉴 찜은 완료된 서버 스캔에만 `saved-menus` API로 저장하고, 서버 리소스가 없는 명시적 시연·파트너 메뉴는 `src/app/demo/`의 브라우저 저장소를 쓴다. 찜 응답은 `id`, `scanId`, `displayOrder`, `menuName`, `riskLevel`, `store?`, `savedAt`이다. 찜과 스캔 기록은 별도 리소스다. 피드백은 기록 저장 시
+`mapMenuResult`가 메뉴를 프론트 구조로 변환한다. `riskLevel`은 `normalizeRiskLevel`(`src/api/riskLevel.ts`)을 거쳐 safe·caution·danger 외의 값, null, 누락을 모두 화면 상태 `unknown`(확인 필요)으로 바꾼다. 명세 V2는 판정하지 못한 메뉴에 `riskLevel: null`을 준다. 찜 응답의 `riskLevel`도 같은 함수를 거친다. 서버 기록 상세(`GET /scans/{id}`)는 `dietSnapshot`(스캔 당시 식단)을 `appliedScanProfile`로 화면 프로필로 바꿔 판정 기준으로 쓴다. 스냅샷이 null인 옛 스캔은 현재 프로필로 대신하지 않고 `scanProfileUnknown`으로 "판정 기준 식단 확인 불가"를 표시한다. 메뉴 찜은 완료된 서버 스캔에만 `saved-menus` API로 저장하고, 서버 리소스가 없는 명시적 시연·파트너 메뉴는 `src/app/demo/`의 브라우저 저장소를 쓴다. 찜은 명세 V2의 `scanMenuId`로 저장·삭제하고, 응답(`scanMenuId`, `scanId`, `displayName`, `translatedName`, `riskLevel`, `store`, `savedAt`)은 `src/api/savedMenus.ts`에서 화면 타입(`id`=scanMenuId, `menuName`)으로 바꾼다. 찜과 스캔 기록은 별도 리소스다. 피드백은 기록 저장 시
 현재 프로필에 존재하는 항목만 서버에 보낸다.
 
 분석 상태는 pending/processing/analyzing → processing, completed/complete/done/succeeded → completed로 정규화한다. failed, needs_retake, unknown은 별도로 다룬다.

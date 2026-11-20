@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Camera, ChevronDown, CircleDashed, Database, Loader2, ScanText, Search, ShieldCheck, Users } from 'lucide-react';
-import { getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
+import { appliedScanProfile, deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
 import { ApiError } from '../../api/user';
 import type { StoreSummary } from '../../api/store';
-import type { Language, MenuAnalysis, PendingMenuImage } from '../App';
+import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../App';
 import { createTranslator } from '../locales';
 import { FILMING_MENUS } from '../results/filmingFixtures';
 
 interface AnalyzingScreenProps {
   language: Language;
   image: PendingMenuImage | null;
+  userProfile: UserProfile | null;
   fixedResults?: boolean;
-  onComplete: (scanId: string | null, menus: MenuAnalysis[], store: StoreSummary | null) => void;
+  onComplete: (scanId: string | null, menus: MenuAnalysis[], store: StoreSummary | null, appliedProfile: UserProfile | null) => void;
   onRetryWithNewImage: () => void;
   onCancel: () => void;
 }
@@ -21,16 +22,23 @@ type Phase = 'analyzing' | 'retake' | 'failed';
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_MS = 300000;
 
-export function AnalyzingScreen({ language, image, fixedResults = false, onComplete, onRetryWithNewImage, onCancel }: AnalyzingScreenProps) {
+export function AnalyzingScreen({ language, image, userProfile, fixedResults = false, onComplete, onRetryWithNewImage, onCancel }: AnalyzingScreenProps) {
   const [phase, setPhase] = useState<Phase>('analyzing');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [retryRequiresNewUpload, setRetryRequiresNewUpload] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const activeScanId = useRef<string | null>(null);
 
   const t = createTranslator(language);
-  const cancelDialog = confirmCancel && <div role="dialog" aria-modal="true" aria-label={t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')} className="fixed inset-0 z-50 flex items-center justify-center bg-soy-ink/45 p-5"><div className="w-full max-w-sm rounded-2xl bg-surface-raised p-5"><h2 className="text-lg font-extrabold">{t('분석을 취소할까요?', 'Cancel the analysis?', 'هل تريد إلغاء التحليل؟')}</h2><p className="mt-2 text-sm leading-6 text-text-secondary">{t('이 사진의 분석 화면에서 나가요.', 'You will leave this photo’s analysis.', 'ستغادر تحليل هذه الصورة.')}</p><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setConfirmCancel(false)} className="min-h-12 rounded-[18px] border border-border-warm text-sm font-bold">{t('계속 분석', 'Keep analyzing', 'متابعة التحليل')}</button><button type="button" onClick={onCancel} className="min-h-12 rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')}</button></div></div></div>;
+  // 진행 중인 서버 스캔은 취소 시 삭제한다(명세 결정 2026-11-01, 팀원 V2 작업).
+  const cancel = () => {
+    if (activeScanId.current) void deleteScan(activeScanId.current).catch(error => console.warn('Scan cancellation failed:', error));
+    activeScanId.current = null;
+    onCancel();
+  };
+  const cancelDialog = confirmCancel && <div role="dialog" aria-modal="true" aria-label={t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')} className="fixed inset-0 z-50 flex items-center justify-center bg-soy-ink/45 p-5"><div className="w-full max-w-sm rounded-2xl bg-surface-raised p-5"><h2 className="text-lg font-extrabold">{t('분석을 취소할까요?', 'Cancel the analysis?', 'هل تريد إلغاء التحليل؟')}</h2><p className="mt-2 text-sm leading-6 text-text-secondary">{t('이 사진의 분석 화면에서 나가요.', 'You will leave this photo’s analysis.', 'ستغادر تحليل هذه الصورة.')}</p><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setConfirmCancel(false)} className="min-h-12 rounded-[18px] border border-border-warm text-sm font-bold">{t('계속 분석', 'Keep analyzing', 'متابعة التحليل')}</button><button type="button" onClick={cancel} className="min-h-12 rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')}</button></div></div></div>;
 
   const steps = [
     { icon: ScanText, label: t('메뉴 이름과 설명을 읽고 있어요', 'Reading menu names and descriptions', 'جار قراءة أسماء الأطباق وأوصافها') },
@@ -73,7 +81,7 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
       setPhase('analyzing');
       setErrorMessage(null);
       const timer = window.setTimeout(() => {
-        onComplete(null, FILMING_MENUS, image.store ? { storeId: image.store.storeId, name: image.store.name } : null);
+        onComplete(null, FILMING_MENUS, image.store ? { storeId: image.store.storeId, name: image.store.name } : null, null);
       }, 4200);
       return () => window.clearTimeout(timer);
     }
@@ -105,6 +113,7 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
             ? { storeId: image.store.storeId, storeMatchMethod: image.store.matchMethod }
             : {}),
         });
+        activeScanId.current = scanId;
         const deadline = Date.now() + MAX_POLL_MS;
 
         while (!cancelled) {
@@ -114,7 +123,10 @@ export function AnalyzingScreen({ language, image, fixedResults = false, onCompl
           const status = normalizeScanStatus(result.status);
 
           if (status === 'completed') {
-            onComplete(scanId, (result.menus ?? []).map(mapMenuResult), result.store ?? null);
+            activeScanId.current = null;
+            // 방금 시작한 스캔은 스냅샷이 없으면 지금 식단이 판정 기준이다.
+            const appliedProfile = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language) ?? userProfile;
+            onComplete(scanId, (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, appliedProfile)), result.record?.store ?? result.store ?? null, appliedProfile);
             return;
           }
           if (status === 'needs_retake') {

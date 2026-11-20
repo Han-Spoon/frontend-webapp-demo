@@ -9,10 +9,11 @@ import { getProfileCommunicationItems, localizeMenuText } from '../../results/re
 
 type Store = { id: string | number; name: string };
 
-export function MealReviewSheet({ language, profile, store, menuNames = [], scanId, demoMode,
+export function MealReviewSheet({ language, profile, store, menuNames = [], scanId, scanMenuIds = {}, demoMode,
   initialReview, onClose, onSaved }: {
   language: Language; profile: UserProfile | null; store: Store; menuNames?: string[];
-  scanId?: string; demoMode: boolean; initialReview?: RestaurantReview;
+  /** 스캔에서 쓴 후기일 때 메뉴 이름 → scanMenuId(명세 V2). */
+  scanId?: string; scanMenuIds?: Record<string, string>; demoMode: boolean; initialReview?: RestaurantReview;
   onClose: () => void; onSaved: (review: RestaurantReview) => void;
 }) {
   const t = createTranslator(language);
@@ -52,7 +53,11 @@ export function MealReviewSheet({ language, profile, store, menuNames = [], scan
     setSaving(true);
     setError('');
     try {
-      const payload = selected.map(name => menus[name] ?? { name, answers: {}, note: '' });
+      const payload = selected.map(name => {
+        const menu = menus[name] ?? { name, answers: {}, note: '' };
+        const scanMenuId = menu.scanMenuId ?? (scanId ? scanMenuIds[name] : undefined);
+        return scanMenuId ? { ...menu, scanMenuId } : menu;
+      });
       const review = demoMode
         ? saveDemoReview(String(store.id), payload, initialReview)
         : initialReview

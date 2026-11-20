@@ -27,9 +27,9 @@ async function parse<T>(response: Response): Promise<T> {
   return (json.data ?? json) as T;
 }
 
-/** 백엔드에서 S3 presigned PUT 티켓을 발급받는다. (엔드포인트 경로는 /sas 로 유지) */
+/** 백엔드에서 S3 presigned PUT 티켓을 발급받는다. */
 export async function getUploadTicket(contentType: string): Promise<UploadTicket> {
-  const response = await authFetch('/api/v1/uploads/sas', {
+  const response = await authFetch('/api/v1/uploads', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contentType }),

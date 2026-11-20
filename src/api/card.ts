@@ -1,12 +1,16 @@
 import { authFetch } from './authFetch';
 import { ApiError } from './user';
 
-export type CardType = 'order' | 'ingredient_check' | 'exclude';
+export type CardType = 'order' | 'ingredient_check' | 'exclude' | 'less_spicy';
 
 export interface CardText {
   ko: string;
   en?: string | null;
   ar?: string | null;
+  'zh-CN'?: string | null;
+  'zh-TW'?: string | null;
+  ja?: string | null;
+  es?: string | null;
 }
 
 export interface SavedCard {

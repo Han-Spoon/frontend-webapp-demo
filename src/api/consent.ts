@@ -1,4 +1,5 @@
 import { authFetch } from './authFetch';
+import { ApiError } from './user';
 
 export type DocumentId = 'service' | 'privacy' | 'sensitive' | 'marketing';
 export interface LegalDocument {
@@ -16,13 +17,15 @@ export interface ConsentStatus {
   version: string;
   decisions: Partial<Record<DocumentId, boolean>>;
   hasRequiredConsents: boolean;
-  guardianManaged: boolean;
-  guardianApprovalRequired: boolean;
+  /** 명세 V2 응답에는 없다. 오지 않으면 보호자 동선은 열리지 않는다. */
+  guardianManaged?: boolean;
+  guardianApprovalRequired?: boolean;
 }
 
 async function parse<T>(response: Response): Promise<T> {
-  if (!response.ok) throw new Error(`약관 API 요청 실패 (${response.status})`);
-  const json = await response.json();
+  const body = await response.text();
+  if (!response.ok) throw new ApiError(response.status, body);
+  const json = body ? JSON.parse(body) : {};
   return (json.data ?? json) as T;
 }
 

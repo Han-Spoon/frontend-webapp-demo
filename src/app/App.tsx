@@ -24,7 +24,7 @@ import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } f
 import { getConsentStatus } from '../api/consent';
 import { clearAuthData, getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
-import { deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
+import { appliedScanProfile, deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { ScanRecordResponse } from '../api/scan';
 import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
@@ -141,6 +141,7 @@ export interface MenuAnalysis {
   descriptionLocalized?: LocalizedMenuText;
   price?: string;
   riskLevel: RiskLevel;
+  staffQuestions?: import('../api/scan').MenuResult['staffQuestions'];
   riskReasons: string[];
   riskReasonsEn?: string[];
   riskReasonsAr?: string[];
@@ -277,7 +278,6 @@ export default function App() {
     try {
       const user = await getMe();
       setCurrentUser(user);
-      // 신규 언어는 백엔드 enum 확장 전까지 로컬 선택을 우선 보존한다.
       const locallySelected = localStorage.getItem('han-spoon-language');
       if (isLanguage(locallySelected) && !isBackendLanguage(locallySelected)) {
         setLanguage(locallySelected);
@@ -324,7 +324,7 @@ export default function App() {
             formatHistoryTitle(language, item.scannedAt ? new Date(item.scannedAt) : new Date()),
           date: item.scannedAt ?? new Date().toISOString(),
           menuCount: item.menuCount ?? 0,
-          dangerCount: item.riskyMenuCount ?? 0,
+          dangerCount: item.dangerCount ?? 0,
           menus: [],
           store: item.store ?? null,
         })),
@@ -352,13 +352,15 @@ export default function App() {
     }
     try {
       const result = await getScanResult(item.id);
-      setCurrentAnalysis((result.menus ?? []).map(mapMenuResult));
+      const snapshot = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language);
+      setCurrentAnalysis((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, snapshot)));
       setAnalysisImage(null);
       setActiveScanId(item.id);
       setActiveRecordId(undefined);
-      setHistoryProfile(undefined);
-      setScanProfileUnknown(true);
-      setActiveScanStore(result.store ?? null);
+      // 스캔 당시 식단(dietSnapshot)이 있으면 그 기준으로, 없으면 '판정 기준 확인 불가'로 표시한다.
+      setHistoryProfile(snapshot ?? undefined);
+      setScanProfileUnknown(snapshot === null);
+      setActiveScanStore(result.record?.store ?? result.store ?? null);
       setActiveScanRecord(result.record ?? null);
       writeDemo('selected-restaurant', null);
       navigate('/results');
@@ -378,10 +380,12 @@ export default function App() {
   };
 
   const handleRenameHistory = async (id: string, title: string) => {
-    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title } : record)); return; }
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle || normalizedTitle.length > 30) return;
+    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title: normalizedTitle } : record)); return; }
     try {
-      await updateScanTitle(id, title);
-      setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)));
+      await updateScanTitle(id, normalizedTitle);
+      setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title: normalizedTitle } : item)));
     } catch (error) {
       console.error('Rename scan failed:', error);
       throw error;
@@ -616,11 +620,13 @@ export default function App() {
               <AnalyzingScreen
                 language={language}
                 image={analysisImage}
+                userProfile={userProfile}
                 fixedResults={demoMode}
-                onComplete={(_scanId, menus, store) => {
+                onComplete={(_scanId, menus, store, appliedProfile) => {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
-                  setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : undefined);
+                  // 새 스캔은 스캔 당시 식단(없으면 지금 식단)이 판정 기준이다.
+                  setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : appliedProfile ?? undefined);
                   setScanProfileUnknown(false);
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
@@ -651,7 +657,9 @@ export default function App() {
                 language={language}
                 menus={currentAnalysis}
                 userProfile={historyProfile === undefined ? userProfile : historyProfile}
+                currentUserProfile={userProfile}
                 sourceScanId={activeScanId}
+                onSavedRecord={loadHistory}
                 store={activeScanStore}
                 record={activeScanRecord}
                 savedRecordId={activeRecordId}
