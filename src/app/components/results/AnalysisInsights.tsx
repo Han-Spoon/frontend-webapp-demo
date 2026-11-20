@@ -3,9 +3,9 @@ import type { Language, MenuAnalysis, UserProfile } from '../../App';
 import { createTranslator } from '../../locales';
 import { buildMenuResultViewModel, CONFIDENCE_LABELS, getCautionProbabilities, localizeMenuText } from '../../results/resultViewModel';
 
-export function CautionInsight({ menu, profile, language }: { menu: MenuAnalysis; profile: UserProfile | null; language: Language }) {
+export function CautionInsight({ menu, profile, language, anyProfile = false }: { menu: MenuAnalysis; profile: UserProfile | null; language: Language; anyProfile?: boolean }) {
   const t = createTranslator(language);
-  const evidence = getCautionProbabilities(menu, profile);
+  const evidence = getCautionProbabilities(menu, profile, anyProfile);
   const vm = buildMenuResultViewModel(menu, language);
   return <section className="overflow-hidden rounded-2xl border border-status-caution-border bg-status-caution-surface" aria-label={t('주의 판정 요약', 'Caution at a glance', 'ملخص التنبيه')}>
     <div className="flex items-center gap-2 border-b border-status-caution-border/60 px-4 py-3 text-status-caution-text"><ShieldQuestion className="size-5" /><h4 className="text-sm font-extrabold">{t('확인하고 선택해요', 'Check before choosing', 'تحقق قبل الاختيار')}</h4><span className="ms-auto text-[10px] font-semibold">{t('재료 확인 필요', 'Ingredients to verify', 'تحقق من المكونات')}</span></div>

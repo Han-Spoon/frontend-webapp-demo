@@ -263,6 +263,9 @@ const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '주의': { 'zh-CN': '注意', ja: '注意', 'zh-TW': '注意', es: 'Precaución' },
   '현재 확인된 정보로는 안심하고 선택해도 좋아요': { 'zh-CN': '根据目前确认的信息，可以放心选择。', ja: '現在確認できている情報では、安心して選べます。', 'zh-TW': '依目前確認的資訊，可以放心選擇。', es: 'Según la información disponible, puedes elegir este plato con confianza.' },
   '재료나 조리법을 한 번 더 확인해 주세요': { 'zh-CN': '点餐前，请再确认一次食材或烹饪方式。', ja: '注文前に、食材や調理方法をもう一度確認してください。', 'zh-TW': '點餐前，請再確認一次食材或烹調方式。', es: 'Antes de pedir, comprueba una vez más los ingredientes o la preparación.' },
+  '판정 기준 식단': { 'zh-CN': '判定所依据的饮食', ja: '判定に使った食事条件', 'zh-TW': '判定所依據的飲食', es: 'Dieta usada en este resultado' },
+  '이 스캔 당시의 식단 조건은 확인할 수 없어요. 스캔 뒤에 바꾼 식단은 판정에 반영되지 않았어요.': { 'zh-CN': '无法显示此次扫描时的饮食条件。扫描后更改的饮食未反映在判定中。', ja: 'このスキャン時の食事条件は表示できません。スキャン後に変更した食事条件は判定に反映されていません。', 'zh-TW': '無法顯示此次掃描時的飲食條件。掃描後變更的飲食未反映在判定中。', es: 'No podemos mostrar la dieta usada en este escaneo. Los cambios hechos después no se reflejan en estos resultados.' },
+  '지금 식단으로 다시 스캔': { 'zh-CN': '按当前饮食重新扫描', ja: '今の食事条件で再スキャン', 'zh-TW': '依目前飲食重新掃描', es: 'Escanear de nuevo con mi dieta actual' },
   '이 화면을 표시하지 못했어요.': { 'zh-CN': '无法显示此页面。', ja: 'この画面を表示できませんでした。', 'zh-TW': '無法顯示此頁面。', es: 'No se pudo mostrar esta pantalla.' },
   '다시 시도하거나 홈으로 돌아가 주세요.': { 'zh-CN': '请重试或返回首页。', ja: 'もう一度試すか、ホームに戻ってください。', 'zh-TW': '請再試一次或回到首頁。', es: 'Inténtalo de nuevo o vuelve al inicio.' },
   '잠시 후 다시 시도해 주세요.': { 'zh-CN': '请稍后重试。', ja: 'しばらくしてからもう一度お試しください。', 'zh-TW': '請稍後再試。', es: 'Inténtalo de nuevo en un momento.' },
@@ -751,6 +754,11 @@ const interpolateDynamicText = (language: Language, ko: string): string | undefi
   const resultMenuCount = ko.match(/^메뉴 (\d+)개를 내 식단 기준으로 살펴봤어요\.$/)?.[1];
   if (resultMenuCount) {
     return ({ 'zh-CN': `已按照你的饮食需求查看 ${resultMenuCount} 个菜品。`, ja: `${resultMenuCount}件のメニューを食事条件に照らして確認しました。`, 'zh-TW': `已依照你的飲食需求查看 ${resultMenuCount} 道餐點。`, es: `Revisamos ${resultMenuCount} platos según tu perfil alimentario.` } as Record<NewLanguage, string>)[language];
+  }
+
+  const scanTimeMenuCount = ko.match(/^메뉴 (\d+)개를 스캔 당시 식단 기준으로 살펴봤어요\.$/)?.[1];
+  if (scanTimeMenuCount) {
+    return ({ 'zh-CN': `已按照扫描时的饮食需求查看 ${scanTimeMenuCount} 个菜品。`, ja: `${scanTimeMenuCount}件のメニューをスキャン時の食事条件に照らして確認しました。`, 'zh-TW': `已依照掃描時的飲食需求查看 ${scanTimeMenuCount} 道餐點。`, es: `Revisamos ${scanTimeMenuCount} platos según tu perfil alimentario al escanear.` } as Record<NewLanguage, string>)[language];
   }
 
   const staffEvidence = ko.match(/^확인 (\d+)건 중 사용 (\d+)건$/);

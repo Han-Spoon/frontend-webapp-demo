@@ -260,6 +260,8 @@ export default function App() {
   const [activeScanStore, setActiveScanStore] = useState<StoreSummary | null>(null);
   const [activeScanRecord, setActiveScanRecord] = useState<ScanRecordResponse | null>(null);
   const [historyProfile, setHistoryProfile] = useState<UserProfile | null | undefined>();
+  // 판정 당시 식단을 아직 받을 수 없음(dietSnapshot 연동 예정).
+  const [scanProfileUnknown, setScanProfileUnknown] = useState(false);
   useEffect(() => () => {
     if (resultPhotoUrl?.startsWith('blob:')) URL.revokeObjectURL(resultPhotoUrl);
   }, [resultPhotoUrl]);
@@ -341,6 +343,7 @@ export default function App() {
       setActiveRecordId(local.id);
       setActiveScanId(local.sourceScanId);
       setHistoryProfile(local.profileSnapshot);
+      setScanProfileUnknown(false);
       setActiveScanStore(null);
       setActiveScanRecord(null);
       writeDemo('selected-restaurant', local.restaurantId);
@@ -354,6 +357,7 @@ export default function App() {
       setActiveScanId(item.id);
       setActiveRecordId(undefined);
       setHistoryProfile(undefined);
+      setScanProfileUnknown(true);
       setActiveScanStore(result.store ?? null);
       setActiveScanRecord(result.record ?? null);
       writeDemo('selected-restaurant', null);
@@ -617,6 +621,7 @@ export default function App() {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
                   setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : undefined);
+                  setScanProfileUnknown(false);
                   setCurrentAnalysis(menus);
                   setActiveScanStore(store);
                   setActiveScanRecord(null);
@@ -652,6 +657,7 @@ export default function App() {
                 savedRecordId={activeRecordId}
                 demoMode={demoMode}
                 menuPhotoUrl={resultPhotoUrl}
+                scanProfileUnknown={scanProfileUnknown}
                 onBack={() => { setResultPhotoUrl(null); navigate('/home'); }}
                 onRescan={() => { setResultPhotoUrl(null); navigate('/scan'); }}
               />
