@@ -1,7 +1,7 @@
 import type { MenuAnalysis } from '../App';
 
 /**
- * 개발 전용 결과 위계 비교(/dev/results-preview?layout=a|b)에서만 시연 메뉴 뒤에 붙인다.
+ * 개발 전용 결과 위계 비교(/dev/results-preview?layout=a)에서만 시연 메뉴 뒤에 붙인다.
  * 시연 fixture에 없는 '확인 필요' 카드를 보여 주기 위한 예시다. 판정 근거가 없으므로 원인 재료도 없다.
  */
 export const LAYOUT_PREVIEW_EXTRA_MENUS: MenuAnalysis[] = [

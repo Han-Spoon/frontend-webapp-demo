@@ -13,7 +13,6 @@ interface DevResultsPreviewProps {
 const LAYOUT_OPTIONS: { value: ResultsLayoutVariant; label: string }[] = [
   { value: 'current', label: '현재' },
   { value: 'a', label: 'A' },
-  { value: 'b', label: 'B' },
 ];
 
 export function DevResultsPreview({ fallbackLanguage }: DevResultsPreviewProps) {
