@@ -182,15 +182,15 @@ export function OwnerCommunicationSheet({
   const selectedResponse = response ? getOwnerResponseOption(type, response) : null;
 
   const selectedButtonClasses: Record<OwnerResponseTone, string> = {
-    success: 'border-brand-primary bg-brand-primary text-white shadow-sm',
-    caution: 'border-brand-primary bg-brand-primary text-white shadow-sm',
-    danger: 'border-brand-primary bg-brand-primary text-white shadow-sm',
+    success: 'border-action-primary bg-action-primary text-action-primary-foreground shadow-sm',
+    caution: 'border-action-primary bg-action-primary text-action-primary-foreground shadow-sm',
+    danger: 'border-action-primary bg-action-primary text-action-primary-foreground shadow-sm',
   };
 
   const summaryClasses: Record<OwnerResponseTone, string> = {
-    success: 'bg-brand-primary-soft border-brand-primary text-brand-primary',
-    caution: 'bg-brand-primary-soft border-brand-primary text-brand-primary',
-    danger: 'bg-brand-primary-soft border-brand-primary text-brand-primary',
+    success: 'bg-action-primary-soft border-action-primary text-action-primary',
+    caution: 'bg-action-primary-soft border-action-primary text-action-primary',
+    danger: 'bg-action-primary-soft border-action-primary text-action-primary',
   };
 
   const getResponseIcon = (tone: OwnerResponseTone) => {
@@ -271,7 +271,7 @@ export function OwnerCommunicationSheet({
             {ttsSupported && content.korean && (
               <button
                 onClick={() => speak(content.korean, 'ko-KR')}
-                className="flex size-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-primary text-white hover:bg-brand-primary-hover"
+                className="flex size-11 flex-shrink-0 items-center justify-center rounded-full bg-action-primary text-action-primary-foreground hover:bg-action-primary-hover"
                 aria-label={t('음성 듣기', 'Play audio', 'تشغيل الصوت')}
               >
                 <Volume2 className="w-5 h-5" />
@@ -280,7 +280,7 @@ export function OwnerCommunicationSheet({
           </div>
 
           <div className="mb-6 rounded-xl border border-border-warm bg-surface-subtle p-4">
-            <div className="mb-1 text-xs font-semibold text-brand-primary">{translate(language, ownerCommunicationI18n.labels.selectedMenu)}</div>
+            <div className="mb-1 text-xs font-semibold text-action-primary">{translate(language, ownerCommunicationI18n.labels.selectedMenu)}</div>
             <div className="font-bold text-text-primary">
               {language === 'ko'
                 ? menu.menuName
@@ -291,13 +291,13 @@ export function OwnerCommunicationSheet({
                   }, language)}
             </div>
             <div className="mt-1 text-xs text-text-secondary">{language === 'ko' ? menu.menuNameEn : menu.menuName}</div>
-            <p className="mt-2 text-xs font-semibold text-brand-primary">{t('내 식단', 'My dietary needs', 'احتياجاتي الغذائية')}: {getProfileSummary(userProfile, language).join(' · ')}</p>
+            <p className="mt-2 text-xs font-semibold text-action-primary">{t('내 식단', 'My dietary needs', 'احتياجاتي الغذائية')}: {getProfileSummary(userProfile, language).join(' · ')}</p>
           </div>
 
           {type === 'ingredient' && scanId && (menu.staffQuestions?.length ?? 0) > 0 ? <div className="mb-4 space-y-3">
             {menu.staffQuestions?.map(question => <div key={question.questionId} className="rounded-xl border border-border-warm bg-surface-subtle p-3">
               <p className="text-sm font-bold">{question.questionText[language] ?? question.questionText.en ?? question.questionText.ko}</p>
-              <div className="mt-2 grid grid-cols-3 gap-1.5">{([['present', t('있어요', 'Present', 'موجود')], ['absent', t('없어요', 'Absent', 'غير موجود')], ['unknown', t('모름', 'Not sure', 'لا أعرف')]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={(questionAnswers[question.questionId] ?? question.answer) === value} disabled={question.status === 'expired' || answeringQuestion === question.questionId} onClick={() => void answerQuestion(question.questionId, value)} className={`min-h-11 rounded-lg border px-1 text-xs font-bold ${(questionAnswers[question.questionId] ?? question.answer) === value ? 'border-brand-primary bg-brand-primary text-white' : 'border-border-warm bg-surface-raised'}`}>{label}</button>)}</div>
+              <div className="mt-2 grid grid-cols-3 gap-1.5">{([['present', t('있어요', 'Present', 'موجود')], ['absent', t('없어요', 'Absent', 'غير موجود')], ['unknown', t('모름', 'Not sure', 'لا أعرف')]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={(questionAnswers[question.questionId] ?? question.answer) === value} disabled={question.status === 'expired' || answeringQuestion === question.questionId} onClick={() => void answerQuestion(question.questionId, value)} className={`min-h-11 rounded-lg border px-1 text-xs font-bold ${(questionAnswers[question.questionId] ?? question.answer) === value ? 'border-action-primary bg-action-primary text-action-primary-foreground' : 'border-border-warm bg-surface-raised'}`}>{label}</button>)}</div>
             </div>)}
             <p className="text-xs text-text-secondary">{t('있어요 답변이 내 식단과 겹치면 서버 판정이 위험으로 바뀔 수 있어요.', 'A present answer that conflicts with your diet can change the result to danger.', 'قد تتحول النتيجة إلى خطر إذا كانت الإجابة موجودة وتعارض نظامك الغذائي.')}</p>
           </div> : <div className="space-y-2 mb-4">
@@ -313,12 +313,12 @@ export function OwnerCommunicationSheet({
                   className={`flex min-h-14 w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors ${
                     selected
                       ? selectedButtonClasses[btn.tone]
-                      : 'border-border-warm bg-surface-raised text-text-primary hover:border-brand-primary hover:bg-surface-subtle'
+                      : 'border-border-warm bg-surface-raised text-text-primary hover:border-action-primary hover:bg-surface-subtle'
                   }`}
                 >
                   <span
                     className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      selected ? 'bg-white/20 text-white' : 'bg-surface-subtle text-brand-primary'
+                      selected ? 'bg-action-primary-foreground/20 text-action-primary-foreground' : 'bg-surface-subtle text-action-primary'
                     }`}
                   >
                     {selected ? getResponseIcon(btn.tone) : btn.id === 'ok' || btn.id === 'possible' ? '✓' : btn.id === 'yes' ? '!' : btn.id === 'unknown' ? '?' : '✗'}
@@ -350,8 +350,8 @@ export function OwnerCommunicationSheet({
             disabled={saved || saving}
             className={`min-h-12 w-full rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed ${
               saved
-                ? 'bg-status-safe text-white'
-                : 'bg-brand-primary text-white hover:bg-brand-primary-hover disabled:opacity-60'
+                ? 'bg-action-primary text-action-primary-foreground'
+                : 'bg-action-primary text-action-primary-foreground hover:bg-action-primary-hover disabled:opacity-60'
             }`}
           >
             {saved ? (

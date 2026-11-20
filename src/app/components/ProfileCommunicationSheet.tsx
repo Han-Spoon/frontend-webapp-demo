@@ -90,7 +90,7 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
           {content && selectedItem && activeAction ? (
             <div>
               <div className="mb-4 flex items-center gap-2 text-xs font-bold text-text-secondary">
-                <MessageSquareText className="size-4 text-brand-primary" aria-hidden="true" />
+                <MessageSquareText className="size-4 text-action-primary" aria-hidden="true" />
                 {localizeMenuText(selectedItem.label, language)} · {activeAction.label}
               </div>
               <div className="rounded-[var(--radius-card)] border border-border-warm bg-surface-subtle p-4">
@@ -101,7 +101,7 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
                     {language === 'ko' && <p className="mt-3 border-t border-border-warm pt-3 text-sm leading-6 text-text-secondary" lang="en">{content.english}</p>}
                   </div>
                   {ttsSupported && (
-                    <button type="button" onClick={() => speak(content.korean, 'ko-KR')} className="touch-target inline-flex shrink-0 items-center justify-center rounded-full bg-brand-primary text-white hover:bg-brand-primary-hover" aria-label={t('음성 듣기', 'Play audio', 'تشغيل الصوت')}>
+                    <button type="button" onClick={() => speak(content.korean, 'ko-KR')} className="touch-target inline-flex shrink-0 items-center justify-center rounded-full bg-action-primary text-action-primary-foreground hover:bg-action-primary-hover" aria-label={t('음성 듣기', 'Play audio', 'تشغيل الصوت')}>
                       <Volume2 className="size-5" />
                     </button>
                   )}
@@ -121,7 +121,7 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
                       type="button"
                       onClick={() => { setSelectedId(item.id); setActiveAction(null); }}
                       aria-pressed={selected}
-                      className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-bold ${selected ? 'border-brand-primary bg-brand-primary-soft text-brand-primary' : 'border-border-warm bg-surface-raised text-text-primary hover:bg-surface-subtle'}`}
+                      className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-bold ${selected ? 'border-action-primary bg-action-primary-soft text-action-primary' : 'border-border-warm bg-surface-raised text-text-primary hover:bg-surface-subtle'}`}
                     >
                       {localizeMenuText(item.label, language)}
                     </button>
