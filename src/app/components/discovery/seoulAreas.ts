@@ -1,9 +1,8 @@
 import type { LocalizedText } from '../../locales';
 
 /**
- * 전체 지도 검색창 아래 지역 태그. 외국인 방문이 많은 서울 동네를 묶은 것으로, 행정구가 아니다.
- * 중심 좌표는 대표 역·거리 사이의 대략값(추정). 태그를 누르면 이 좌표에서 후보를 조회한다(반경은 후보 API 기본값).
- * 순서: 도심(명동→종로→을지로) → 서쪽(홍대) → 용산권(이태원·용산) → 동쪽(성수) → 강남권 → 잠실 → 여의도.
+ * 전체 지도 지역 태그. 외국인 방문이 많은 서울 동네 묶음(행정구 아님).
+ * 중심 좌표는 대표 역·거리 사이 대략값(추정). 누르면 이 좌표에서 후보 조회(반경은 API 기본값).
  */
 export interface SeoulArea {
   id: string;
@@ -99,7 +98,7 @@ export const SEOUL_AREAS: SeoulArea[] = [
   },
 ];
 
-/** 지금 검색 위치가 어느 지역 태그의 중심과 같으면 그 지역(약 10m 이내). */
+/** 검색 위치가 지역 태그 중심과 같으면(약 10m 이내) 그 지역 */
 export function areaAt(location: { latitude: number; longitude: number } | null) {
   if (!location) return null;
   return SEOUL_AREAS.find((area) =>

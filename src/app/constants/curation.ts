@@ -2,10 +2,7 @@ import type { Language } from '../App';
 import { translateText, type LocalizedText } from '../locales';
 import { EXTRA_CURATION_ARTICLES } from './curationExtra';
 
-/**
- * 큐레이션 이미지 = Wikimedia Commons 무료 직링크(핫링크 허용·CDN). blob 불필요.
- * 로드 실패 시 컴포넌트의 onError 폴백(그라데이션/accent + 이모지)으로 대체.
- */
+/** 큐레이션 이미지: Wikimedia Commons 직링크. 로드 실패 시 컴포넌트의 그라데이션·이모지 대체. */
 const commons = (file: string, width = 800) =>
   `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${width}`;
 

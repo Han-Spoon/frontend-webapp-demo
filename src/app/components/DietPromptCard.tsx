@@ -11,10 +11,7 @@ function readDismissed() {
   try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
 }
 
-/**
- * 식단 조건이 하나도 없는 사용자에게 홈에서 식단 설정을 권하는 카드.
- * 프로필을 아직 모르면(null) 보여 주지 않는다. '닫기'는 이 기기에만 기억한다.
- */
+/** 식단 조건 없는 사용자용 식단 설정 권유. 프로필 미확인(null)이면 숨김, 닫기는 기기에 기억. */
 export function DietPromptCard({ language, userProfile }: { language: Language; userProfile: UserProfile | null }) {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(readDismissed);

@@ -29,7 +29,7 @@ export interface OwnerCard {
   question?: unknown;
 }
 
-/** 백엔드 스캔 결과의 메뉴 1건 (MenuResult). */
+/** 스캔 결과 메뉴 1건 */
 export interface MenuResult {
   scanMenuId?: string;
   displayOrder?: number | null;
@@ -73,7 +73,7 @@ export interface ScanRecordResponse {
 }
 
 export interface SaveScanRecordPayload {
-  /** 스캔 시작 후 가게를 연결할 때만 storeId와 함께 전송한다. */
+  /** 스캔 뒤 가게 연결 시에만 storeId와 함께 전송 */
   storeId?: number;
   storeMatchMethod?: Exclude<StoreMatchMethod, 'store_detail'>;
 }
@@ -148,7 +148,7 @@ export async function getScanResult(scanId: string): Promise<ScanResultResponse>
   return parse<ScanResultResponse>(response);
 }
 
-/** 완료된 스캔을 사용자 기록으로 멱등 저장한다. */
+/** 완료 스캔의 사용자 기록 저장(멱등) */
 export async function saveScanRecord(
   scanId: string,
   payload: SaveScanRecordPayload = {},
@@ -214,8 +214,8 @@ export async function deleteScan(scanId: string): Promise<void> {
 }
 
 /**
- * 스캔 당시 식단(dietSnapshot)을 화면용 프로필로 바꾼다.
- * 스냅샷이 없으면 null을 돌려준다. 현재 프로필로 대신하지 않는다(판정 기준을 잘못 보여 주는 FN 방지).
+ * 스캔 당시 식단(dietSnapshot) → 화면용 프로필(빠진 항목은 fallback).
+ * 스냅샷이 없으면 null. 현재 프로필로 대신하지 않음(판정 기준 오표시 FN 방지).
  */
 export function appliedScanProfile(snapshot: Partial<UserProfile> | null | undefined, fallback: UserProfile | null, locale: Language): UserProfile | null {
   if (!snapshot) return null;
@@ -228,10 +228,9 @@ export function appliedScanProfile(snapshot: Partial<UserProfile> | null | undef
   };
 }
 
-/** 백엔드 MenuResult → 프론트 MenuAnalysis 매핑. */
+/** MenuResult → MenuAnalysis */
 export function mapMenuResult(menu: MenuResult, index: number, locale: Language = 'ko', profile: UserProfile | null = null): MenuAnalysis {
-  // danger 재료(hits: is_*)와 caution 의심재료(ownerCard.flag: has_unclear_*)를 합쳐
-  // 위험/의심 재료 태그의 원천으로 보관(코드 그대로, 렌더 시 언어 변환).
+  // 위험 재료(matchedTags·hits: is_*) + 의심 재료(ownerCard.flag: has_unclear_*). 코드 그대로 보관, 언어 변환은 렌더 시.
   const flagFromOwnerCard = menu.ownerCard?.flag ? [menu.ownerCard.flag] : [];
   const tags = Array.from(new Set([...(menu.matchedTags ?? menu.hits ?? []), ...flagFromOwnerCard]));
   const isAlcohol = tags.some((tag) => tag.toLowerCase().includes('alcohol'));
@@ -262,7 +261,7 @@ export function mapMenuResult(menu: MenuResult, index: number, locale: Language 
     menuNameEn: menu.translatedName ?? menu.menuNameEn ?? name,
     menuNameLocalized: menu.translatedName ? { ko: name, [locale]: menu.translatedName } : undefined,
     menuNameAr: undefined,
-    // message is dietary guidance, not a culinary description under the price.
+    // message는 식단 안내라 가격 아래 메뉴 설명으로 쓰지 않음.
     description: menu.description ?? menu.descriptionKo ?? '',
     descriptionEn: menu.descriptionEn ?? undefined,
     descriptionLocalized: menu.translatedDescription ? { ko: menu.description ?? '', [locale]: menu.translatedDescription } : undefined,

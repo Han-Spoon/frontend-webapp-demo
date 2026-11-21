@@ -4,7 +4,7 @@ import { localizeMenuText } from '../results/resultViewModel';
 import { translateText } from '../locales';
 import type { Restaurant } from './restaurants';
 
-// Complete fictional recipes, kept separate from the real scan/API output.
+// 가상 레시피(실제 스캔·API 결과와 분리).
 const recipes = [
   { id: 'vegetable-rice', ko: '버섯 채소 솥밥', en: 'Mushroom & vegetable rice', price: 13000, ingredients: ['rice', 'mushroom', 'vegetables'], spicy: false },
   { id: 'tofu', ko: '두부 간장구이', en: 'Soy-glazed tofu', price: 12000, ingredients: ['soybean', 'wheat', 'vegetables'], spicy: false },

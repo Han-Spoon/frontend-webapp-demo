@@ -19,7 +19,7 @@ const storyPhotos: Record<string, string> = {
   'ordering-rhythm': '/images/curation/diet-conversation.jpg',
 };
 
-// Original editorial drafts for the demonstration. zh-TW is maintained as dedicated Taiwan copy.
+// 시연용 자체 작성 글. zh-TW는 대만 전용 문안으로 별도 관리.
 const stories: {
   id: string;
   emoji: string;

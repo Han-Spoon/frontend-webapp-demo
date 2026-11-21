@@ -13,15 +13,14 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   /** danger: 되돌릴 수 없는 삭제·탈퇴. default: 그 밖의 확인. */
   tone?: 'danger' | 'default';
-  /** 처리 중에는 버튼을 막고 Esc·바깥 누르기로도 닫히지 않게 한다. */
+  /** 처리 중 버튼 잠금, Esc·바깥 누르기로 닫히지 않음 */
   busy?: boolean;
   error?: string;
 }
 
 /**
- * 가운데 확인창. 열려 있는 동안만 렌더한다(`{open && <ConfirmDialog />}`).
- * Radix Dialog가 Esc 닫기·초점 가두기·뒤 화면 숨김을, `useReturnFocus`가 닫을 때 초점 복귀를 맡는다.
- * 처음 초점은 취소 버튼 — 위험한 동작이 기본 선택이 되지 않게.
+ * 가운데 확인창. 열린 동안만 렌더(`{open && <ConfirmDialog />}`).
+ * 처음 초점은 취소 버튼(위험한 동작이 기본 선택되지 않게).
  */
 export function ConfirmDialog({
   language,

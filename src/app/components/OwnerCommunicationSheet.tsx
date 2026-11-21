@@ -81,7 +81,7 @@ export function OwnerCommunicationSheet({
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, StaffAnswer>>({});
   const t = createTranslator(language);
 
-  // 시트 카드 종류 → 백엔드 CardType (order/ingredient_check/exclude)
+  // 시트 카드 종류 → 백엔드 CardType
   const toCardType = (sheetType: OwnerCommunicationType): CardType => {
     if (sheetType === 'order') return 'order';
     if (sheetType === 'ingredient') return 'ingredient_check';
@@ -89,7 +89,7 @@ export function OwnerCommunicationSheet({
     return 'exclude';
   };
 
-  // 이 메뉴의 플래그된 재료(코드)를 언어별로 라벨화 후 쉼표 나열.
+  // 직원에게 보일 재료: 내 프로필 관련 근거 재료, 없으면 위험 사유 코드 라벨.
   const activeProfileIds = new Set(getProfileCommunicationItems(userProfile).map(item => item.id));
   const relevantIngredients = (menu.explainability?.ingredients ?? []).filter(item => item.profileIds?.some(id => activeProfileIds.has(id)));
   const listSeparator = (lang: Language) =>
@@ -128,7 +128,6 @@ export function OwnerCommunicationSheet({
           allergen: emptyText,
         });
       case 'ingredient': {
-        // 이 메뉴의 플래그된 재료(hits + ownerCard.flag)를 언어별로 나열.
         const ingredient = flaggedLabels.ko
           ? flaggedLabels
           : ownerCommunicationI18n.ingredients.generic;
@@ -140,12 +139,11 @@ export function OwnerCommunicationSheet({
         });
       }
       case 'request': {
-        // A vegan restriction is not an allergy. Never label egg/fish as allergies
-        // merely because these ingredients conflict with a dietary preference.
+        // 비건 제한은 알레르기 아님. 식단과 겹치는 달걀·생선을 알레르기로 표기하지 않음.
         if (flaggedLabels.ko) return formatOwnerCommunicationContent('exclude', {
           menuName, ingredient: flaggedLabels, allergen: emptyText,
         });
-        // 플래그된 재료가 있으면 그걸, 없으면 사용자 알레르기 첫 항목으로 폴백.
+        // 표시할 재료가 없으면 사용자 알레르기 첫 항목.
         const fallbackAllergy = userProfile?.allergies[0];
         const allergen = flaggedLabels.ko
           ? flaggedLabels

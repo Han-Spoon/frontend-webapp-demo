@@ -49,7 +49,7 @@ export function LiveHomeDiscovery({
     candidates.find((store) => store.storeId === selectedId) ??
     candidates[0] ??
     null;
-  // 홈의 지역 칩은 사용자 위치가 아닌 지역 중심을 사용한다. 실제 위치가 없을 때는 후기 수를 우선한다.
+  // 사용자 위치가 아닌 지역 중심 기준이라 후기 수 우선, 같으면 가까운 순.
   const recommended = [...candidates].sort((a, b) =>
     (b.reviewCount ?? 0) - (a.reviewCount ?? 0) || (a.distanceMeters ?? Number.MAX_SAFE_INTEGER) - (b.distanceMeters ?? Number.MAX_SAFE_INTEGER),
   ).slice(0, 6);

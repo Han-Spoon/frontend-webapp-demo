@@ -33,7 +33,7 @@ import type { StoreCandidate } from '../../api/store';
 import { LiveHomeDiscovery } from './discovery/LiveHomeDiscovery';
 import { OfflineBanner } from './OfflineBanner';
 
-// 식당 고르기 시트(Radix 대화상자 포함)는 열 때 받는다. 촬영·결과 화면 코드 묶음과 공유.
+// 식당 고르기 시트는 열 때 로드(촬영·결과 화면과 공유 묶음).
 const RestaurantPicker = lazyScreen(() => import('./discovery/RestaurantPicker').then((module) => module.RestaurantPicker));
 
 export function HomeScreen({

@@ -24,7 +24,7 @@ const CARD_TYPE_LABEL: Record<CardType, LocalizedText> = {
   less_spicy: { ko: '덜 맵게 요청', en: 'Ask for less spicy', ar: 'اطلبه أقل حدة' },
 };
 
-// 식당에서 가장 많이 쓰는 문장 (고정, 모든 사용자 공통). 음성은 항상 ko.
+// 식당 공통 문장(모든 사용자 고정). 음성은 항상 ko.
 const COMMON_PHRASES: LocalizedText[] = [
   { ko: '숟가락과 젓가락은 어디에 있나요?', en: 'Where are the spoons and chopsticks?', ar: 'أين الملاعق والعيدان؟' },
   { ko: '반찬 리필 가능할까요?', en: 'Can I get a refill of side dishes?', ar: 'هل يمكنني إعادة ملء الأطباق الجانبية؟' },
@@ -83,7 +83,6 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
     return () => {
       if (ttsSupported) window.speechSynthesis.cancel();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDelete = async (cardId: string) => {
@@ -123,7 +122,6 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
       <OfflineBanner language={language} onRetry={() => void loadCards()} />
 
       <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5">
-        {/* 고정: 식당에서 자주 쓰는 문장 */}
         <div className="rounded-[1.5rem] border border-border-warm bg-rice-white overflow-hidden shadow-[0_8px_28px_rgba(54,61,57,0.06)]">
           <button
             onClick={() => setExpanded((v) => !v)}
@@ -151,7 +149,6 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
           )}
         </div>
 
-        {/* 저장 카드 */}
         <h2 className="pt-1 text-base font-extrabold text-text-primary">
           {translateText(language, {
             ko: '저장한 카드', en: 'Saved cards', ar: 'البطاقات المحفوظة',
@@ -215,7 +212,6 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
 
       <BottomNav language={language} />
 
-      {/* 카드 팝업 + 한국어 음성 */}
       {selected && (
         <ModalSheet
           language={language}

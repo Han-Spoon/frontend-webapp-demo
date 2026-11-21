@@ -29,8 +29,7 @@ export const LANGUAGE_LOCALES: Record<Language, string> = {
 
 type ProvisionalTranslation = Partial<Record<NewLanguage, string>>;
 
-// 사용자가 최종 번역표를 전달하기 전까지 사용하는 1차 번역입니다.
-// 한국어 원문을 안정적인 키로 사용해 기존 화면 구조를 바꾸지 않고 7개 언어를 지원합니다.
+// 최종 번역표 전 1차 번역. 한국어 원문이 키(화면 구조 변경 없이 7개 언어).
 const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '나를 위한 메뉴 가이드': { 'zh-CN': '专属菜单指南', ja: 'あなたのためのメニューガイド', 'zh-TW': '專屬菜單指南', es: 'Tu guía del menú' },
   '메뉴 라이킷': { 'zh-CN': '喜欢这道菜', ja: 'メニューをお気に入りに', 'zh-TW': '喜歡這道菜', es: 'Me gusta este plato' },
@@ -280,7 +279,7 @@ const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '개인정보와 식단 정보는 내 프로필에서 관리할 수 있어요': { 'zh-CN': '你可以在个人资料中管理个人与饮食信息', ja: '個人情報と食事情報はプロフィールで管理できます', 'zh-TW': '你可以在個人資料中管理個人與飲食資訊', es: 'Gestiona tu información personal y alimentaria desde tu perfil' },
   '저장에 실패했어요. 다시 시도해 주세요.': { 'zh-CN': '保存失败，请重试。', ja: '保存できませんでした。もう一度お試しください。', 'zh-TW': '儲存失敗，請再試一次。', es: 'No se pudo guardar. Inténtalo de nuevo.' },
 
-  // 식단·알레르기·현장 회화의 임시 번역. 이 그룹은 최종본에서 별도 전문 검수를 거친다.
+  // 식단·알레르기·현장 회화 임시 번역(최종본 전문 검수 대상).
   '비건': { 'zh-CN': '纯素', ja: 'ヴィーガン', 'zh-TW': '純素', es: 'Vegano' },
   '락토': { 'zh-CN': '乳素', ja: 'ラクト・ベジタリアン', 'zh-TW': '奶素', es: 'Lactovegetariano' },
   '오보': { 'zh-CN': '蛋素', ja: 'オボ・ベジタリアン', 'zh-TW': '蛋素', es: 'Ovovegetariano' },
@@ -350,7 +349,7 @@ const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '계산하고 싶어요.': { 'zh-CN': '请帮我结账。', ja: 'お会計をお願いします。', 'zh-TW': '請幫我結帳。', es: 'Quisiera pagar, por favor.' },
   '주문하겠습니다.': { 'zh-CN': '我想点餐。', ja: '注文をお願いします。', 'zh-TW': '我想點餐。', es: 'Quisiera pedir.' },
 
-  // 큐레이션 목록에서 먼저 노출되는 제목·요약의 1차 번역.
+  // 큐레이션 목록 제목·요약 1차 번역.
   '식문화': { 'zh-CN': '饮食文化', ja: '食文化', 'zh-TW': '飲食文化', es: 'Cultura gastronómica' },
   '식당에서': { 'zh-CN': '在餐厅', ja: '食堂で', 'zh-TW': '在餐廳', es: 'En el restaurante' },
   '한식 이야기': { 'zh-CN': '韩国美食故事', ja: '韓国料理の話', 'zh-TW': '韓國美食故事', es: 'Historias de la cocina coreana' },
@@ -380,8 +379,7 @@ const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '젓가락은 납작한 쇠젓가락': { 'zh-CN': '韩国的筷子是扁平金属筷', ja: '韓国の箸は平たい金属製', 'zh-TW': '韓國的筷子是扁平金屬筷', es: 'Los palillos coreanos son planos y metálicos' },
   '밥·국은 숟가락, 반찬은 젓가락 — 식탁의 작은 규칙': { 'zh-CN': '米饭和汤用勺，小菜用筷——餐桌上的小规则', ja: 'ご飯と汁物はスプーン、おかずは箸—食卓の小さなルール', 'zh-TW': '白飯和湯用湯匙，小菜用筷子——餐桌上的小規則', es: 'Cuchara para arroz y sopa, palillos para las guarniciones' },
 
-  // zh-TW demo-flow completion. These entries intentionally use Taiwan UI wording
-  // instead of borrowing the zh-CN copy or falling back to English.
+  // zh-TW 시연 흐름 보완. zh-CN 문안·영어 대체 대신 대만 UI 표현.
   '나에게 맞는 한 끼,\n새로운 한국의 발견.': { 'zh-TW': '適合我的一餐，\n探索不一樣的韓國。' },
   '동네를 고르고, 내 식단을 이해하는 식당을 만나보세요.': { 'zh-TW': '選一個街區，尋找了解你飲食需求的餐廳。' },
   '추천 이야기': { 'zh-TW': '精選故事' },
@@ -508,7 +506,7 @@ const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '사진은 글의 이해를 돕는 참고 이미지입니다.': { 'zh-TW': '照片為協助理解文章的示意圖片。' },
   '다음 한 입의 이야기': { 'zh-TW': '下一篇美食故事' },
 
-  // Demo areas and restaurant menu data.
+  // 시연 지역·식당 메뉴.
   '내 주변': { 'zh-TW': '我的附近' },
   '청담': { 'zh-TW': '清潭' },
   '강남·역삼': { 'zh-TW': '江南 · 驛三' },
@@ -540,7 +538,7 @@ const PROVISIONAL_TRANSLATIONS: Record<string, ProvisionalTranslation> = {
   '등록된 레시피에서 내 프로필과 충돌하는 재료를 찾지 못했어요. 공용 조리도구는 직원에게 확인해 주세요.': { 'zh-TW': '在已登錄的食譜中未發現與你飲食檔案衝突的食材。共用廚具仍請向店員確認。' },
   '식당 등록 레시피': { 'zh-TW': '餐廳提供的食譜' },
 
-  // Fixed scan scenario: menu names, descriptions, decision reasons and staff questions.
+  // 고정 스캔 시나리오: 메뉴 이름·설명·판정 이유·직원 질문.
   '야채김밥': { 'zh-TW': '蔬菜紫菜飯捲' },
   '참치김밥': { 'zh-TW': '鮪魚紫菜飯捲' },
   '스팸김밥': { 'zh-TW': '午餐肉紫菜飯捲' },

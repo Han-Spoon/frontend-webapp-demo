@@ -31,19 +31,18 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
 
   const t = createTranslator(language);
 
-  // 다른 글로 이동 시 본문 상단으로 스크롤
+  // 다른 글로 이동 시 맨 위로
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [id]);
 
-  // 추천: 같은 태그 우선, 부족하면 다른 글로 채워 3개
+  // 추천 3개: 같은 태그 우선, 부족하면 다른 글
   const recommended = useMemo(() => {
     if (!article) return [];
     const others = CURATION_ARTICLES.filter((a) => a.id !== article.id);
     const same = others.filter((a) => a.tag === article.tag);
     const rest = others.filter((a) => a.tag !== article.tag);
     return [...same, ...rest].slice(0, 3);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (!article) {

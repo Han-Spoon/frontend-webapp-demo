@@ -5,14 +5,11 @@ import { localizeMenuText } from '../results/resultViewModel';
 import { AREAS, RESTAURANTS, type Restaurant } from './restaurants';
 import { listDemoStoreReviews } from './reviews';
 
-/**
- * 시연 모드 전체 지도용. 가상 식당(`RESTAURANTS`)을 후보 API 형식으로 바꾸고, 후보 조회를 흉내 낸다.
- * 실제 후보 API처럼 반경 안의 가게를 검증(레시피 인증) 가게 먼저, 가까운 순으로 최대 20곳 돌려준다.
- */
+/** 시연 전체 지도용 후보 조회 흉내. 가상 식당 → 후보 API 형식, 반경 안 검증 가게 먼저·가까운 순 최대 20곳. */
 const STORE_ID_BASE = 800_000;
 const SEARCH_RADIUS_METERS = 1500;
 const MAX_RESULTS = 20;
-// 가상 식당 분류(한식 계열 3종)를 실제 업종 코드에 맞춘다. 칸 순서 = 지역 안의 식당 순서.
+// 가상 식당에 붙일 실제 업종 코드 3종(지역 안 식당 순서대로 순환).
 const SLOT_CATEGORIES: Array<[string, string]> = [['I201', '한식'], ['I20102', '국/탕/찌개류'], ['I20101', '백반/한정식']];
 
 export function demoStoreId(restaurant: Restaurant) {
@@ -51,7 +48,7 @@ function toCandidate(restaurant: Restaurant, language: Language, distance: numbe
   };
 }
 
-/** 이름 검색이면 거리 없이 이름·지역·주소로, 아니면 좌표 반경으로 찾는다. */
+/** 검색어가 있으면 이름·지역·주소(거리 없음), 없으면 좌표 반경 */
 export function searchDemoStores(language: Language, search: { query: string; location: StoreCoordinates | null }): StoreCandidate[] {
   const text = search.query.trim().toLocaleLowerCase();
   if (text) {

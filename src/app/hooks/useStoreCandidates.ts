@@ -63,8 +63,7 @@ export function useStoreCandidates(
 
   const searchAtCurrentLocation = useCallback(() => {
     if (!location) {
-      // 지역 좌표로 진입한 화면에서는 사용자가 요청할 때만 현재 위치를 조회한다.
-      // 조회 실패 시 기존 지역 검색 결과는 유지한다.
+      // 위치 미확보 화면: 요청 시에만 현재 위치 조회. 실패해도 기존 지역 결과 유지.
       setLocationStatus('loading');
       setLocationRequestPending(true);
       return;

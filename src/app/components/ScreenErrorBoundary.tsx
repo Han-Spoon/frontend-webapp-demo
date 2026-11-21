@@ -5,7 +5,7 @@ import { createTranslator, isLanguage, translateText } from '../locales';
 
 interface ScreenErrorBoundaryProps {
   resetKey?: string;
-  /** 다시 그리기 전 정리(예: 받기에 실패한 화면 코드 다시 받기) */
+  /** 다시 그리기 전 정리(예: 실패한 화면 코드 다시 받기) */
   onReset?: () => void;
   fallback: (reset: () => void) => ReactNode;
   children: ReactNode;
@@ -40,7 +40,7 @@ export class ScreenErrorBoundary extends Component<ScreenErrorBoundaryProps, Scr
   }
 }
 
-/** 판정을 보여 주는 화면. */
+/** 판정을 보여 주는 화면 */
 const VERDICT_PATHS = new Set(['/results', '/analyzing', '/dev/results-preview', '/mypage/saved-menus']);
 export const showsVerdicts = (pathname: string) =>
   VERDICT_PATHS.has(pathname) || /^\/restaurants\/[^/]+\/menu\/?$/.test(pathname);
@@ -90,7 +90,7 @@ export function readFallbackLanguage(): Language {
     const saved = window.localStorage.getItem('han-spoon-language');
     if (isLanguage(saved)) return saved;
   } catch {
-    // 저장소를 쓸 수 없으면 기본 언어.
+    // 저장소 접근 불가 시 기본 언어.
   }
   return 'ko';
 }

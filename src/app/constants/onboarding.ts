@@ -1,15 +1,12 @@
 import type { Language, LocalizedText } from '../locales';
 
 export interface CodedOption {
-  /** 백엔드 enum 코드값 (그대로 API로 전송) */
+  /** 백엔드 enum 코드값(그대로 전송) */
   value: string;
   label: LocalizedText;
 }
 
-/**
- * 채식 유형 — 백엔드 VegetarianType enum 코드값.
- * (vegan | lacto | ovo | lacto_ovo | pesco)
- */
+/** 채식 유형(백엔드 VegetarianType) */
 export const VEGETARIAN_OPTIONS: CodedOption[] = [
   { value: 'vegan', label: { ko: '비건', en: 'Vegan', ar: 'نباتي صارم' } },
   { value: 'lacto', label: { ko: '락토', en: 'Lacto', ar: 'لاكتو' } },
@@ -18,20 +15,14 @@ export const VEGETARIAN_OPTIONS: CodedOption[] = [
   { value: 'pesco', label: { ko: '페스코', en: 'Pesco', ar: 'بيسكو' } },
 ];
 
-/**
- * 종교 식이 — 백엔드 ReligionType enum 코드값.
- * 백엔드는 halal | kosher | hindu | none 만 허용하며,
- * '기타(Other)'에 대응하는 값이 없으므로 선택지에서 제외한다.
- */
+/** 종교 식이(백엔드 ReligionType). 허용값 halal·kosher·hindu·none에 '기타'가 없어 제외. */
 export const RELIGION_OPTIONS: CodedOption[] = [
   { value: 'halal', label: { ko: '할랄', en: 'Halal', ar: 'حلال' } },
   { value: 'kosher', label: { ko: '코셔', en: 'Kosher', ar: 'كوشير' } },
   { value: 'hindu', label: { ko: '힌두', en: 'Hindu', ar: 'هندوسي' } },
 ];
 
-/**
- * 식약처 지정 알레르기 유발물질 19종 — 백엔드 AllergyCode enum 코드값.
- */
+/** 식약처 지정 알레르기 유발물질 19종(백엔드 AllergyCode) */
 export const ALLERGY_OPTIONS: CodedOption[] = [
   { value: 'egg', label: { ko: '계란', en: 'Egg', ar: 'بيض' } },
   { value: 'milk', label: { ko: '우유', en: 'Milk', ar: 'حليب' } },
@@ -54,10 +45,7 @@ export const ALLERGY_OPTIONS: CodedOption[] = [
   { value: 'pinenut', label: { ko: '잣', en: 'Pine nut', ar: 'الصنوبر' } },
 ];
 
-/**
- * 지원 국가 — ISO 3166-1 alpha-2 코드.
- * 국가명은 Intl.DisplayNames로 언어별 런타임 변환하므로 코드만 보관한다.
- */
+/** 지원 국가(ISO 3166-1 alpha-2). 국가명은 Intl.DisplayNames로 언어별 변환. */
 export const COUNTRY_CODES: string[] = [
   'AD', 'AE', 'AF', 'AG', 'AL', 'AM', 'AO', 'AR', 'AT', 'AU', 'AZ',
   'BA', 'BB', 'BD', 'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BN', 'BO', 'BR', 'BS', 'BT', 'BW', 'BY', 'BZ',
@@ -97,7 +85,7 @@ function getDisplayNames(language: Language): Intl.DisplayNames {
   return instance;
 }
 
-/** ISO alpha-2 코드를 해당 언어의 국가명으로 변환. 실패 시 코드 그대로 반환. */
+/** ISO 코드 → 언어별 국가명(실패 시 코드 그대로) */
 export function getCountryName(code: string, language: Language): string {
   try {
     return getDisplayNames(language).of(code) ?? code;
@@ -106,7 +94,7 @@ export function getCountryName(code: string, language: Language): string {
   }
 }
 
-/** ISO alpha-2 코드를 국기 이모지(regional indicator)로 변환. */
+/** ISO 코드 → 국기 이모지 */
 export function getCountryFlag(code: string): string {
   if (code.length !== 2) return '';
   const base = 0x1f1e6;

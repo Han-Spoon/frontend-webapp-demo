@@ -3,10 +3,8 @@ import type { StoreCardExtras } from '../components/discovery/MapStorePanel';
 import { DINING_PHOTO_POOL } from '../components/discovery/restaurantPhotos';
 
 /**
- * 개발용 지도 미리보기(/dev/map-preview) 전용 가상 데이터.
- * 용산 시연 가게 밀집을 흉내 낸 것으로, 좌표·별점·영업시간·사진·층은 실제 가게 정보가 아니다.
- * 층(`floorInfo`)은 후보 API 원본 형식("6", "B1", "지", "반지층", "")으로 넣어 층 문구 포맷터를 확인한다.
- * 같은 좌표 3묶음은 시연 데이터에서 측정한 겹침을 재현한다.
+ * `/dev/map-preview` 전용 가상 데이터(용산 밀집·같은 좌표 겹침 재현). 좌표·별점·영업시간·사진·층은 실제 정보 아님.
+ * 층은 후보 API 원본 형식("6", "B1", "지", "반지층", "")으로 포맷터 확인용.
  */
 export const MAP_PREVIEW_CENTER = { latitude: 37.5312, longitude: 126.9636 };
 
@@ -30,7 +28,7 @@ const NAMES = [
   '이태원 삼겹살', '용산 생선구이', '전자랜드 김치찌개', '아이파크 라멘', '용산 복집', '한강 마라탕',
 ];
 
-// 실제 후보 응답과 같은 업종 코드·이름(상가정보 소분류 + LOCALDATA 중분류·대분류)
+// 실제 후보 응답과 같은 업종 코드·이름(상가정보 소분류, LOCALDATA 중분류·대분류)
 const CATEGORY_NAMES: Record<string, string> = {
   I20101: '백반/한정식', I20102: '국/탕/찌개류', I20103: '족발/보쌈', I20104: '전/부침개', I20105: '국수/칼국수',
   I20106: '냉면/밀면', I20107: '돼지고기 구이/찜', I20108: '소고기 구이/찜', I20109: '곱창 전골/구이',
@@ -38,7 +36,7 @@ const CATEGORY_NAMES: Record<string, string> = {
   I20199: '기타 한식 음식점', I21007: '김밥/만두/분식',
   I201: '한식', I202: '중식', I203: '일식', I204: '서양식', I210: '기타 간이', I2: '음식',
 };
-// spots 순서(같은 좌표 7곳 → NAMES)와 같은 순서로, 가게 이름에 맞춘 업종 코드
+// 가게 이름에 맞춘 업종 코드(spots 순서: 같은 좌표 7곳 → NAMES)
 const CATEGORY_CODES = [
   'I20101', 'I20101', 'I20102', 'I20102', 'I20102', 'I20106', 'I2',
   'I20105', 'I20102', 'I20109', 'I20106', 'I21007', 'I20199', 'I204', 'I21007',
@@ -46,7 +44,7 @@ const CATEGORY_CODES = [
   'I20102', 'I202', 'I20199', 'I20111', 'I20104', 'I20103', 'I210', 'I20108',
   'I20107', 'I20112', 'I20102', 'I203', 'I20113', 'I202',
 ];
-// 흩뿌린 가게 층: 대부분 1~3층·빈 값, 지하·반지하·"0"(표시 안 함)·필드 없음(배포 전 서버)도 섞는다.
+// 흩뿌린 가게 층: 대부분 1~3층·빈 값, 지하·반지하·"0"(숨김)·필드 없음(배포 전 서버) 포함.
 const SCATTERED_FLOORS: Array<string | undefined> = [
   '1', '', '2', '1', '지', '', '3', '1',
   '', '2', '1', '0', '', '1', undefined, '2',
@@ -68,7 +66,7 @@ function distance(lat: number, lng: number) {
 
 const spots = [
   ...SAME_SPOT.map(([name, lat, lng, floor]) => ({ name, lat, lng, floor })),
-  // 아이파크몰·전자상가 사이 약 300m 범위에 흩뿌린 고정 좌표
+  // 아이파크몰·전자상가 사이 약 300m 고정 좌표
   ...NAMES.map((name, index) => ({
     name,
     lat: 37.5296 + seeded(index + 1, 12.9898) * 0.0032,
@@ -96,7 +94,7 @@ export const MAP_PREVIEW_EXTRAS = new Map<number, StoreCardExtras>(
   MAP_PREVIEW_CANDIDATES.map((store, index) => [store.storeId, {
     rating: Math.round((3.6 + seeded(index + 1, 5.71) * 1.3) * 10) / 10,
     hours: HOURS[index % HOURS.length],
-    // 실제 가게 사진이 아닌 분위기 참고 사진. 사진이 없는 가게도 보이도록 3곳마다 1곳은 비운다.
+    // 분위기 참고 사진(실제 가게 사진 아님). 3곳마다 1곳은 사진 없음.
     photos: index % 3 === 2 ? undefined : [0, 1, 2].map((offset) => DINING_PHOTO_POOL[(index + offset) % DINING_PHOTO_POOL.length]),
   }]),
 );

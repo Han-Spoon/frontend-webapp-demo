@@ -7,7 +7,7 @@ import { ConfirmDialog } from './common/ConfirmDialog';
 interface ScanHistoryListProps {
   language: Language;
   history: HistoryItem[];
-  /** 실패하면 reject한다. 목록이 그 기록 아래에 알림을 띄운다. */
+  /** 실패 시 reject(목록이 그 기록 아래에 알림) */
   onOpen: (item: HistoryItem) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onRename: (id: string, title: string) => Promise<void>;
@@ -15,10 +15,7 @@ interface ScanHistoryListProps {
 
 type ItemError = { id: string; kind: 'open' | 'delete' };
 
-/**
- * 기록 카드의 위험·주의 수. 기기 저장 기록은 메뉴로 직접 세고, 서버 기록은 서버 값을 쓴다.
- * 값이 없으면 null — 0으로 그리지 않는다('위험 없음'으로 읽히지 않게).
- */
+/** 기록 카드 위험·주의 수. 기기 기록은 메뉴로 계산, 서버 기록은 서버 값. 없으면 null(0으로 그리지 않음). */
 function riskCounts(item: HistoryItem): { danger: number | null; caution: number | null } {
   if (item.menus.length > 0) {
     return {

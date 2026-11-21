@@ -1,7 +1,4 @@
-/**
- * 네이버 지도 v3 최소 타입 선언.
- * 전체 타입이 필요해지면 `pnpm add -D @types/navermaps` 로 교체할 것.
- */
+/** 네이버 지도 v3 최소 타입. 전체 타입 필요 시 `@types/navermaps`로 교체. */
 declare namespace naver.maps {
   class LatLng {
     constructor(lat: number, lng: number);

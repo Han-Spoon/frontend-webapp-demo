@@ -18,7 +18,7 @@ export function ScanHistoryScreen({
 }: {
   language: Language;
   history: HistoryItem[];
-  /** 서버 기록 목록을 불러오지 못함. 이때는 '기록 없음'을 보여 주지 않는다. */
+  /** 서버 기록 목록 불러오기 실패('기록 없음' 숨김) */
   loadFailed: boolean;
   onRetryLoad: () => void;
   onOpen: (item: HistoryItem) => Promise<void>;

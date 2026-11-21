@@ -1,5 +1,4 @@
-// Real, licensed editorial photographs, NOT photographs of the listed stores.
-// Sources and replacement contract: docs/restaurant-recommendations.md.
+// 라이선스 있는 분위기 사진(목록 가게의 실제 사진 아님). 출처·교체 기준: docs/restaurant-recommendations.md.
 const image = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1000&q=85`;
 
 export const RESTAURANT_PHOTOS = {
@@ -10,15 +9,14 @@ export const RESTAURANT_PHOTOS = {
 };
 
 export function restaurantReferencePhoto(category: string | null | undefined) {
-  // Match explicit cuisine categories only. Names are not evidence of a menu.
+  // 명시된 음식 분류만 매칭(가게 이름은 메뉴 근거 아님).
   if (/비빔밥|bibimbap/i.test(category ?? '')) return RESTAURANT_PHOTOS.bibimbap;
   if (/초밥|스시|sushi/i.test(category ?? '')) return RESTAURANT_PHOTOS.sushi;
   if (/한식|korean/i.test(category ?? '')) return RESTAURANT_PHOTOS.korean;
   return RESTAURANT_PHOTOS.dining;
 }
 
-// Neutral dining spaces for repeated/unknown categories; six distinct photos
-// cover the maximum recommendation list without suggesting an unrelated dish.
+// 반복·미확인 분류용 중립 식당 사진. 추천 목록 최대 수만큼 6장.
 export const DINING_PHOTO_POOL = [
   RESTAURANT_PHOTOS.dining,
   image('photo-1777502286448-35389817f504'),

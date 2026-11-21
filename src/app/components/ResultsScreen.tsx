@@ -67,9 +67,9 @@ interface ResultsScreenProps {
   record?: ScanRecordResponse | null;
   demoMode?: boolean;
   menuPhotoUrl?: string | null;
-  /** 서버 기록처럼 판정 당시 식단을 모를 때. 현재 프로필을 판정 기준으로 보여 주지 않는다. */
+  /** 판정 당시 식단 모름(서버 기록 등). 현재 프로필을 판정 기준으로 표시하지 않음. */
   scanProfileUnknown?: boolean;
-  /** 기록 저장 후 목록 갱신. */
+  /** 기록 저장 후 목록 갱신 */
   onSavedRecord?: () => void;
 }
 
@@ -83,7 +83,7 @@ type FilterType = 'all' | MenuAnalysis['riskLevel'];
 
 function getTranslatedMenuName(menu: MenuAnalysis, language: Language) {
   if (language === 'ko') return menu.menuName;
-  // 언어별 이름이 없으면 빈 문자열로 두어 아래 영문·원문 대체로 넘어간다(이전과 같은 동작).
+  // 언어별 이름이 없으면 빈 문자열 → 아래 영문·원문 대체.
   if (menu.menuNameLocalized) return translateText(language, { ...menu.menuNameLocalized, en: menu.menuNameLocalized.en ?? '', ar: menu.menuNameLocalized.ar ?? '' }) || menu.menuNameEn || menu.menuName;
   return translateText(language, {
     ko: menu.menuName,
@@ -117,9 +117,9 @@ export function MenuImage({ menu, translatedName, t }: MenuImageProps) {
 export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, record, demoMode = false, menuPhotoUrl, scanProfileUnknown = false, currentUserProfile, onSavedRecord }: ResultsScreenProps) {
   const filmingScenario = menus.some(menu => menu.demoScenario === 'bunsik-vegan-shrimp');
   const userProfile = filmingScenario ? { ...FILMING_PROFILE, languageCode: language } : suppliedProfile;
-  // 판정 기준을 모르면 userProfile은 지금 식단(직원 전달용)일 뿐, 판정 기준이 아니다.
+  // 판정 기준을 모르면 userProfile은 직원 전달용 지금 식단일 뿐.
   const basisUnknown = scanProfileUnknown && !filmingScenario;
-  // 식단 정보를 불러오지 못함(null). '식단 없음'과 다르다. 서버 판정은 그대로 보여 준다.
+  // 식단 불러오기 실패(null). '식단 없음'과 구분, 서버 판정은 그대로 표시.
   const profileUnknown = !basisUnknown && !filmingScenario && userProfile === null;
   const verdictBasisUnknown = basisUnknown || profileUnknown;
   const navigate = useNavigate();
@@ -135,11 +135,11 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const [favoritePending, setFavoritePending] = useState<string | null>(null);
   const [favoriteError, setFavoriteError] = useState('');
   const [photoOpen, setPhotoOpen] = useState(false);
-  // 기기에 사진이 없으면 서버 사진(GET /scans/{id}/image)을 연다.
+  // 기기에 사진이 없으면 서버 사진(GET /scans/{id}/image).
   const [scanImageUrl, setScanImageUrl] = useState<string | null>(null);
   const [scanImageError, setScanImageError] = useState('');
   const [scanImageLoading, setScanImageLoading] = useState(false);
-  // 직원 답변 저장 후 서버가 다시 계산한 메뉴.
+  // 직원 답변 저장 뒤 서버가 다시 계산한 메뉴.
   const [updatedMenus, setUpdatedMenus] = useState<MenuAnalysis[] | null>(null);
   const [selectedRestaurantId] = useDemoValue<string | null>('selected-restaurant', null);
   const restaurantId = partnerRestaurantId ?? (demoMode || !sourceScanId ? selectedRestaurantId : null);
@@ -154,7 +154,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
     ?? savedRecord?.store?.name
     ?? (restaurant ? localizeMenuText(restaurant.name, language) : null);
   const t = createTranslator(language);
-  // 기기 저장 기록 등 매퍼를 거치지 않은 값도 판정 정규화
+  // 매퍼를 거치지 않은 값(기기 저장 기록 등)도 판정 정규화.
   const menuList = useMemo(() => (updatedMenus ?? (Array.isArray(menus) ? menus : []))
     .map(menu => ({ ...menu, riskLevel: normalizeRiskLevel(menu.riskLevel) })), [menus, updatedMenus]);
   useEffect(() => { setUpdatedMenus(null); setScanImageUrl(null); setScanImageError(''); }, [sourceScanId, menus]);
@@ -162,7 +162,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const canLoadServerPhoto = !menuPhotoUrl && Boolean(sourceScanId) && !demoMode;
   const profileSummary = getProfileSummary(userProfile, language);
   const profileCommunicationItems = getProfileCommunicationItems(userProfile);
-  // 식단 조건이 없으면 판정 배지 대신 재료만 보여 준다. 단, 위험·주의가 하나라도 있으면 숨기지 않는다(FN 방지).
+  // 식단 조건이 없으면 배지 대신 재료만. 위험·주의가 하나라도 있으면 표시(FN 방지).
   const showVerdicts = verdictBasisUnknown || profileSummary.length > 0
     || menuList.some(menu => menu.riskLevel === 'danger' || menu.riskLevel === 'caution');
   const dietEmpty = !verdictBasisUnknown && profileSummary.length === 0;
@@ -194,7 +194,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
         await deleteSavedMenu(existing.id);
         setServerSavedMenus(current => current.filter(item => item.id !== existing.id));
       } else {
-        // 명세 V2는 scanMenuId(UUID)로 찜한다. 없는 옛 결과는 찜할 수 없다.
+        // 명세 V2 찜은 scanMenuId(UUID) 기준. 없는 옛 결과는 찜 불가.
         if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(menu.id)) {
           setFavoriteError(t('이 메뉴는 아직 찜할 수 없어요.', 'This menu cannot be saved yet.', 'لا يمكن حفظ هذا الطبق بعد.'));
           return;

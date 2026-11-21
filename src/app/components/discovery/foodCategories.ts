@@ -1,9 +1,9 @@
 import type { LocalizedText } from '../../locales';
 
 /**
- * 가게 후보의 업종 코드(`categoryCode`, 소상공인 상권업종 분류)를 지도 목록용 짧은 음식 종류로 묶는다.
- * 상가정보 가게는 한식 소분류(I201xx)와 분식(I21007)만, LOCALDATA 가게는 중분류(I201~I210)나 대분류(I2)만 온다.
- * 코드가 없으면 같은 표의 분류 이름으로 찾고, 표에 없는 값·기타 한식 음식점·대분류 '음식'은 기타.
+ * 업종 코드(`categoryCode`, 소상공인 상권업종 분류) → 지도 목록용 음식 종류.
+ * 상가정보: 한식 소분류(I201xx)·분식(I21007). LOCALDATA: 중분류(I201~I210)·대분류(I2).
+ * 코드가 없으면 분류 이름으로 조회. 표에 없는 값·기타 한식 음식점·대분류 '음식'은 기타.
  */
 export type FoodCategoryId =
   | 'korean' | 'soup' | 'meat' | 'seafood' | 'noodle' | 'snack'
@@ -48,7 +48,7 @@ export const FOOD_CATEGORY_LABELS: Record<FoodCategoryId, LocalizedText> = {
   meat: { ko: '고기', en: 'Meat & BBQ', ar: 'لحوم ومشويات', 'zh-CN': '烤肉', ja: '肉料理', 'zh-TW': '烤肉', es: 'Carnes' },
   seafood: { ko: '횟집·해물', en: 'Seafood', ar: 'مأكولات بحرية', 'zh-CN': '海鲜', ja: '刺身・海鮮', 'zh-TW': '海鮮', es: 'Mariscos' },
   noodle: { ko: '국수·냉면', en: 'Noodles', ar: 'نودلز', 'zh-CN': '面条', ja: '麺料理', 'zh-TW': '麵食', es: 'Fideos' },
-  // 분식: 떡볶이·김밥·라면·만두 같은 한국식 간편 음식. 'Snacks'는 과자·간식으로 읽혀 쓰지 않는다.
+  // 분식 영어는 'Street food'('Snacks'는 과자로 읽힘).
   snack: { ko: '분식', en: 'Street food', ar: 'أكلات الشارع', 'zh-CN': '韩式小吃', ja: '粉食（ブンシク）', 'zh-TW': '韓式小吃', es: 'Comida callejera' },
   chinese: { ko: '중식', en: 'Chinese', ar: 'صيني', 'zh-CN': '中餐', ja: '中華', 'zh-TW': '中式', es: 'China' },
   japanese: { ko: '일식', en: 'Japanese', ar: 'ياباني', 'zh-CN': '日料', ja: '和食', 'zh-TW': '日式', es: 'Japonesa' },
@@ -56,7 +56,7 @@ export const FOOD_CATEGORY_LABELS: Record<FoodCategoryId, LocalizedText> = {
   other: { ko: '기타', en: 'Other', ar: 'أخرى', 'zh-CN': '其他', ja: 'その他', 'zh-TW': '其他', es: 'Otros' },
 };
 
-/** 음식 종류 버튼 앞 그림 문자(장식용, 스크린리더에는 읽히지 않게 한다) */
+/** 음식 종류 버튼 앞 그림 문자(장식용, 스크린리더 제외) */
 export const FOOD_CATEGORY_ICONS: Record<FoodCategoryId, string> = {
   korean: '🍚',
   soup: '🍲',

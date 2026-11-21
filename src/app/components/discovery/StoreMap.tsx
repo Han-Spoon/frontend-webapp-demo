@@ -26,17 +26,17 @@ export function StoreMap({
 }: {
   language: Language;
   stores: MapStore[];
-  /** 보통 사용자의 현재 위치. 없으면 첫 후보에 맞춘다. */
+  /** 보통 사용자 현재 위치. 없으면 첫 후보 기준. */
   center?: { lat: number; lng: number };
   selectedId?: string | null;
   onSelect?: (store: MapStore) => void;
-  /** 사용자가 지도를 옮긴 뒤의 중심 좌표. 프로그램에 의한 이동에는 호출하지 않는다. */
+  /** 사용자가 옮긴 뒤 중심 좌표(프로그램 이동에는 호출 안 함) */
   onCenterChange?: (center: { lat: number; lng: number }) => void;
-  /** false이면 후보가 바뀌어도 사용자가 보고 있는 지도 영역을 유지한다. */
+  /** false면 후보가 바뀌어도 보던 지도 영역 유지 */
   fitStores?: boolean;
-  /** 시연 모드에서는 외부 지도 키 없이 fixture 위치를 선택할 수 있는 개요를 그린다. */
+  /** 시연 모드: 지도 키 없이 fixture 위치 개요 */
   demoMode?: boolean;
-  /** 시연 개요에서 위(검색창)·아래(카드)에 가리는 높이(px). 안내 칩과 핀을 그 사이에만 둔다. */
+  /** 시연 개요에서 위(검색창)·아래(카드)가 가리는 높이(px). 안내 칩·핀은 그 사이에만. */
   demoInsets?: { top: number; bottom: number };
   className?: string;
 }) {
@@ -49,18 +49,17 @@ export function StoreMap({
   const mapListenersRef = useRef<unknown[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
-  // 지도 라벨 언어는 앱 언어가 아니라 사용자 설정(기본 한국어)을 따른다.
-  // 설정이 바뀌면 SDK 를 다시 받아야 하므로 지도도 새로 만든다.
+  // 지도 라벨 언어는 앱 언어가 아닌 사용자 설정. 바뀌면 SDK 재로드라 지도도 새로 생성.
   const mapLanguage = useMapLanguage();
 
-  // 콜백은 ref 로 넘겨 마커 재생성 없이 최신 값을 쓴다.
+  // 콜백은 ref로(마커 재생성 없이 최신 값).
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const onCenterChangeRef = useRef(onCenterChange);
   onCenterChangeRef.current = onCenterChange;
 
   const clearMarkers = () => {
-    // 인증 실패 시 SDK가 내부 객체를 먼저 폐기할 수 있다. 각 객체는 한 번만 정리한다.
+    // 인증 실패 시 SDK가 내부 객체를 먼저 폐기할 수 있어 객체마다 한 번만 정리.
     const listeners = listenersRef.current.splice(0);
     const markers = markersRef.current.splice(0);
     placementsRef.current = [];
@@ -87,7 +86,7 @@ export function StoreMap({
     let cancelled = false;
     setStatus('loading');
 
-    // 키/도메인 문제는 스크립트 로드 성공 후에 드러난다. 별도 훅으로 받아 폴백으로 전환한다.
+    // 키·도메인 문제는 스크립트 로드 성공 뒤 드러나 별도 훅으로 받아 폴백.
     const offAuthFailure = onNaverMapsAuthFailure(() => {
       if (!cancelled) {
         disposeMap();
@@ -125,12 +124,10 @@ export function StoreMap({
       offAuthFailure();
       disposeMap();
     };
-    // 지도 생성 시 중심 좌표만 사용한다. 이후 변경은 아래 effect에서 필요한 경우에만 반영한다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // 중심 좌표는 지도 생성 때만. 이후 변경은 아래 effect.
   }, [mapLanguage, demoMode]);
 
-  // 현재 위치로 돌아가기처럼 호출부가 명시적으로 중심을 바꿀 때만 지도를 이동한다.
-  // 사용자의 dragend가 전달한 좌표는 이미 지도 중심과 같으므로 재이동하지 않는다.
+  // 호출부가 중심을 바꿀 때만 이동(사용자 dragend 좌표는 이미 지도 중심이라 제외).
   useEffect(() => {
     const map = mapRef.current;
     if (status !== 'ready' || !map || !center) return;
@@ -143,7 +140,7 @@ export function StoreMap({
     }
   }, [center?.lat, center?.lng, status]);
 
-  // 이름표 배치. 지도 이동·확대가 끝난(idle) 뒤에만 다시 계산한다.
+  // 이름표 배치. 지도 이동·확대가 끝난(idle) 뒤에만 다시 계산.
   const layoutLabels = () => {
     const map = mapRef.current;
     if (!map) return;
@@ -154,9 +151,9 @@ export function StoreMap({
         return { item, x: point.x, y: point.y };
       });
       const pins = items.map(({ item, x, y }) => (item.selected ? null : pinBox(x, y)));
-      // 선택 가게 말풍선은 항상 먼저 놓는다.
+      // 선택 가게 말풍선 먼저.
       const placed: Box[] = items.filter(({ item }) => item.selected).map(({ item, x, y }) => selectedBox(x, y, item.selectedWidth));
-      // 우선순위: 선택 > 후보 순서(서버가 검증 가게를 앞에 둔다)
+      // 우선순위: 선택 > 후보 순서(검증 가게 먼저)
       items.forEach(({ item, x, y }, index) => {
         if (item.selected) return;
         const box = nameBox(x, y, item.nameWidth, item.nameLines);
@@ -175,7 +172,7 @@ export function StoreMap({
   const layoutLabelsRef = useRef(layoutLabels);
   layoutLabelsRef.current = layoutLabels;
 
-  // 후보가 바뀌면 마커를 다시 그린다.
+  // 후보가 바뀌면 마커 다시 그림.
   const storeKey = useMemo(() => stores.map((s) => s.id).join('|'), [stores]);
 
   useEffect(() => {
@@ -198,7 +195,7 @@ export function StoreMap({
           icon: { content: selected ? markerSelectedHtml(lead.name, group.length - 1) : pinHtml, anchor: new naver.maps.Point(0, 0) },
           zIndex: selected ? 1000 : 10,
         });
-        // 같은 건물 묶음은 누를 때마다 다음 가게로 넘어간다.
+        // 같은 건물 묶음은 누를 때마다 다음 가게.
         listenersRef.current.push(
           naver.maps.Event.addListener(marker, 'click', () => {
             const index = group.findIndex((store) => store.id === selectedId);
@@ -232,8 +229,7 @@ export function StoreMap({
     }
   }, [fitStores, storeKey, selectedId, status, center, stores]);
 
-  // key 를 달아 에러/지도 전환 시 DOM 을 새로 만든다.
-  // 같은 div 를 재사용하면 네이버가 컨테이너에 직접 주입한 노드(에러 화면·타일)가 남아 겹친다.
+  // key로 에러·지도 전환 시 DOM 새로 생성(네이버가 넣은 에러 화면·타일 겹침 방지).
   if (demoMode) {
     return <DemoStoreMap language={language} stores={stores} selectedId={selectedId} onSelect={onSelect} insets={demoInsets} className={className} />;
   }
@@ -257,7 +253,7 @@ export function StoreMap({
   return <div key="store-map" ref={containerRef} className={className} aria-busy={status === 'loading'} />;
 }
 
-/** 개요 핀 세로 위치. 기본은 28–73%, 가리는 높이가 있으면 그 사이 영역에 같은 비율로 둔다. */
+/** 개요 핀 세로 위치. 기본 28–73%, 가리는 높이가 있으면 그 사이에 같은 비율. */
 function demoPinTop(y: number, insets?: { top: number; bottom: number }) {
   const percent = Math.min(73, Math.max(28, y));
   if (!insets) return `${percent}%`;
@@ -303,7 +299,7 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, insets, classNam
 const SAME_BUILDING_METERS = 5;
 /** 핀 반지름. 핀 가운데가 가게 좌표다. */
 const PIN_RADIUS = 11;
-/** 핀 아래 가게 이름. 길면 두 줄까지 줄바꿈한다. */
+/** 핀 아래 가게 이름 최대 폭(두 줄까지) */
 const NAME_MAX_WIDTH = 112;
 const NAME_LINE_HEIGHT = 15;
 const NAME_GAP = 2;
@@ -334,7 +330,7 @@ function distanceMeters(a: MapStore, b: MapStore) {
   return Math.hypot(dLat, dLng);
 }
 
-/** 후보 순서를 지키며 5m 안의 가게를 한 묶음으로 모은다. 선택한 가게가 있는 묶음을 맨 앞에 둔다. */
+/** 후보 순서대로 5m 안 가게 묶음. 선택 가게의 묶음이 맨 앞. */
 export function groupNearbyStores(stores: MapStore[], selectedId?: string | null) {
   const groups: MapStore[][] = [];
   stores.forEach((store) => {
@@ -371,7 +367,7 @@ function textWidth(text: string, font: string, fallbackPerChar: number) {
   return measureContext.measureText(text).width;
 }
 
-/** 핀 아래 이름의 대략적인 크기. 최대 폭을 넘으면 두 줄로 본다. */
+/** 핀 아래 이름 대략 크기(최대 폭 넘으면 두 줄) */
 function measureName(name: string) {
   const width = Math.ceil(textWidth(name, `700 12px ${FONT}`, 12)) + 4;
   return width > NAME_MAX_WIDTH ? { width: NAME_MAX_WIDTH, lines: 2 } : { width, lines: 1 };
@@ -386,7 +382,7 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** 가게 핀. 같은 건물에 여러 곳이면 가운데에 가게 수를 쓴다. */
+/** 가게 핀. 같은 건물 여러 곳이면 가운데에 가게 수. */
 function markerPinHtml(count: number) {
   const size = PIN_RADIUS * 2;
   const inner = count > 1
@@ -401,9 +397,7 @@ function markerPinHtml(count: number) {
   );
 }
 
-/**
- * 핀 + 아래 가게 이름(배경 없이 흰 테두리 글자). 마커 라벨은 우리 데이터라 사용자 언어로 그대로 렌더링한다.
- */
+/** 핀 + 아래 가게 이름(흰 테두리 글자). 우리 데이터라 사용자 언어 그대로. */
 function markerLabelHtml(name: string, count: number) {
   return (
     markerPinHtml(count).replace(/<\/div>$/, '') +
@@ -415,7 +409,7 @@ function markerLabelHtml(name: string, count: number) {
   );
 }
 
-/** 선택 가게: 핀 대신 꼬리 달린 말풍선. 같은 건물 가게가 더 있으면 '+N'. */
+/** 선택 가게: 꼬리 달린 말풍선. 같은 건물 가게가 더 있으면 '+N'. */
 function markerSelectedHtml(name: string, extra: number) {
   const badge = extra > 0
     ? `<span style="margin-inline-start:6px;border-radius:999px;padding:1px 6px;background:rgba(255,255,255,.25);font:700 12px/16px ${FONT}">+${extra}</span>`

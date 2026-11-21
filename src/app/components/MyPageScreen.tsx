@@ -31,7 +31,7 @@ interface MyPageScreenProps {
   historyLoadFailed: boolean;
   onRetryHistory: () => void;
   onBack: () => void;
-  /** section 미지정 시 전체 온보딩(신규 생성), 지정 시 해당 단위만 수정 */
+  /** section 없으면 전체 온보딩(신규), 있으면 해당 단위만 수정 */
   onEditProfile: (section?: ProfileSection) => void;
   onHistoryClick: (item: HistoryItem) => Promise<void>;
   onEditHistoryTitle: (id: string, title: string) => Promise<void>;
@@ -62,7 +62,7 @@ export function MyPageScreen({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  // 로그아웃·탈퇴 요청 중에는 확인창을 닫거나 두 번 누를 수 없게 한다.
+  // 로그아웃·탈퇴 요청 중 확인창 닫기·중복 누름 방지.
   const [accountBusy, setAccountBusy] = useState(false);
   const [consentStatus, setConsentStatus] = useState<ConsentStatus | null>(null);
   const [consentError, setConsentError] = useState(false);
@@ -268,8 +268,7 @@ export function MyPageScreen({
 
         {activeTab === 'setting' && (
           <div className="space-y-12 px-5 py-8 pb-12">
-            {/* 지도 언어 — 앱 언어와 독립된 로컬 표시 설정이라 프로필 편집 플로우를 타지 않는다.
-                네이버 지도가 ko/en/zh/ja 4개만 지원해서 앱 언어(7개)와 1:1 대응이 불가능하다. */}
+            {/* 지도 언어: 앱 언어와 별개인 기기 설정(네이버 지도는 ko/en/zh/ja만 지원) */}
             <section>
               <h3 className="text-base font-extrabold text-text-primary">
                 {t('지도 언어', 'Map language', 'لغة الخريطة')}

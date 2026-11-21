@@ -1,7 +1,7 @@
 import type { LocalizedMenuText, MenuAnalysis, MenuIngredientEvidence } from '../App';
 import { translateText } from '../locales';
 
-/** Fixed filming scenario only. No OCR, model inference, recipe verification or staff records. */
+/** 촬영 고정 시나리오 전용. OCR·모델 추론·레시피 검증·직원 기록 없음. */
 export { FILMING_PROFILE } from './filmingProfile';
 const L = (ko: string, en: string): LocalizedMenuText => ({
   ko,

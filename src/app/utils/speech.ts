@@ -11,7 +11,7 @@ function refreshVoices() {
 
 if (ttsSupported) {
   refreshVoices();
-  // 보이스 목록은 비동기로 로드된다(첫 호출 시 비어 있을 수 있음).
+  // 보이스 목록은 비동기 로드(첫 호출 때 빈 목록 가능).
   window.speechSynthesis.addEventListener('voiceschanged', refreshVoices);
 }
 
@@ -25,7 +25,7 @@ function pickVoice(lang: string): SpeechSynthesisVoice | null {
   );
 }
 
-/** 텍스트를 지정 언어 보이스로 읽는다(매칭 보이스를 명시 선택). */
+/** 지정 언어 보이스로 읽기(일치 보이스 명시 선택) */
 export function speak(text: string, lang: string) {
   if (!ttsSupported || !text.trim()) return;
   window.speechSynthesis.cancel();

@@ -28,7 +28,7 @@ const SECTION_TO_STEP: Record<EditSection, number> = { language: 1, country: 2, 
 export function OnboardingScreen({ language, setLanguage, initialProfile, onComplete }: OnboardingScreenProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  // 마이페이지에서 단위 수정으로 진입하면 해당 섹션만 노출한다.
+  // 마이페이지 단위 수정 진입 시 해당 섹션만.
   const editSection = (location.state as { editSection?: EditSection } | null)?.editSection;
   const editMode = !!editSection;
 
@@ -395,7 +395,6 @@ export function OnboardingScreen({ language, setLanguage, initialProfile, onComp
         )}
       </div>
 
-      {/* 하단 액션 */}
       <div className="shrink-0 space-y-2 border-t border-border-warm bg-rice-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
         {errorMessage && <p className="text-xs text-red-500 text-center" role="alert">{errorMessage}</p>}
         {!editMode && step < TOTAL_STEPS ? (

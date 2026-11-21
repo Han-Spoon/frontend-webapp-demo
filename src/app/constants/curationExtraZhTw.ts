@@ -4,7 +4,7 @@ interface TraditionalChineseCurationCopy {
   body: string;
 }
 
-/** Taiwan-localized editorial copy for the additional curation stories. */
+/** 추가 큐레이션 글의 대만 현지화 문안 */
 export const CURATION_EXTRA_ZH_TW: Record<string, TraditionalChineseCurationCopy> = {
   'sauce-on-side': {
     title: '醬汁分開上，更貼近自己的口味',

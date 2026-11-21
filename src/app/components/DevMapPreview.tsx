@@ -16,7 +16,7 @@ function previewDistance(store: StoreCandidate, from: { latitude: number; longit
   return Math.hypot(dLat, dLng);
 }
 
-/** 개발 서버 전용. 실제 네이버 지도와 가상 가게로 전체 화면 지도·목록·카드를 확인한다. */
+/** 개발 서버 전용. 실제 네이버 지도 + 가상 가게로 전체 지도 확인. */
 export function DevMapPreview({ fallbackLanguage }: { fallbackLanguage: Language }) {
   const [searchParams] = useSearchParams();
   const requested = searchParams.get('lang');

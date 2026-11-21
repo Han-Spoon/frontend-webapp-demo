@@ -4,11 +4,11 @@ import type { StoreSummary } from './store';
 import type { MenuAnalysis } from '../app/App';
 import { normalizeRiskLevel } from './riskLevel';
 
-/** 화면용 찜 메뉴. 서버 기록은 id가 명세 V2의 scanMenuId다. */
+/** 화면용 찜 메뉴. 서버 기록의 id는 명세 V2 scanMenuId. */
 export interface SavedMenu {
   id: string;
   scanId?: string;
-  /** 데모 찜에서만 쓴다. */
+  /** 데모 찜 전용 */
   displayOrder?: number;
   menuName: string;
   translatedName?: string | null;
@@ -34,7 +34,7 @@ async function parse<T>(response: Response): Promise<T> {
   return (json?.data ?? json) as T;
 }
 
-// 판정 값은 normalizeRiskLevel로만 바꾼다. null·모르는 값은 '확인 필요'.
+// 판정 값은 normalizeRiskLevel로만 변환(null·모르는 값은 '확인 필요').
 const fromWire = (item: WireSavedMenu): SavedMenu => ({
   id: item.scanMenuId,
   scanId: item.scanId,
