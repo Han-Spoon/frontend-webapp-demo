@@ -16,6 +16,8 @@ export interface StoreCandidate {
   categoryName?: string | null;
   verified: boolean;
   reviewCount?: number;
+  /** 상가정보 층 원본 값("1", "B1", "지", "반지층", ""). 문구는 프론트가 만든다. 배포 전 서버에는 없음. */
+  floorInfo?: string;
   matchMethod: StoreMatchMethod;
 }
 

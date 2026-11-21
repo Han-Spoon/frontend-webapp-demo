@@ -5,6 +5,7 @@ import type { StoreSearchOrigin } from '../../hooks/useStoreCandidates';
 import { createTranslator, translateText, type Language } from '../../locales';
 import { groupNearbyStores } from './StoreMap';
 import { FOOD_CATEGORY_LABELS, foodCategoryOf } from './foodCategories';
+import { formatFloor } from './storeFloor';
 
 /**
  * 후보 API에 아직 없는 카드 항목. 백엔드 필드가 생기기 전까지는 개발용 fixture·시연 데이터에서만 채운다.
@@ -16,8 +17,6 @@ export interface StoreCardExtras {
   photos?: string[];
   /** 예: "11:00–21:00" */
   hours?: string;
-  /** 예: "6층" */
-  floorInfo?: string;
   /** 주소의 구·군 대신 보여 줄 지역 이름(시연 식당처럼 주소가 없을 때) */
   area?: string;
   /** 가게명 위 배지(시연의 입점·레시피 인증) */
@@ -98,7 +97,7 @@ function StoreCard({
   const category = foodCategoryOf(store);
   // 기타(기타 한식 음식점·대분류 '음식' 등)는 '기타'라고 쓰지 않고, 한국어 화면에서만 원래 분류 이름을 보여 준다.
   const categoryText = category !== 'other' ? translateText(language, FOOD_CATEGORY_LABELS[category]) : language === 'ko' ? store.categoryName?.trim() || null : null;
-  const meta = [extras?.area ?? areaFromAddress(store.roadAddress), categoryText, extras?.floorInfo].filter(Boolean);
+  const meta = [extras?.area ?? areaFromAddress(store.roadAddress), categoryText, formatFloor(store.floorInfo, language)].filter(Boolean);
   const photos = extras?.photos?.slice(0, 3) ?? [];
   const distance = store.distanceMeters !== null && origin ? formatDistance(store.distanceMeters) : null;
 
