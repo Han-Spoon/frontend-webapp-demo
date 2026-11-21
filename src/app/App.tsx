@@ -3,20 +3,18 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { LoginScreen } from './components/LoginScreen';
 import { LandingScreen } from './components/LandingScreen';
 import { HomeScreen } from './components/HomeScreen';
-import { readDemo, useDemoValue, writeDemo } from './demo/storage';
-import type { VisitRecord } from './demo/records';
+import { writeDemo } from './demo/storage';
 import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingProfile';
-import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
-import { getConsentStatus } from '../api/consent';
-import { clearAuthData, getAccessToken } from '../api/auth';
-import type { CurrentUser, UserProfilePayload } from '../api/user';
-import { appliedScanProfile, deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
+import { getAccessToken } from '../api/auth';
+import { appliedScanProfile, getScanResult, mapMenuResult } from '../api/scan';
 import type { StoreCandidate } from '../api/store';
-import type { HistoryItem, PendingMenuImage, UserProfile } from './types';
-import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
+import type { HistoryItem, PendingMenuImage } from './types';
 import { ScreenErrorBoundary, ScreenErrorFallback, ScreenLoading } from './components/ScreenErrorBoundary';
 import { lazyScreen, retryFailedScreens } from './lazyScreen';
+import { useAccount } from './hooks/useAccount';
+import { useDocumentLanguage } from './hooks/useDocumentLanguage';
 import { EMPTY_RESULT, useResultSession } from './hooks/useResultSession';
+import { useScanHistory } from './hooks/useScanHistory';
 
 // 첫 화면(랜딩·로그인·홈) 밖 화면은 진입 시 코드 로드.
 const PartnerMenuScreen = lazyScreen(() => import('./components/PartnerMenuScreen').then((module) => module.PartnerMenuScreen));
@@ -44,16 +42,6 @@ const DevMapPreview = import.meta.env.DEV
   ? lazyScreen(() => import('./components/DevMapPreview').then((module) => module.DevMapPreview))
   : null;
 
-const formatHistoryTitle = (language: Language, date: Date) => {
-  return new Intl.DateTimeFormat(LANGUAGE_LOCALES[language], {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date);
-};
-
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,152 +56,27 @@ export default function App() {
     const timer = setTimeout(run, 1500);
     return () => clearTimeout(timer);
   }, [location.pathname]);
-  const [demoMode, setDemoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true'
-    || sessionStorage.getItem('han-spoon-demo-session') === '1'
-    || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
-  const [language, setLanguage] = useState<Language>(() => {
-    const requested = new URLSearchParams(window.location.search).get('lang');
-    if (isLanguage(requested)) return requested;
-    const saved = localStorage.getItem('han-spoon-language');
-    return isLanguage(saved) ? saved : 'ko';
-  });
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => demoMode
-    ? window.location.pathname === '/dev/results-preview' ? RESULT_PREVIEW_PROFILE : readDemo<UserProfile | null>('profile', null)
-    : null);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [consentAccepted, setConsentAccepted] = useState<boolean | null>(demoMode ? true : null);
-  const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
+  // onSignedIn은 첫 로드 effect에서 호출되므로 그때는 scanHistory 준비됨.
+  const account = useAccount({ onSignedIn: () => void scanHistory.loadHistory() });
+  const { demoMode, language, setLanguage, userProfile, currentUser, consentAccepted } = account;
+  const scanHistory = useScanHistory(language);
   const { result, showResult, clearPhoto } = useResultSession();
-  const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
-  // 서버 기록 목록 불러오기 실패. 빈 목록과 구분해 다시 시도 표시.
-  const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
-  const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
+  const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
+  const [selectedStore, setSelectedStore] = useState<StoreCandidate | null>(null);
+  useDocumentLanguage(language);
 
   const startDemo = () => {
-    clearAuthData();
-    sessionStorage.setItem('han-spoon-demo-session', '1');
-    writeDemo('profile', null);
-    writeDemo('records', []);
-    writeDemo('saved-menus', []);
-    writeDemo('cards', []);
-    writeDemo('selected-restaurant', null);
-    setDemoMode(true);
-    setUserProfile(null);
-    setCurrentUser(null);
-    setAnalysisHistory([]);
+    account.beginDemo();
+    scanHistory.clearServerHistory();
     showResult(EMPTY_RESULT);
     setSelectedStore(null);
-    setConsentAccepted(false);
     navigate('/terms?demo=1');
-  };
-
-  const exitDemo = () => {
-    sessionStorage.removeItem('han-spoon-demo-session');
-    setDemoMode(false);
-    setUserProfile(null);
-    setConsentAccepted(null);
-    navigate('/login');
-  };
-
-  useEffect(() => {
-    document.title = translateText(language, {
-      ko: '한스푼 | 낯선 메뉴도, 안심하고 한 스푼',
-      en: 'Han Spoon | Discover Korean food with confidence',
-      ar: 'Han Spoon | اكتشف الطعام الكوري بثقة',
-      'zh-CN': 'Han Spoon | 安心探索韩国美食',
-      ja: 'Han Spoon | 韓国のメニューを安心して楽しむ',
-      'zh-TW': 'Han Spoon | 安心探索韓國美食',
-      es: 'Han Spoon | Descubre la comida coreana con confianza',
-    });
-    document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute(
-      'content',
-      translateText(language, {
-        ko: '낯선 한국 메뉴도 안심하고 발견하도록 돕는 여행 식탁 가이드',
-        en: 'A dining guide that helps travelers explore unfamiliar Korean menus with confidence.',
-        ar: 'دليل طعام يساعد المسافرين على استكشاف القوائم الكورية بثقة.',
-        'zh-CN': '帮助旅客安心探索陌生韩国菜单的餐饮指南。',
-        ja: '旅行者が初めての韓国メニューを安心して楽しむための食事ガイド。',
-        'zh-TW': '幫助旅客安心探索陌生韓國菜單的用餐指南。',
-        es: 'Una guía para descubrir menús coreanos desconocidos con confianza.',
-      }),
-    );
-  }, [language]);
-  const [selectedStore, setSelectedStore] = useState<StoreCandidate | null>(null);
-  const combinedHistory = [...localRecords, ...analysisHistory.filter(item => !localRecords.some(record => record.sourceScanId === item.id))];
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-    localStorage.setItem('han-spoon-language', language);
-  }, [language]);
-
-  const loadCurrentUser = async () => {
-    try {
-      const user = await getMe();
-      setCurrentUser(user);
-      const locallySelected = localStorage.getItem('han-spoon-language');
-      if (isLanguage(locallySelected) && !isBackendLanguage(locallySelected)) {
-        setLanguage(locallySelected);
-      } else if (isLanguage(user.languageCode)) {
-        setLanguage(user.languageCode);
-      }
-    } catch (error) {
-      console.warn('Unable to fetch current user:', error);
-      setCurrentUser(null);
-    }
-  };
-
-  const loadUserProfile = async () => {
-    try {
-      const profile = await getProfile();
-      // ProfileResponse에 languageCode가 없어 현재 앱 언어 사용.
-      setUserProfile({
-        nationality: profile.nationality ?? '',
-        languageCode: (profile.languageCode as Language) ?? language,
-        isFirstTime: Boolean(profile.isFirstTime),
-        isVegan: Boolean(profile.isVegan),
-        veganType: profile.veganType ?? null,
-        hasReligion: Boolean(profile.hasReligion),
-        religionType: profile.religionType ?? null,
-        hasAllergies: Boolean(profile.hasAllergies),
-        allergies: profile.allergies ?? [],
-        noSpicy: Boolean(profile.noSpicy),
-        noAlcohol: Boolean(profile.noAlcohol),
-      });
-    } catch (error) {
-      console.warn('Unable to fetch profile:', error);
-      setUserProfile(null);
-    }
-  };
-
-  const loadHistory = async () => {
-    try {
-      setHistoryLoadFailed(false);
-      const items = await getScanHistory();
-      setAnalysisHistory(
-        items.map((item) => ({
-          id: item.scanId,
-          title:
-            item.title ??
-            formatHistoryTitle(language, item.scannedAt ? new Date(item.scannedAt) : new Date()),
-          date: item.scannedAt ?? new Date().toISOString(),
-          menuCount: item.menuCount ?? 0,
-          dangerCount: item.dangerCount ?? null,
-          cautionCount: item.cautionCount ?? null,
-          menus: [],
-          store: item.store ?? null,
-        })),
-      );
-    } catch (error) {
-      console.warn('Unable to fetch scan history:', error);
-      setHistoryLoadFailed(true);
-    }
   };
 
   // 기록 열기: 서버 상세 조회 → 결과 화면.
   const openHistory = async (item: HistoryItem) => {
     clearPhoto();
-    const local = localRecords.find(record => record.id === item.id);
+    const local = scanHistory.localRecords.find(record => record.id === item.id);
     if (local) {
       showResult({
         menus: local.menus,
@@ -252,143 +115,6 @@ export default function App() {
     }
   };
 
-  const handleDeleteHistory = async (id: string) => {
-    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.filter(record => record.id !== id)); return; }
-    try {
-      await deleteScan(id);
-      setAnalysisHistory((prev) => prev.filter((item) => item.id !== id));
-    } catch (error) {
-      console.error('Delete scan failed:', error);
-      throw error;
-    }
-  };
-
-  const handleRenameHistory = async (id: string, title: string) => {
-    const normalizedTitle = title.trim();
-    if (!normalizedTitle || normalizedTitle.length > 30) return;
-    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title: normalizedTitle } : record)); return; }
-    try {
-      await updateScanTitle(id, normalizedTitle);
-      setAnalysisHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title: normalizedTitle } : item)));
-    } catch (error) {
-      console.error('Rename scan failed:', error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    if (demoMode) return;
-    if (getAccessToken()) {
-      loadCurrentUser();
-      getConsentStatus().then(status => {
-        setConsentAccepted(status.hasRequiredConsents);
-        if (status.hasRequiredConsents) {
-          loadUserProfile();
-          loadHistory();
-        }
-      }).catch(() => setConsentAccepted(false));
-    }
-
-    return () => {
-      if (analysisImage?.previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(analysisImage.previewUrl);
-      }
-    };
-  }, []);
-
-  const handleLanguageChange = async (languageValue: Language) => {
-    setLanguage(languageValue);
-    localStorage.setItem('han-spoon-language', languageValue);
-    if (demoMode) return;
-
-    try {
-      const backendLanguage = toBackendLanguage(languageValue);
-      await updateMe({ languageCode: backendLanguage });
-      setCurrentUser((prev) => (prev ? { ...prev, languageCode: backendLanguage } : prev));
-    } catch (error) {
-      console.error('Language update failed:', error);
-    }
-  };
-
-  const handleProfileSave = async (profile: UserProfile) => {
-    if (demoMode) { writeDemo('profile', profile); setUserProfile(profile); setLanguage(profile.languageCode); navigate('/home'); return; }
-    const payload: UserProfilePayload = {
-      nationality: profile.nationality.toUpperCase(),
-      languageCode: toBackendLanguage(profile.languageCode),
-      isFirstTime: profile.isFirstTime,
-      isVegan: profile.isVegan,
-      veganType: profile.isVegan ? profile.veganType ?? null : null,
-      hasReligion: profile.hasReligion,
-      religionType: profile.hasReligion ? profile.religionType ?? null : null,
-      hasAllergies: profile.hasAllergies,
-      allergies: profile.hasAllergies ? profile.allergies : [],
-      noSpicy: profile.noSpicy,
-      noAlcohol: profile.noAlcohol,
-    };
-
-    // 신규 POST, 기존 PATCH. 신규인데 서버에 이미 있으면(409) PATCH.
-    if (userProfile) {
-      await updateProfile(payload);
-    } else {
-      try {
-        await createProfile(payload);
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 409) {
-          await updateProfile(payload);
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    const wasEdit = Boolean(userProfile);
-    setUserProfile(profile);
-    setLanguage(profile.languageCode);
-    localStorage.setItem('han-spoon-language', profile.languageCode);
-    await loadCurrentUser();
-    navigate(wasEdit ? '/mypage' : '/home');
-  };
-
-  const handleLogin = async (hasProfile: boolean) => {
-    await loadCurrentUser();
-    const status = await getConsentStatus();
-    setConsentAccepted(status.hasRequiredConsents);
-    if (!status.hasRequiredConsents) {
-      navigate('/terms');
-      return;
-    }
-
-    if (hasProfile) {
-      await loadUserProfile();
-      navigate('/home');
-      return;
-    }
-
-    navigate('/onboarding');
-  };
-
-  const handleConsentComplete = async () => {
-    setConsentAccepted(true);
-    if (demoMode) {
-      const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
-      navigate(returnTo === '/mypage' ? '/mypage' : '/onboarding');
-      return;
-    }
-    const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
-    if (returnTo === '/mypage') {
-      navigate('/mypage');
-      return;
-    }
-    const user = await getMe();
-    setCurrentUser(user);
-    if (user.hasProfile) {
-      await loadUserProfile();
-      navigate('/home');
-    } else {
-      navigate('/onboarding');
-    }
-  };
-
   if (!demoMode && !['/', '/login', '/terms'].includes(location.pathname)) {
     if (!getAccessToken()) return <Navigate to="/login" replace />;
     if (consentAccepted === null) return <div className="min-h-dvh bg-rice-cream" />;
@@ -422,16 +148,16 @@ export default function App() {
               <LoginScreen
                 language={language}
                 setLanguage={setLanguage}
-                onLogin={handleLogin}
+                onLogin={account.completeLogin}
                 demoMode={demoMode}
                 onTryDemo={startDemo}
-                onExitDemo={exitDemo}
+                onExitDemo={account.exitDemo}
               />
             }
           />
           <Route
             path="/terms"
-            element={<ConsentScreen language={language} demoMode={demoMode} onComplete={handleConsentComplete} onBack={() => navigate((location.state as { returnTo?: string } | null)?.returnTo ?? '/login')} />}
+            element={<ConsentScreen language={language} demoMode={demoMode} onComplete={account.completeConsent} onBack={() => navigate((location.state as { returnTo?: string } | null)?.returnTo ?? '/login')} />}
           />
           <Route
             path="/onboarding"
@@ -440,7 +166,7 @@ export default function App() {
                 language={language}
                 setLanguage={setLanguage}
                 initialProfile={userProfile ?? undefined}
-                onComplete={handleProfileSave}
+                onComplete={account.saveProfile}
               />
             }
           />
@@ -455,7 +181,7 @@ export default function App() {
           <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurants/:id/menu" element={<PartnerMenuScreen language={language} userProfile={userProfile} />} />
-          <Route path="/history" element={<ScanHistoryScreen language={language} history={combinedHistory} loadFailed={historyLoadFailed} onRetryLoad={() => void loadHistory()} onOpen={openHistory} onDelete={handleDeleteHistory} onRename={handleRenameHistory} />} />
+          <Route path="/history" element={<ScanHistoryScreen language={language} history={scanHistory.history} loadFailed={scanHistory.loadFailed} onRetryLoad={() => void scanHistory.loadHistory()} onOpen={openHistory} onDelete={scanHistory.deleteHistory} onRename={scanHistory.renameHistory} />} />
           <Route
             path="/scan"
             element={
@@ -470,9 +196,9 @@ export default function App() {
                 }}
                 onHistory={openHistory}
                 onMyPage={() => navigate('/mypage')}
-                history={combinedHistory}
-                onDeleteHistory={handleDeleteHistory}
-                onRenameHistory={handleRenameHistory}
+                history={scanHistory.history}
+                onDeleteHistory={scanHistory.deleteHistory}
+                onRenameHistory={scanHistory.renameHistory}
               />
             }
           />
@@ -507,7 +233,7 @@ export default function App() {
                   setAnalysisImage(null);
                   navigate('/results');
                   // 저장된 최신 기록으로 목록 갱신.
-                  if (_scanId !== null) loadHistory();
+                  if (_scanId !== null) void scanHistory.loadHistory();
                 }}
                 onRetryWithNewImage={() => {
                   if (analysisImage?.previewUrl.startsWith('blob:')) URL.revokeObjectURL(analysisImage.previewUrl);
@@ -531,7 +257,7 @@ export default function App() {
                 userProfile={result.profile === undefined ? userProfile : result.profile}
                 currentUserProfile={userProfile}
                 sourceScanId={result.scanId}
-                onSavedRecord={loadHistory}
+                onSavedRecord={scanHistory.loadHistory}
                 store={result.store}
                 record={result.record}
                 savedRecordId={result.recordId}
@@ -561,25 +287,21 @@ export default function App() {
               <MyPageScreen
                 language={language}
                 demoMode={demoMode}
-                setLanguage={handleLanguageChange}
+                setLanguage={account.changeLanguage}
                 currentUser={currentUser}
                 userProfile={userProfile}
-                history={combinedHistory}
-                historyLoadFailed={historyLoadFailed}
-                onRetryHistory={() => void loadHistory()}
+                history={scanHistory.history}
+                historyLoadFailed={scanHistory.loadFailed}
+                onRetryHistory={() => void scanHistory.loadHistory()}
                 onBack={() => navigate('/home')}
                 onEditProfile={(section) =>
                   navigate('/onboarding', section ? { state: { editSection: section } } : undefined)
                 }
                 onHistoryClick={openHistory}
-                onEditHistoryTitle={handleRenameHistory}
-                onDeleteHistory={handleDeleteHistory}
+                onEditHistoryTitle={scanHistory.renameHistory}
+                onDeleteHistory={scanHistory.deleteHistory}
                 onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
-                onLogout={() => {
-                  setUserProfile(null);
-                  setCurrentUser(null);
-                  navigate('/login');
-                }}
+                onLogout={account.clearSession}
               />
             }
           />
