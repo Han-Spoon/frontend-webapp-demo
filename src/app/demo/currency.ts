@@ -1,6 +1,6 @@
 import { LANGUAGE_LOCALES, type Language } from '../locales';
 
-// Fixed presentation rates: KRW per one unit. No live exchange-rate service.
+// 시연용 고정 환율(1단위당 원). 실시간 환율 서비스 없음.
 export const DEMO_CURRENCIES: Record<
   Language,
   { code: string; krwPerUnit: number }

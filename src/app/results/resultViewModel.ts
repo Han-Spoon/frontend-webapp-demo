@@ -46,7 +46,7 @@ export interface MenuResultViewModel {
   curationId?: string;
 }
 
-/** 빠진 en·ar을 대체값으로 채운다. 펼친 값의 undefined가 대체값을 덮지 않도록 펼침을 먼저 둔다. */
+/** 빠진 en·ar 대체값 채움. 펼친 undefined가 대체값을 덮지 않게 펼침 먼저. */
 export function toLocalizedText(text: LocalizedMenuText): LocalizedText {
   return {
     ...text,

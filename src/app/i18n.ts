@@ -49,14 +49,13 @@ export const allergyI18n = {
     en: 'specific ingredient',
     ar: 'مكون معين',
   },
-  // 백엔드 AllergyCode 코드값(egg, milk, ...)을 키로 하는 다국어 라벨 맵.
-  // 식약처 19종 정의는 constants/onboarding.ts(ALLERGY_OPTIONS)를 단일 출처로 사용한다.
+  // 알레르기 코드(egg, milk, ...)별 다국어 라벨. 19종 정의 출처: constants/onboarding.ts(ALLERGY_OPTIONS).
   names: Object.fromEntries(
     ALLERGY_OPTIONS.map((option) => [option.value, option.label]),
   ) as Record<string, LocalizedText>,
 };
 
-// 알레르기 19종 외에 hit_tags에 나오는 추가 라벨(알코올, 애매함 플래그).
+// 알레르기 19종 외 hit_tags 라벨(알코올, 애매함 플래그).
 export const HIT_TAG_LABELS: Record<string, LocalizedText> = {
   alcohol: { ko: '알코올', en: 'Alcohol', ar: 'كحول' },
   unclear_broth: { ko: '육수', en: 'Broth', ar: 'مرق' },
@@ -66,10 +65,7 @@ export const HIT_TAG_LABELS: Record<string, LocalizedText> = {
 
 const prettifyTag = (raw: string) => raw.replace(/^(is_|has_)/, '').replace(/_/g, ' ').trim();
 
-/**
- * 백엔드 hit_tags(is_egg, has_unclear_jeotgal 등)를 사용자 언어 라벨로 변환.
- * 알레르기 19종은 allergyI18n(=ALLERGY_OPTIONS) 단일 출처를 재사용한다.
- */
+/** hit_tags(is_egg, has_unclear_jeotgal 등) → 사용자 언어 라벨. 알레르기 19종은 allergyI18n 재사용. */
 export const getHitTagLabel = (tag: string, language: Language): string => {
   if (!tag) return '';
   const lower = tag.toLowerCase();

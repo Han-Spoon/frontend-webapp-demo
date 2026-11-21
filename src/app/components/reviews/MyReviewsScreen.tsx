@@ -17,7 +17,7 @@ export function MyReviewsScreen({ language, profile, demoMode }: { language: Lan
   const [editing, setEditing] = useState<RestaurantReview | null>(null);
   const [deleting, setDeleting] = useState<RestaurantReview | null>(null);
   const [removing, setRemoving] = useState(false);
-  // 삭제 실패는 확인창 안에 보여 준다(페이지 알림은 확인창 뒤에 가려진다).
+  // 삭제 실패는 확인창 안에 표시(페이지 알림은 확인창에 가려짐).
   const [deleteError, setDeleteError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(!demoMode);

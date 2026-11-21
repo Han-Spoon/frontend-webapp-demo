@@ -90,7 +90,7 @@ function DemoRestaurantMapScreen({
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedArea = searchParams.get('area');
   const detail = RESTAURANTS.find((restaurant) => restaurant.id === searchParams.get('restaurant')) ?? null;
-  // 첫 위치: 식당을 지정해 들어오면 그 식당의 지역 중심(그 식당 선택), 지역이면 그 지역 중심, 없으면 성수. '내 주변'이면 위치를 한 번 요청한다.
+  // 첫 위치: 식당 지정 시 그 지역 중심(식당 선택), 지역 지정 시 그 지역 중심, 없으면 성수. '내 주변'은 위치 1회 요청.
   const [initial] = useState(() => {
     if (detail) {
       const [latitude, longitude] = AREA_CENTERS[detail.area];
@@ -119,7 +119,7 @@ function DemoRestaurantMapScreen({
         setSearch({ location: { latitude: position.coords.latitude, longitude: position.coords.longitude }, origin: 'current-location' });
         setLocationStatus('ready');
       },
-      // 실패해도 보고 있던 지역은 그대로 둔다.
+      // 실패해도 보던 지역 유지.
       () => setLocationStatus('denied'),
       { timeout: 8000, maximumAge: 300000 },
     );
@@ -371,13 +371,13 @@ function LiveRestaurantMapScreen({
 type StoreSort = 'default' | 'distance' | 'reviews';
 
 const SORT_LABELS: Record<StoreSort, LocalizedText> = {
-  // 서버 순서(검증 가게 먼저). 개인화·안전 순위가 아니다.
+  // 서버 순서(검증 가게 먼저). 개인화·안전 순위 아님.
   default: { ko: '기본순', en: 'Default', ar: 'الترتيب الافتراضي', 'zh-CN': '默认排序', ja: '標準', 'zh-TW': '預設排序', es: 'Predeterminado' },
   distance: { ko: '거리순', en: 'Nearest', ar: 'الأقرب', 'zh-CN': '距离最近', ja: '近い順', 'zh-TW': '距離最近', es: 'Más cerca' },
   reviews: { ko: '리뷰 많은순', en: 'Most reviewed', ar: 'الأكثر مراجعة', 'zh-CN': '评价最多', ja: '口コミが多い順', 'zh-TW': '評價最多', es: 'Más reseñas' },
 };
 
-/** 정렬 버튼 하나 + 드롭다운. 접힌 목록에서는 위로, 펼친 목록에서는 아래로 연다. */
+/** 정렬 드롭다운. 접힌 목록에서는 위로, 펼친 목록에서는 아래로. */
 function SortMenu({ language, value, distanceSortable, openUpward, onChange }: {
   language: Language;
   value: StoreSort;
@@ -470,10 +470,7 @@ type StoreDiscovery = Pick<
   'candidates' | 'error' | 'isLoading' | 'locationStatus' | 'retryLocation' | 'retrySearch' | 'searchAt' | 'searchAtCurrentLocation' | 'searchLocation' | 'searchOrigin'
 >;
 
-/**
- * 전체 화면 지도(아래 탭 바 없음). 지도·검색·가게 목록/카드만 그린다.
- * 데이터는 호출부가 넘긴다 — 실제 화면은 후보 API, `/dev/map-preview`는 fixture.
- */
+/** 전체 화면 지도(탭 바 없음): 지도·검색·가게 목록/카드. 데이터는 호출부 제공(후보 API·시연·fixture). */
 export function StoreMapView({
   language,
   query,
@@ -489,7 +486,7 @@ export function StoreMapView({
   query: string;
   onQueryChange: (query: string) => void;
   discovery: StoreDiscovery;
-  /** 시연 모드: 네이버 지도 대신 시연용 위치 개요(끌기·이 지역에서 검색 없음) */
+  /** 시연 모드: 네이버 지도 대신 위치 개요(끌기·이 지역에서 검색 없음) */
   demoMode?: boolean;
   initialSelectedId?: number | null;
   extras?: (store: StoreCandidate) => StoreCardExtras | undefined;
@@ -511,16 +508,16 @@ export function StoreMapView({
     searchOrigin,
   } = discovery;
   const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId);
-  // 지도가 보여 줄 중심. 사용자가 끌면 그 위치를 따라가고(재조회 없음), 가게를 고르면 그 가게로, 새 검색이면 검색 위치로 옮긴다.
+  // 지도 중심: 끌면 따라감(재조회 없음), 가게 선택 시 그 가게, 새 검색 시 검색 위치.
   const [viewCenter, setViewCenter] = useState<{ latitude: number; longitude: number } | null>(null);
-  // 사용자가 지도를 옮긴 뒤에만 [이 지역에서 검색]을 보여 준다.
+  // 지도를 옮긴 뒤에만 [이 지역에서 검색] 표시.
   const [movedByUser, setMovedByUser] = useState(false);
   useEffect(() => {
     if (searchLocation) setViewCenter(searchLocation);
     setMovedByUser(false);
   }, [searchLocation]);
   useEffect(() => { if (query.trim()) setSelectedId(null); }, [query]);
-  // 목록 맨 위 정렬(없으면 서버 순서 = 검증 가게 먼저)과 음식 종류. 음식 종류는 지도 핀·카드에도 적용한다.
+  // 정렬(기본: 서버 순서)·음식 종류. 음식 종류는 핀·카드에도 적용.
   const [sort, setSort] = useState<StoreSort>('default');
   const [category, setCategory] = useState<FoodCategoryId | 'all'>('all');
   const categories = useMemo(() => {
@@ -541,7 +538,7 @@ export function StoreMapView({
       : (b.reviewCount ?? 0) - (a.reviewCount ?? 0) || (a.distanceMeters ?? far) - (b.distanceMeters ?? far));
   }, [activeSort, candidates, category]);
   const selected = visible.find((store) => store.storeId === selectedId) ?? null;
-  // 고른 가게가 카드에 가리지 않게 지도 가운데로 옮긴다(마커 탭·카드 넘기기 모두).
+  // 고른 가게를 지도 가운데로(카드에 가리지 않게, 마커 탭·카드 넘기기 공통).
   const selectStore = (storeId: number | null) => {
     setSelectedId(storeId);
     const store = candidates.find((item) => item.storeId === storeId);
@@ -554,11 +551,11 @@ export function StoreMapView({
   };
   const searchNearMe = () => {
     setMovedByUser(false);
-    // 이미 현재 위치로 찾은 결과면 다시 조회하지 않고 지도만 되돌린다.
+    // 이미 현재 위치 결과면 재조회 없이 지도만 복귀.
     if (searchOrigin === 'current-location' && searchLocation && locationStatus === 'ready') setViewCenter({ ...searchLocation });
     else searchAtCurrentLocation();
   };
-  // 검색창 아래 지역 태그. 이름 검색 중이면 검색어를 지우고 그 지역 중심에서 다시 찾는다.
+  // 지역 태그: 이름 검색 중이면 검색어 지우고 그 지역 중심에서 재조회.
   const currentArea = searchOrigin === 'current-location' ? null : areaAt(searchLocation);
   const searchArea = (area: SeoulArea) => {
     if (query) onQueryChange('');
@@ -595,7 +592,7 @@ export function StoreMapView({
 
   return (
     <div className="relative h-dvh overflow-hidden bg-[#e9eee5] text-soy-ink">
-      {/* isolate: 네이버 지도 내부 요소(로고 등)가 목록 시트 위로 올라오지 않게 */}
+      {/* isolate: 네이버 지도 내부 요소(로고 등)가 목록 시트 위로 오지 않게 */}
       <div className="absolute inset-0 isolate">
         {mapCenter ? (
           <StoreMap
@@ -607,7 +604,7 @@ export function StoreMapView({
             onCenterChange={(center) => { setViewCenter({ latitude: center.lat, longitude: center.lng }); setMovedByUser(true); }}
             fitStores={false}
             demoMode={demoMode}
-            // 위: 검색창·지역 태그 / 아래: 카드 넘기기(약 330px)와 그 위 버튼 줄
+            // 가리는 높이: 위 검색창·지역 태그, 아래 카드·버튼 줄
             demoInsets={{ top: 112, bottom: 400 }}
             className="h-full w-full bg-[#e9eee5]"
           />

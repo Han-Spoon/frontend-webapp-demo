@@ -1,10 +1,12 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import type { Language } from '../App';
-import { createTranslator, isLanguage } from '../locales';
+import { createTranslator, isLanguage, translateText } from '../locales';
 
 interface ScreenErrorBoundaryProps {
   resetKey?: string;
+  /** 다시 그리기 전 정리(예: 실패한 화면 코드 다시 받기) */
+  onReset?: () => void;
   fallback: (reset: () => void) => ReactNode;
   children: ReactNode;
 }
@@ -28,14 +30,17 @@ export class ScreenErrorBoundary extends Component<ScreenErrorBoundaryProps, Scr
     if (this.state.hasError && previous.resetKey !== this.props.resetKey) this.reset();
   }
 
-  reset = () => this.setState({ hasError: false });
+  reset = () => {
+    this.props.onReset?.();
+    this.setState({ hasError: false });
+  };
 
   render() {
     return this.state.hasError ? this.props.fallback(this.reset) : this.props.children;
   }
 }
 
-/** 판정을 보여 주는 화면. */
+/** 판정을 보여 주는 화면 */
 const VERDICT_PATHS = new Set(['/results', '/analyzing', '/dev/results-preview', '/mypage/saved-menus']);
 export const showsVerdicts = (pathname: string) =>
   VERDICT_PATHS.has(pathname) || /^\/restaurants\/[^/]+\/menu\/?$/.test(pathname);
@@ -69,6 +74,14 @@ export function ScreenErrorFallback({ language, pathname, onRetry, onHome }: Scr
   </main>;
 }
 
+/** 화면 코드 받는 중 */
+export function ScreenLoading({ language }: { language: Language }) {
+  return <main role="status" className="flex min-h-dvh items-center justify-center bg-rice-cream">
+    <Loader2 className="size-7 animate-spin text-brand-primary" aria-hidden="true" />
+    <span className="sr-only">{translateText(language, { ko: '불러오는 중', en: 'Loading', ar: 'جارٍ التحميل', 'zh-CN': '加载中', ja: '読み込み中', 'zh-TW': '載入中', es: 'Cargando' })}</span>
+  </main>;
+}
+
 /** App 바깥(라우터·언어 상태 이전) 오류용 언어. 저장소 접근 실패에도 동작. */
 export function readFallbackLanguage(): Language {
   try {
@@ -77,7 +90,7 @@ export function readFallbackLanguage(): Language {
     const saved = window.localStorage.getItem('han-spoon-language');
     if (isLanguage(saved)) return saved;
   } catch {
-    // 저장소를 쓸 수 없으면 기본 언어.
+    // 저장소 접근 불가 시 기본 언어.
   }
   return 'ko';
 }

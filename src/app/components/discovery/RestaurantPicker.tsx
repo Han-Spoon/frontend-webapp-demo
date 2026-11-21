@@ -68,8 +68,7 @@ function DemoRestaurantPicker({
 }) {
   const t = createTranslator(language);
   const [area, setArea] = useState<AreaId>('nearby');
-  // 지도는 기본으로 접어둔다. 후보가 대개 10개 안쪽이라 목록이 더 빠르고,
-  // 펼칠 때만 네이버 SDK 를 받으므로 피커를 열 때의 네트워크 비용이 없다.
+  // 지도는 기본 접힘(후보가 적어 목록이 빠르고, 펼칠 때만 네이버 SDK 로드).
   const [showMap, setShowMap] = useState(false);
   const [query, setQuery] = useState('');
   const candidates = query.trim()

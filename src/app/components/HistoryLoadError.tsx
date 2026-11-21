@@ -2,10 +2,7 @@ import { RotateCcw } from 'lucide-react';
 import type { Language } from '../App';
 import { translateText } from '../locales';
 
-/**
- * 서버 기록 목록을 불러오지 못했을 때. '기록 없음' 빈 상태 대신 보여 준다.
- * 기기에 저장한 기록은 그대로 아래에 보일 수 있으므로 목록을 가리지 않는다.
- */
+/** 서버 기록 목록 불러오기 실패 안내('기록 없음' 대신). 기기 저장 기록은 가리지 않음. */
 export function HistoryLoadError({ language, onRetry }: { language: Language; onRetry: () => void }) {
   return (
     <div role="alert" className="mb-4 rounded-[20px] border border-border-warm bg-surface-raised px-5 py-5 text-center">

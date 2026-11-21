@@ -3,7 +3,7 @@ import { translateText, type Language } from '../../locales';
 /**
  * 가게 후보 `floorInfo`(상가정보 층 원본 값) → 카드용 층 문구.
  * "1"·"2"… 지상 N층, "B1"… 지하 N층, "지" 지하, "반"·"반지층" 반지하.
- * 빈 값·없음(배포 전 서버)·"0"·그 밖의 값은 표시하지 않는다(null).
+ * 빈 값·없음(배포 전 서버)·"0"·그 밖의 값은 숨김(null).
  */
 export function formatFloor(floorInfo: string | null | undefined, language: Language): string | null {
   const value = floorInfo?.trim() ?? '';

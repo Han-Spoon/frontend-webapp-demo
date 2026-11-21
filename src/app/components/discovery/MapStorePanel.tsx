@@ -7,10 +7,7 @@ import { groupNearbyStores } from './StoreMap';
 import { FOOD_CATEGORY_LABELS, foodCategoryOf } from './foodCategories';
 import { formatFloor } from './storeFloor';
 
-/**
- * 후보 API에 아직 없는 카드 항목. 백엔드 필드가 생기기 전까지는 개발용 fixture·시연 데이터에서만 채운다.
- * 값이 없으면 카드에서 해당 줄을 숨긴다.
- */
+/** 후보 API에 없는 카드 항목(fixture·시연 데이터 전용). 값이 없으면 해당 줄 숨김. */
 export interface StoreCardExtras {
   /** 0–5 */
   rating?: number;
@@ -58,7 +55,7 @@ function readSaved(): number[] {
   }
 }
 
-/** 가게 저장. 저장 API가 생기기 전까지 이 기기에만 기억한다. */
+/** 가게 저장(저장 API 전까지 기기에만) */
 function useSavedStores() {
   const [saved, setSaved] = useState<number[]>(readSaved);
   const toggle = (storeId: number) => {
@@ -95,7 +92,7 @@ function StoreCard({
   const rating = validRating(extras?.rating);
   const reviewCount = store.reviewCount ?? 0;
   const category = foodCategoryOf(store);
-  // 기타(기타 한식 음식점·대분류 '음식' 등)는 '기타'라고 쓰지 않고, 한국어 화면에서만 원래 분류 이름을 보여 준다.
+  // 기타 분류는 '기타' 대신 한국어 화면에서만 원래 분류 이름.
   const categoryText = category !== 'other' ? translateText(language, FOOD_CATEGORY_LABELS[category]) : language === 'ko' ? store.categoryName?.trim() || null : null;
   const meta = [extras?.area ?? areaFromAddress(store.roadAddress), categoryText, formatFloor(store.floorInfo, language)].filter(Boolean);
   const photos = extras?.photos?.slice(0, 3) ?? [];
@@ -178,10 +175,10 @@ interface MapStorePanelProps {
   origin: StoreSearchOrigin | null;
   /** 오류·빈 결과처럼 목록 대신 보여 줄 내용 */
   fallback?: ReactNode;
-  /** 목록 시트를 펼칠지(예: 이름 검색을 시작하면 펼친다) */
+  /** 값이 생기면 목록 펼침(예: 이름 검색 시작) */
   expandSignal?: unknown;
   extras?: ExtrasLookup;
-  /** 목록 맨 위 가로 버튼 줄(정렬·음식 종류). 펼침 여부로 드롭다운 방향을 정한다. */
+  /** 목록 맨 위 버튼 줄(정렬·음식 종류). 펼침 여부로 드롭다운 방향 결정. */
   toolbar?: (state: { expanded: boolean }) => ReactNode;
   /** 목록·카드 바로 위 지도 버튼(가운데: 이 지역에서 검색, 오른쪽: 내 주변) */
   mapControls?: { center?: ReactNode; end?: ReactNode };
@@ -189,7 +186,7 @@ interface MapStorePanelProps {
   onScan: (store: StoreCandidate) => void;
 }
 
-/** 목록·카드 바로 위 한 줄: [시작 칸] [가운데] [끝]. 지도를 가리지 않게 빈 곳은 누름이 지나간다. */
+/** 목록·카드 위 한 줄 [시작][가운데][끝]. 빈 곳은 지도로 누름 통과. */
 function ControlRow({ start, center, end, className = '', style }: { start?: ReactNode; center?: ReactNode; end?: ReactNode; className?: string; style?: CSSProperties }) {
   return (
     <div style={style} className={`pointer-events-none grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 ${className}`}>
@@ -236,8 +233,7 @@ function StoreListSheet({
     if (expandSignal) setExpanded(true);
   }, [expandSignal]);
 
-  // 접을 때 목록을 맨 위로 되돌려 첫 가게가 보이게 한다.
-  // 접힌 동안 화면 밖 카드에 키보드 초점이 들어가면 브라우저가 화면 전체를 밀어 올리므로 목록을 비활성(inert)으로 둔다.
+  // 접을 때 목록 맨 위로. 접힌 동안 inert(화면 밖 카드 초점으로 화면이 밀리는 문제 방지).
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -352,7 +348,7 @@ function StoreCarousel({
   const settleTimer = useRef<number>();
   const firstScroll = useRef(true);
 
-  // 같은 건물 가게가 이웃하도록 묶음 순서로 놓는다(묶음 안은 후보 순서).
+  // 같은 건물 가게가 이웃하도록 묶음 순서(묶음 안은 후보 순서).
   const ordered = useMemo(() => {
     const byId = new Map(stores.map((store) => [String(store.storeId), store]));
     return groupNearbyStores(stores.map((store) => ({ id: String(store.storeId), name: store.name, lat: store.latitude, lng: store.longitude })))
@@ -360,11 +356,11 @@ function StoreCarousel({
       .map((item) => byId.get(item.id)!);
   }, [stores]);
 
-  // 넘기는 중에 가운데로 온 카드. 이 선택은 카드 쪽에서 났으니 다시 스크롤하지 않는다.
+  // 넘기다 가운데 온 카드(카드 쪽 선택이라 다시 스크롤하지 않음).
   const fromSwipe = useRef<number | null>(null);
   const frame = useRef<number>();
 
-  // 마커를 눌러 선택이 바뀌면 그 카드로 넘긴다.
+  // 마커로 선택이 바뀌면 그 카드로 넘김.
   useEffect(() => {
     if (fromSwipe.current === selectedId) return;
     const card = cardRefs.current.get(selectedId);
@@ -391,8 +387,7 @@ function StoreCarousel({
     return closest?.id ?? null;
   };
 
-  // 넘기는 동안 가운데 카드가 바뀔 때마다 그 가게를 선택한다(핀·지도도 따라간다).
-  // 마커 탭으로 시작된 부드러운 스크롤 중에는 지나가는 카드를 고르지 않도록, 사용자가 넘길 때만 즉시 반영한다.
+  // 사용자가 넘길 때만 가운데 카드 선택(마커 탭 뒤 부드러운 스크롤 중 지나가는 카드 제외).
   const userScrolling = useRef(false);
   const onScroll = () => {
     if (frame.current) cancelAnimationFrame(frame.current);

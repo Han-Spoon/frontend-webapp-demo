@@ -68,7 +68,7 @@ export function SaveScanSheet({
     existing?.feedback ?? {},
   );
   const restaurant = RESTAURANTS.find((r) => r.id === selected);
-  // 기존 로컬 기록은 그대로 편집하고, 로컬 기록이 없는 실제 스캔만 서버에 저장한다.
+  // 기존 로컬 기록은 그대로 편집, 로컬 기록 없는 실제 스캔만 서버 저장.
   const isServerRecord = sourceScanId !== undefined && existing === undefined;
   const lockedStore = scanStore
     ?? (scanRecord?.storeLocked ? scanRecord.store : null)
@@ -106,7 +106,7 @@ export function SaveScanSheet({
 
     try {
       if (isServerRecord && sourceScanId) {
-        // 명세 V2: 본문은 스캔 뒤 연결한 가게만 보낸다. 식단 답변은 식당 후기로 따로 남긴다.
+        // 명세 V2: 본문에는 스캔 뒤 연결한 가게만. 식단 답변은 식당 후기로 별도.
         const record = await saveScanRecord(sourceScanId, !lockedStore && selectedStore && selectedStore.matchMethod !== 'store_detail' ? {
           storeId: selectedStore.storeId,
           storeMatchMethod: selectedStore.matchMethod,

@@ -82,9 +82,8 @@ export class TokenRefreshError extends Error {
   }
 }
 
-// 백엔드가 refresh 토큰을 회전(rotate)시키므로, 동시에 여러 요청이 401을 만나
-// 각각 refresh를 호출하면 두 번째부터 무효 토큰으로 실패해 세션이 깨진다.
-// 진행 중인 refresh가 있으면 그 Promise를 공유한다(single-flight).
+// refresh 토큰 회전 방식이라 동시 401마다 refresh하면 두 번째부터 실패(세션 깨짐).
+// 진행 중 refresh Promise 공유(single-flight).
 let inFlightRefresh: Promise<AuthData> | null = null;
 
 async function doRefresh(): Promise<AuthData> {
@@ -97,8 +96,7 @@ async function doRefresh(): Promise<AuthData> {
     },
     credentials: 'include',
 
-    // refreshToken을 HttpOnly Cookie로 쓰는 경우에는 body 없이도 동작 가능
-    // localStorage 방식이면 body로 전달
+    // 쿠키 방식이면 body 불필요, localStorage 방식만 body로 전달.
     body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
   });
 
@@ -106,8 +104,7 @@ async function doRefresh(): Promise<AuthData> {
 
   if (!response.ok) {
     console.error('Token refresh failed:', response.status, responseText);
-    // 401 = refresh token 자체가 무효 → 세션 폐기.
-    // 5xx · 프록시 오류는 일시적이므로 세션 유지 후 다음 요청에서 재시도.
+    // 401: refresh 토큰 무효 → 세션 폐기. 5xx·프록시 오류: 일시 오류라 세션 유지.
     if (response.status === 401) {
       clearAuthData();
     }
@@ -147,7 +144,7 @@ export async function logout() {
 
   const responseText = await response.text();
 
-  // 로그아웃은 서버 요청 실패 여부와 무관하게 프론트 토큰은 제거하는 게 안전함
+  // 서버 요청 실패와 무관하게 프론트 토큰 제거.
   clearAuthData();
 
   if (!response.ok) {

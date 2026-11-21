@@ -1,25 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingScreen } from './components/LandingScreen';
-import { PartnerMenuScreen } from './components/PartnerMenuScreen';
-import { OnboardingScreen } from './components/OnboardingScreen';
-import { ConsentScreen } from './components/ConsentScreen';
 import { HomeScreen } from './components/HomeScreen';
-import { RestaurantMapScreen } from './components/RestaurantMapScreen';
-import { ScanScreen } from './components/ScanScreen';
-import { ScanHistoryScreen } from './components/ScanHistoryScreen';
 import { readDemo, useDemoValue, writeDemo } from './demo/storage';
 import type { VisitRecord } from './demo/records';
-import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingFixtures';
-import { AnalyzingScreen } from './components/AnalyzingScreen';
-import { ResultsScreen } from './components/ResultsScreen';
-import { MyPageScreen } from './components/MyPageScreen';
-import { SavedMenusScreen } from './components/SavedMenusScreen';
-import { MyReviewsScreen } from './components/reviews/MyReviewsScreen';
-import { CurationScreen } from './components/CurationScreen';
-import { CurationDetailScreen } from './components/CurationDetailScreen';
-import { CardsScreen } from './components/CardsScreen';
+import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingProfile';
 import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
 import { getConsentStatus } from '../api/consent';
 import { clearAuthData, getAccessToken } from '../api/auth';
@@ -29,12 +15,33 @@ import type { ScanRecordResponse } from '../api/scan';
 import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
-import { DevResultsPreview } from './components/DevResultsPreview';
-import { ScreenErrorBoundary, ScreenErrorFallback } from './components/ScreenErrorBoundary';
+import { ScreenErrorBoundary, ScreenErrorFallback, ScreenLoading } from './components/ScreenErrorBoundary';
+import { lazyScreen, retryFailedScreens } from './lazyScreen';
 
-// 개발 서버 전용. 운영 빌드에서는 import 자체가 빠져 가상 가게 데이터가 번들에 들어가지 않는다.
+// 첫 화면(랜딩·로그인·홈) 밖 화면은 진입 시 코드 로드.
+const PartnerMenuScreen = lazyScreen(() => import('./components/PartnerMenuScreen').then((module) => module.PartnerMenuScreen));
+const OnboardingScreen = lazyScreen(() => import('./components/OnboardingScreen').then((module) => module.OnboardingScreen));
+const ConsentScreen = lazyScreen(() => import('./components/ConsentScreen').then((module) => module.ConsentScreen));
+const RestaurantMapScreen = lazyScreen(() => import('./components/RestaurantMapScreen').then((module) => module.RestaurantMapScreen));
+const ScanScreen = lazyScreen(() => import('./components/ScanScreen').then((module) => module.ScanScreen));
+const ScanHistoryScreen = lazyScreen(() => import('./components/ScanHistoryScreen').then((module) => module.ScanHistoryScreen));
+const AnalyzingScreen = lazyScreen(() => import('./components/AnalyzingScreen').then((module) => module.AnalyzingScreen));
+const ResultsScreen = lazyScreen(() => import('./components/ResultsScreen').then((module) => module.ResultsScreen));
+const MyPageScreen = lazyScreen(() => import('./components/MyPageScreen').then((module) => module.MyPageScreen));
+const SavedMenusScreen = lazyScreen(() => import('./components/SavedMenusScreen').then((module) => module.SavedMenusScreen));
+const MyReviewsScreen = lazyScreen(() => import('./components/reviews/MyReviewsScreen').then((module) => module.MyReviewsScreen));
+const CurationScreen = lazyScreen(() => import('./components/CurationScreen').then((module) => module.CurationScreen));
+const CurationDetailScreen = lazyScreen(() => import('./components/CurationDetailScreen').then((module) => module.CurationDetailScreen));
+const CardsScreen = lazyScreen(() => import('./components/CardsScreen').then((module) => module.CardsScreen));
+// 홈 진입 뒤 미리 받는 스캔 흐름(식당 안 약한 통신 대비).
+const SCAN_FLOW_SCREENS = [ScanScreen, AnalyzingScreen, ResultsScreen];
+
+// 개발 서버 전용(운영 빌드에서 import 제외).
+const DevResultsPreview = import.meta.env.DEV
+  ? lazyScreen(() => import('./components/DevResultsPreview').then((module) => module.DevResultsPreview))
+  : null;
 const DevMapPreview = import.meta.env.DEV
-  ? lazy(() => import('./components/DevMapPreview').then((module) => ({ default: module.DevMapPreview })))
+  ? lazyScreen(() => import('./components/DevMapPreview').then((module) => module.DevMapPreview))
   : null;
 
 export type { Language } from './locales';
@@ -85,13 +92,13 @@ export type EvidenceSourceType =
 
 export interface MenuIngredientEvidence {
   name: LocalizedMenuText;
-  /** Optional proposed output contract. 0–100; render only for caution + an active matched profile. */
+  /** 0–100. 주의 판정 + 해당 프로필일 때만 표시. */
   inclusionProbability?: number;
   profileIds?: string[];
-  /** 백엔드가 제공할 때만 노출한다. 프런트에서는 확률을 계산하지 않는다. */
+  /** 서버 제공 시에만 표시(프론트 계산 없음) */
   inclusionLikelihood?: 'high' | 'medium' | 'low';
   confidence?: EvidenceConfidence;
-  /** 이 재료와 직접 연결된 출처만 전달한다. 메뉴 전체 출처를 임의로 재료에 배분하지 않는다. */
+  /** 이 재료에 직접 연결된 출처만(메뉴 전체 출처 배분 금지) */
   sourceTypes?: EvidenceSourceType[];
   staffEvidence?: {
     usedCount?: number;
@@ -107,12 +114,9 @@ export interface MenuEvidenceSource {
   confidence?: EvidenceConfidence;
 }
 
-/**
- * 향후 백엔드 XAI 응답을 화면에 연결하기 위한 optional ViewModel 입력이다.
- * 현재 API 필드는 그대로 유지하며, 값이 없으면 결과 화면이 자연스럽게 축약된다.
- */
+/** 결과 화면 판정 근거(선택). 값이 없으면 해당 영역 생략. */
 export interface MenuExplainability {
-  /** User-facing findings from independent analysis perspectives, not agent reasoning logs. */
+  /** 분석 관점별 사용자용 확인 결과(추론 로그 아님) */
   checks?: {
     kind: 'menu' | 'recipe' | 'profile' | 'cross-contact';
     status: 'observed' | 'inferred' | 'unverified';
@@ -134,7 +138,7 @@ export interface MenuAnalysis {
   imageScale?: number;
   imageCredit?: { author: string; url: string; license: string };
   imageAttribution?: string;
-  /** Explicit fixture marker. Never returned/inferred by the live API adapter. */
+  /** fixture 표시. 실제 API 매퍼는 채우지 않음. */
   demoScenario?: 'bunsik-vegan-shrimp';
   menuName: string;
   menuNameEn: string;
@@ -173,7 +177,7 @@ export interface HistoryItem {
   title: string;
   date: string;
   menuCount: number;
-  /** 서버가 주지 않으면 null. 0으로 채우지 않는다(위험 없음으로 읽히지 않게). */
+  /** 서버 미제공 시 null. 0으로 채우지 않음(위험 없음 오해 방지). */
   dangerCount?: number | null;
   cautionCount?: number | null;
   menus: MenuAnalysis[];
@@ -193,6 +197,17 @@ const formatHistoryTitle = (language: Language, date: Date) => {
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  useEffect(() => {
+    if (location.pathname !== '/home') return;
+    const run = () => SCAN_FLOW_SCREENS.forEach((screen) => screen.preload());
+    // Safari는 requestIdleCallback이 없어 잠시 뒤 실행.
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(run, 1500);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
   const [demoMode, setDemoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true'
     || sessionStorage.getItem('han-spoon-demo-session') === '1'
     || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
@@ -211,7 +226,7 @@ export default function App() {
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
   const [resultPhotoUrl, setResultPhotoUrl] = useState<string | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
-  // 서버 기록 목록을 불러오지 못함. 빈 목록('기록 없음')과 구분해 다시 시도를 보여 준다.
+  // 서버 기록 목록 불러오기 실패. 빈 목록과 구분해 다시 시도 표시.
   const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
 
@@ -270,7 +285,7 @@ export default function App() {
   const [activeScanStore, setActiveScanStore] = useState<StoreSummary | null>(null);
   const [activeScanRecord, setActiveScanRecord] = useState<ScanRecordResponse | null>(null);
   const [historyProfile, setHistoryProfile] = useState<UserProfile | null | undefined>();
-  // 판정 당시 식단을 아직 받을 수 없음(dietSnapshot 연동 예정).
+  // 기록의 판정 당시 식단 없음(dietSnapshot null).
   const [scanProfileUnknown, setScanProfileUnknown] = useState(false);
   useEffect(() => () => {
     if (resultPhotoUrl?.startsWith('blob:')) URL.revokeObjectURL(resultPhotoUrl);
@@ -302,7 +317,7 @@ export default function App() {
   const loadUserProfile = async () => {
     try {
       const profile = await getProfile();
-      // ProfileResponse에는 languageCode가 없으므로 현재 앱 언어를 사용한다.
+      // ProfileResponse에 languageCode가 없어 현재 앱 언어 사용.
       setUserProfile({
         nationality: profile.nationality ?? '',
         languageCode: (profile.languageCode as Language) ?? language,
@@ -346,7 +361,7 @@ export default function App() {
     }
   };
 
-  // 기록 열기: 상세를 백엔드에서 가져와 결과화면으로.
+  // 기록 열기: 서버 상세 조회 → 결과 화면.
   const openHistory = async (item: HistoryItem) => {
     setResultPhotoUrl(null);
     const local = localRecords.find(record => record.id === item.id);
@@ -369,7 +384,7 @@ export default function App() {
       setAnalysisImage(null);
       setActiveScanId(item.id);
       setActiveRecordId(undefined);
-      // 스캔 당시 식단(dietSnapshot)이 있으면 그 기준으로, 없으면 '판정 기준 확인 불가'로 표시한다.
+      // 스캔 당시 식단 기준, 없으면 '판정 기준 확인 불가'.
       setHistoryProfile(snapshot ?? undefined);
       setScanProfileUnknown(snapshot === null);
       setActiveScanStore(result.record?.store ?? result.store ?? null);
@@ -378,7 +393,7 @@ export default function App() {
       navigate('/results');
     } catch (error) {
       console.error('Unable to open scan:', error);
-      // 목록이 실패 알림을 보여 줄 수 있게 다시 던진다.
+      // 목록의 실패 알림용으로 다시 던짐.
       throw error;
     }
   };
@@ -457,8 +472,7 @@ export default function App() {
       noAlcohol: profile.noAlcohol,
     };
 
-    // 신규는 POST, 기존 프로필이 있으면 PATCH.
-    // 신규인데 이미 서버에 프로필이 있으면(409) PATCH로 폴백한다.
+    // 신규 POST, 기존 PATCH. 신규인데 서버에 이미 있으면(409) PATCH.
     if (userProfile) {
       await updateProfile(payload);
     } else {
@@ -478,7 +492,6 @@ export default function App() {
     setLanguage(profile.languageCode);
     localStorage.setItem('han-spoon-language', profile.languageCode);
     await loadCurrentUser();
-    // 편집(기존 프로필)이면 마이페이지로, 신규 온보딩이면 홈으로.
     navigate(wasEdit ? '/mypage' : '/home');
   };
 
@@ -533,6 +546,7 @@ export default function App() {
       <div className="mobile-container w-full max-w-[430px] min-h-dvh bg-rice-cream shadow-[0_24px_80px_rgba(41,54,46,0.16)] relative overflow-hidden sm:border-x sm:border-border-warm">
         <ScreenErrorBoundary
           resetKey={location.pathname}
+          onReset={retryFailedScreens}
           fallback={(reset) => (
             <ScreenErrorFallback
               language={language}
@@ -542,6 +556,7 @@ export default function App() {
             />
           )}
         >
+        <Suspense fallback={<ScreenLoading language={language} />}>
         <Routes>
           <Route
             path="/"
@@ -627,7 +642,7 @@ export default function App() {
                 onComplete={(_scanId, menus, store, appliedProfile) => {
                   setActiveScanId(_scanId ?? undefined);
                   setActiveRecordId(undefined);
-                  // 새 스캔은 스캔 당시 식단(없으면 지금 식단)이 판정 기준이다.
+                  // 새 스캔의 판정 기준: 스캔 당시 식단(없으면 지금 식단).
                   setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : appliedProfile ?? undefined);
                   setScanProfileUnknown(false);
                   setCurrentAnalysis(menus);
@@ -636,7 +651,7 @@ export default function App() {
                   setResultPhotoUrl(analysisImage?.previewUrl ?? null);
                   setAnalysisImage(null);
                   navigate('/results');
-                  // 백엔드에 영속된 최신 기록으로 목록 갱신.
+                  // 저장된 최신 기록으로 목록 갱신.
                   if (_scanId !== null) loadHistory();
                 }}
                 onRetryWithNewImage={() => {
@@ -676,13 +691,13 @@ export default function App() {
           {import.meta.env.DEV && (
             <Route
               path="/dev/results-preview"
-              element={<DevResultsPreview fallbackLanguage={language} />}
+              element={DevResultsPreview && <DevResultsPreview fallbackLanguage={language} />}
             />
           )}
           {import.meta.env.DEV && (
             <Route
               path="/dev/map-preview"
-              element={DevMapPreview && <Suspense fallback={null}><DevMapPreview fallbackLanguage={language} /></Suspense>}
+              element={DevMapPreview && <DevMapPreview fallbackLanguage={language} />}
             />
           )}
           <Route
@@ -717,6 +732,7 @@ export default function App() {
           <Route path="/mypage/reviews" element={<MyReviewsScreen language={language} profile={userProfile} demoMode={demoMode} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </Suspense>
         </ScreenErrorBoundary>
       </div>
     </div>

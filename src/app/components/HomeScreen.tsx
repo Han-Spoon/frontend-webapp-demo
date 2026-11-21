@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -23,7 +23,7 @@ import { localizeMenuText } from '../results/resultViewModel';
 import { CURATION_ARTICLES } from '../constants/curation';
 import { StoreMap } from './discovery/StoreMap';
 import { PartnershipBadge } from './discovery/PartnershipBadge';
-import { RestaurantPicker } from './discovery/RestaurantPicker';
+import { lazyScreen } from '../lazyScreen';
 import { BottomNav } from './BottomNav';
 import { DietPromptCard } from './DietPromptCard';
 import { RestaurantRecommendations } from './discovery/RestaurantRecommendations';
@@ -32,6 +32,9 @@ import { menuPrice } from '../demo/currency';
 import type { StoreCandidate } from '../../api/store';
 import { LiveHomeDiscovery } from './discovery/LiveHomeDiscovery';
 import { OfflineBanner } from './OfflineBanner';
+
+// 식당 고르기 시트는 열 때 로드(촬영·결과 화면과 공유 묶음).
+const RestaurantPicker = lazyScreen(() => import('./discovery/RestaurantPicker').then((module) => module.RestaurantPicker));
 
 export function HomeScreen({
   language,
@@ -403,6 +406,7 @@ export function HomeScreen({
 
       <BottomNav language={language} />
       {picker && (
+        <Suspense fallback={null}>
         <RestaurantPicker
           language={language}
           demoMode={demoMode}
@@ -415,6 +419,7 @@ export function HomeScreen({
           }}
           onClose={() => setPicker(false)}
         />
+        </Suspense>
       )}
     </div>
   );

@@ -22,10 +22,10 @@ type Phase = 'analyzing' | 'retake' | 'failed';
 
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_MS = 300000;
-/** 이 시간이 지나도 분석 중이면 '평소보다 오래 걸린다'는 한 줄을 띄운다. 실제 경과 시간 기준. */
+/** 이 시간이 지나면 '평소보다 오래 걸림' 안내(실제 경과 시간 기준) */
 const SLOW_NOTICE_MS = 30000;
 
-/** 서버 문장이 없거나 한국어가 아닌 사용자에게 보여 주는 기본 촬영 팁. */
+/** 서버 문장이 없거나 한국어 외 사용자용 기본 촬영 팁 */
 const RETAKE_TIPS: LocalizedText[] = [
   {
     ko: '메뉴판 전체가 화면에 들어오게 찍어 주세요.',
@@ -56,7 +56,7 @@ const RETAKE_TIPS: LocalizedText[] = [
   },
 ];
 
-/** 서버가 준 한국어 문장 목록에서 빈 값을 걸러 낸다. 배열이 아니면 빈 목록. */
+/** 서버 한국어 문장 목록의 빈 값 제거(배열이 아니면 빈 목록) */
 function cleanSentences(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim() !== '').map(item => item.trim()) : [];
 }
@@ -75,7 +75,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
 
   const t = createTranslator(language);
   const tr = (text: LocalizedText) => translateText(language, text);
-  // 진행 중인 서버 스캔은 취소 시 삭제한다(명세 결정 2026-11-01, 팀원 V2 작업).
+  // 진행 중 서버 스캔은 취소 시 삭제.
   const cancel = () => {
     if (activeScanId.current) void deleteScan(activeScanId.current).catch(error => console.warn('Scan cancellation failed:', error));
     activeScanId.current = null;
@@ -169,7 +169,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
 
           if (status === 'completed') {
             activeScanId.current = null;
-            // 방금 시작한 스캔은 스냅샷이 없으면 지금 식단이 판정 기준이다.
+            // 방금 시작한 스캔: 스냅샷이 없으면 지금 식단이 판정 기준.
             const appliedProfile = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language) ?? userProfile;
             onComplete(scanId, (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, appliedProfile)), result.record?.store ?? result.store ?? null, appliedProfile);
             return;
@@ -182,7 +182,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
           }
           if (status === 'failed') {
             setErrorMessage(scanFailureMessage(result.failureCode));
-            // storageKey 멱등성 때문에 같은 키로 startScan을 반복하면 기존 FAILED를 돌려준다.
+            // storageKey 멱등성 때문에 같은 키로 다시 시작하면 기존 FAILED 반환.
             setRetryRequiresNewUpload(true);
             setPhase('failed');
             return;
@@ -217,18 +217,17 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image, attempt, fixedResults]);
 
   useEffect(() => {
     setSlow(false);
-    // 확인창을 연 채 분석이 실패·재촬영으로 바뀌면 '계속 분석' 확인창을 닫는다.
+    // 실패·재촬영으로 바뀌면 열려 있던 취소 확인창 닫기.
     if (phase !== 'analyzing') { setConfirmCancel(false); return; }
     const timer = window.setTimeout(() => setSlow(true), SLOW_NOTICE_MS);
     return () => window.clearTimeout(timer);
   }, [phase, attempt]);
 
-  // 재촬영 안내 (needs_retake). 서버 이유·제안은 번역 없는 한국어 문장이라 한국어 사용자에게만 보여 준다.
+  // 재촬영 안내(needs_retake). 서버 이유·제안은 번역 없는 한국어라 한국어 사용자에게만.
   if (phase === 'retake') {
     const serverTips = language === 'ko';
     const reasons = serverTips ? retakeReasons : [];
@@ -344,7 +343,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
                   <div className="mb-2 flex items-center gap-2 font-extrabold text-text-primary"><CircleDashed className="size-4 text-brand-primary" aria-hidden="true" />{tr({ ko: '어떻게 확인하나요?', en: 'How do we check?', ar: 'كيف نتحقق؟', 'zh-CN': '我们如何检查？', ja: 'どうやって確認するの？', 'zh-TW': '我們如何檢查？', es: '¿Cómo lo revisamos?' })}</div>
                   <p>{tr({ ko: '사진 속 글자를 읽고, 메뉴마다 흔히 들어가는 재료를 찾아요. 육수·소스처럼 겉으로 안 보이는 재료도 살펴보고, 내 식단과 겹치는지 비교해요. 가게 직원이 답한 기록이 있으면 함께 반영해요.', en: 'We read the text in your photo and look up the ingredients each dish usually contains. We also look for hidden ingredients, like those in broths and sauces, and compare them with your diet. If restaurant staff have answered before, we use that too.', ar: 'نقرأ النص في صورتك ونبحث عن المكونات المعتادة لكل طبق. ونبحث أيضًا عن المكونات غير الظاهرة مثل مكونات المرق والصلصات، ونقارنها بنظامك الغذائي. وإذا أجاب موظفو المطعم من قبل، نأخذ إجاباتهم في الاعتبار.', 'zh-CN': '我们会读取照片中的文字，查找每道菜常用的食材，也会检查汤底、酱料等看不见的食材，并与你的饮食限制比对。如果店员以前回答过，也会一起参考。', ja: '写真の文字を読み取り、料理ごとによく使われる材料を調べます。だしやソースのように見えない材料も確認し、あなたの食事制限と照らし合わせます。お店のスタッフの回答記録があれば、それも反映します。', 'zh-TW': '我們會讀取照片中的文字，查找每道菜常用的食材，也會檢查湯底、醬料等看不見的食材，並與你的飲食限制比對。如果店員以前回答過，也會一起參考。', es: 'Leemos el texto de tu foto y buscamos los ingredientes habituales de cada plato. También revisamos ingredientes que no se ven, como los de caldos y salsas, y los comparamos con tu dieta. Si el personal del restaurante ya respondió antes, también lo tenemos en cuenta.' })}</p>
                   <p className="mt-2">{tr({ ko: '단계마다 얼마나 진행됐는지는 알 수 없어서 퍼센트는 보여 드리지 않아요.', en: 'We can’t tell how far each step has gone, so we don’t show a percentage.', ar: 'لا يمكننا معرفة مدى تقدّم كل خطوة، لذلك لا نعرض نسبة مئوية.', 'zh-CN': '我们无法得知每一步的进度，所以不显示百分比。', ja: '各段階の進み具合はわからないため、パーセントは表示しません。', 'zh-TW': '我們無法得知每一步的進度，所以不顯示百分比。', es: 'No podemos saber cuánto ha avanzado cada paso, así que no mostramos un porcentaje.' })}</p>
-                  {/* TODO: 백엔드가 실제 단계 상태를 제공하면 각 항목의 완료/진행 상태와 연결한다. */}
+                  {/* TODO: 서버 단계 상태 제공 시 항목별 진행 상태 연결 */}
                 </div>
               )}
             </>
@@ -369,7 +368,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
               : t('다시 시도', 'Retry', 'إعادة المحاولة')}
           </button>
         )}
-        {/* 분석 중에는 확인 뒤 취소, 이미 실패했으면 확인 없이 홈으로 */}
+        {/* 분석 중: 확인 뒤 취소 / 실패 뒤: 바로 홈 */}
         <button
           type="button"
           onClick={phase === 'failed' ? cancel : () => setConfirmCancel(true)}

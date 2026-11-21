@@ -2,9 +2,8 @@ import { authFetch } from './authFetch';
 import { ApiError } from './user';
 
 /*
- * 화면 타입(RestaurantReview·ReviewAnswer·ReportReason)과 명세 V2 전송 형식을 분리한다.
- * 서버와는 V2 필드(reviewId, present/absent, comment, 소문자 신고 사유)로 주고받고,
- * 화면에는 기존 타입으로 돌려준다.
+ * 화면 타입(RestaurantReview·ReviewAnswer·ReportReason)과 명세 V2 전송 형식 분리.
+ * 서버와는 V2 필드(reviewId, present/absent, comment, 소문자 신고 사유)로 주고받음.
  */
 
 export type ReviewAnswer = 'yes' | 'no' | 'unknown';
@@ -44,7 +43,7 @@ interface WireReview {
 }
 
 const TO_WIRE_ANSWER: Record<ReviewAnswer, WireAnswer> = { yes: 'present', no: 'absent', unknown: 'unknown' };
-// 모르는 값은 '잘 모르겠어요'로 본다. '없었어요'로 바꾸지 않는다.
+// 모르는 값은 '잘 모르겠어요'('없었어요'로 바꾸지 않음).
 const fromWireAnswer = (value: string): ReviewAnswer =>
   value === 'present' ? 'yes' : value === 'absent' ? 'no' : 'unknown';
 const TO_WIRE_REASON: Record<ReportReason, WireReportReason> = {

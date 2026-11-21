@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-// Local demonstration storage only. Never sent to the production API.
+// 시연용 기기 저장소. 운영 API로 보내지 않음.
 const EVENT = 'han-spoon-demo-change';
 const memory = new Map<string, string>();
 function readRaw(key: string) {

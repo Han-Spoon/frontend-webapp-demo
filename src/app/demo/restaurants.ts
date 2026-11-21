@@ -38,7 +38,7 @@ export interface Restaurant {
   profileIds: string[];
   feedback: { profileId: string; positive: number; total: number }[];
   address: string;
-  /** Demo state: every recipe was supplied by the partner; this is not a dietary safety guarantee. */
+  /** 시연 상태: 파트너가 레시피 전체 제공. 식단 안전 보장 아님. */
   partnership: 'recipe-verified' | 'standard';
 }
 
@@ -100,7 +100,7 @@ const profiles = [
 
 const discoverAreaIds = Object.keys(AREA_CENTERS) as DiscoverAreaId[];
 
-// Fictional restaurants, coordinates, feedback and partnership states for UI demonstrations.
+// 시연용 가상 식당·좌표·후기·제휴 상태.
 export const RESTAURANTS: Restaurant[] = discoverAreaIds.flatMap((areaId, areaIndex) => {
   const area = AREAS.find((item) => item.id === areaId)!;
   const [centerLat, centerLng] = AREA_CENTERS[areaId];

@@ -15,7 +15,6 @@ export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}
     credentials: 'include',
   });
 
-  // accessToken 만료가 아니면 그대로 반환
   if (response.status !== 401) {
     return response;
   }

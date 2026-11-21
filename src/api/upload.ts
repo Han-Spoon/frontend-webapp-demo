@@ -8,9 +8,7 @@ export interface UploadTicket {
   uploadHeaders?: Record<string, string>;
 }
 
-/**
- * uploadHeaders 가 없는 구버전 백엔드용 fallback.
- */
+/** uploadHeaders 없는 구버전 백엔드용 */
 function fallbackHeaders(contentType: string): Record<string, string> {
   return { 'Content-Type': contentType, 'If-None-Match': '*' };
 }
@@ -27,7 +25,7 @@ async function parse<T>(response: Response): Promise<T> {
   return (json.data ?? json) as T;
 }
 
-/** 백엔드에서 S3 presigned PUT 티켓을 발급받는다. */
+/** S3 presigned PUT 티켓 발급 */
 export async function getUploadTicket(contentType: string): Promise<UploadTicket> {
   const response = await authFetch('/api/v1/uploads', {
     method: 'POST',
@@ -37,9 +35,7 @@ export async function getUploadTicket(contentType: string): Promise<UploadTicket
   return parse<UploadTicket>(response);
 }
 
-/**
- * 티켓 발급 → S3 presigned PUT 업로드 수행 후 storageKey 를 반환한다.
- */
+/** 티켓 발급 → S3 업로드 → storageKey */
 export async function uploadImage(file: File): Promise<{ key: string }> {
   const ticket = await getUploadTicket(file.type);
 

@@ -9,7 +9,7 @@ const MENU_CURATION_RULES: Array<{ keywords: string[]; curationId: string }> = [
   { keywords: ['해장국', '감자탕'], curationId: 'haejangguk' },
 ];
 
-/** API 추천 필드가 오기 전까지 한 곳에서만 관리하는 임시 연결 규칙. */
+/** API 추천 필드 전까지 쓰는 임시 연결 규칙 */
 export function getCurationIdForMenu(menuName: string): string | undefined {
   return MENU_CURATION_RULES.find(({ keywords }) =>
     keywords.some((keyword) => menuName.includes(keyword)),

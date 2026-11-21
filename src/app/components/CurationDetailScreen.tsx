@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import type { Language } from '../App';
 import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
-import { createTranslator, LANGUAGE_LOCALES, translateText } from '../locales';
+import { createTranslator, LANGUAGE_LOCALES, translateText, type LocalizedText } from '../locales';
 import { StoryImage } from './curation/StoryImage';
+import { CURATION_BODIES } from '../constants/curationBodies';
 import { CURATION_BODY_DRAFTS } from '../constants/curationBodyDrafts';
 import { OfflineBanner } from './OfflineBanner';
 
@@ -28,25 +29,25 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
   const { id } = useParams();
   const scrollRef = useRef<HTMLDivElement>(null);
   const article = CURATION_ARTICLES.find((a) => a.id === id);
+  const articleBody: LocalizedText | undefined = article && CURATION_BODIES[article.id];
 
   const t = createTranslator(language);
 
-  // 다른 글로 이동 시 본문 상단으로 스크롤
+  // 다른 글로 이동 시 맨 위로
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [id]);
 
-  // 추천: 같은 태그 우선, 부족하면 다른 글로 채워 3개
+  // 추천 3개: 같은 태그 우선, 부족하면 다른 글
   const recommended = useMemo(() => {
     if (!article) return [];
     const others = CURATION_ARTICLES.filter((a) => a.id !== article.id);
     const same = others.filter((a) => a.tag === article.tag);
     const rest = others.filter((a) => a.tag !== article.tag);
     return [...same, ...rest].slice(0, 3);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (!article) {
+  if (!article || !articleBody) {
     return (
       <div className="h-dvh flex flex-col bg-rice-cream">
         <div className="h-16 border-b border-border-warm bg-rice-white/95 flex items-center px-4 flex-shrink-0">
@@ -62,8 +63,8 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
   }
 
   const body = language === 'ko' || language === 'en' || language === 'ar'
-    ? translateText(language, article.body)
-    : CURATION_BODY_DRAFTS[article.id]?.[language] ?? translateText(language, article.body);
+    ? translateText(language, articleBody)
+    : CURATION_BODY_DRAFTS[article.id]?.[language] ?? translateText(language, articleBody);
   const paragraphs = body.split('\n\n');
 
   return (
