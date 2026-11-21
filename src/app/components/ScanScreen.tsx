@@ -5,7 +5,7 @@ import { RestaurantPicker } from './discovery/RestaurantPicker';
 import { RESTAURANTS } from '../demo/restaurants';
 import { useDemoValue } from '../demo/storage';
 import { localizeMenuText } from '../results/resultViewModel';
-import type { HistoryItem, Language, PendingMenuImage } from '../App';
+import type { HistoryItem, Language, PendingMenuImage } from '../types';
 import logo from '../../assets/brand/han-spoon-logo.svg';
 import { BottomNav } from './BottomNav';
 import { ScanHistoryList } from './ScanHistoryList';

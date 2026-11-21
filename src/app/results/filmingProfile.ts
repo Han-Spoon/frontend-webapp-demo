@@ -1,4 +1,4 @@
-import type { UserProfile } from '../App';
+import type { UserProfile } from '../types';
 
 /** 촬영·시연 고정 프로필. App이 바로 써서 메뉴 fixture와 분리. */
 export const FILMING_PROFILE: UserProfile = {

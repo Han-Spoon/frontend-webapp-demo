@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Search, User, Clock3 } from 'lucide-react';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { BottomNav } from './BottomNav';
 import { createTranslator, translateText } from '../locales';
 import { CURATION_TAGS, CURATION_ARTICLES, tagLabel, type CurationTag } from '../constants/curation';

@@ -1,4 +1,4 @@
-import type { LocalizedMenuText, MenuAnalysis, MenuIngredientEvidence } from '../App';
+import type { LocalizedMenuText, MenuAnalysis, MenuIngredientEvidence } from '../types';
 import { translateText } from '../locales';
 
 /** 촬영 고정 시나리오 전용. OCR·모델 추론·레시피 검증·직원 기록 없음. */

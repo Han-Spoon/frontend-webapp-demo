@@ -20,7 +20,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import type { Language, MenuAnalysis, UserProfile } from '../App';
+import type { Language, MenuAnalysis, UserProfile } from '../types';
 import { createTranslator, translateText } from '../locales';
 import { deleteSavedMenu, getSavedMenus, saveMenu, type SavedMenu } from '../../api/savedMenus';
 import type { ScanRecordResponse } from '../../api/scan';

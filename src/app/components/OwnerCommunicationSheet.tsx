@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Check, Volume2, XCircle } from 'lucide-react';
-import type { Language, MenuAnalysis, UserProfile } from '../App';
+import type { Language, MenuAnalysis, UserProfile } from '../types';
 import { saveCard, type CardType } from '../../api/card';
 import { saveStaffAnswer, type StaffAnswer } from '../../api/staff';
 import { speak, ttsSupported } from '../utils/speech';

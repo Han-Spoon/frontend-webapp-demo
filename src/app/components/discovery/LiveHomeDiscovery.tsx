@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, BadgeCheck, Loader2, Map } from 'lucide-react';
 import type { StoreCandidate } from '../../../api/store';
-import type { Language } from '../../App';
+import type { Language } from '../../types';
 import {
   AREA_CENTERS,
   AREAS,

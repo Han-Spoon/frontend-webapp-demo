@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Utensils } from 'lucide-react';
-import type { Language } from '../../App';
+import type { Language } from '../../types';
 import { createTranslator } from '../../locales';
 
 export interface RestaurantPick {

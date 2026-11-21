@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { WifiOff } from 'lucide-react';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { createTranslator } from '../locales';
 
 export function OfflineBanner({ language, onRetry }: { language: Language; onRetry?: () => void }) {

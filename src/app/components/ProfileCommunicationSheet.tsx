@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, MessageSquareText, Volume2, X } from 'lucide-react';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import {
   formatOwnerCommunicationContent,
   type OwnerCommunicationContentType,

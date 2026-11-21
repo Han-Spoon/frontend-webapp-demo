@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { deleteReview, getMyReviews, type RestaurantReview } from '../../../api/reviews';
-import type { Language, UserProfile } from '../../App';
+import type { Language, UserProfile } from '../../types';
 import { deleteDemoReview, listDemoMyReviews } from '../../demo/reviews';
 import { createTranslator } from '../../locales';
 import { MealReviewSheet } from './MealReviewSheet';

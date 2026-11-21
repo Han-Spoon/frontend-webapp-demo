@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { createTranslator, isLanguage, translateText } from '../locales';
 
 interface ScreenErrorBoundaryProps {

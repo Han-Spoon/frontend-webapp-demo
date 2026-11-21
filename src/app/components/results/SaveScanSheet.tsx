@@ -3,7 +3,7 @@ import { Check, ChevronRight, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { saveScanRecord, type ScanRecordResponse } from '../../../api/scan';
 import type { StoreCandidate, StoreMatchMethod, StoreSummary } from '../../../api/store';
-import type { Language, MenuAnalysis, UserProfile } from '../../App';
+import type { Language, MenuAnalysis, UserProfile } from '../../types';
 import { BottomSheet } from '../discovery/BottomSheet';
 import { RestaurantPicker } from '../discovery/RestaurantPicker';
 import { RESTAURANTS } from '../../demo/restaurants';

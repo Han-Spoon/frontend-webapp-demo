@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Language, UserProfile } from '../App';
+import type { Language, UserProfile } from '../types';
 import { translateText } from '../locales';
 import { getProfileCommunicationItems } from '../results/resultViewModel';
 

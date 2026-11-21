@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { MapPin, Plus, X } from 'lucide-react';
 import { createReview, updateReview, type RestaurantReview, type ReviewAnswer, type ReviewMenu } from '../../../api/reviews';
-import type { Language, UserProfile } from '../../App';
+import type { Language, UserProfile } from '../../types';
 import { saveDemoReview } from '../../demo/reviews';
 import { createTranslator } from '../../locales';
 import { useReturnFocus } from '../common/returnFocus';

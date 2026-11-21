@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight, Search, Sparkles } from 'lucide-react';
-import type { Language, UserProfile } from '../App';
+import type { Language, UserProfile } from '../types';
 import { ApiError } from '../../api/user';
 import {
   ALLERGY_OPTIONS,

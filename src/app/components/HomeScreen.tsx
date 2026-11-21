@@ -8,7 +8,7 @@ import {
   Map,
   User,
 } from 'lucide-react';
-import type { Language, UserProfile } from '../App';
+import type { Language, UserProfile } from '../types';
 import logo from '../../assets/brand/han-spoon-logo.svg';
 import { createTranslator, translateText } from '../locales';
 import {

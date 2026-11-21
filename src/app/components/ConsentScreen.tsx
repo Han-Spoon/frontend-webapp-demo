@@ -5,7 +5,7 @@ import { getConsentStatus, getLegalDocuments, saveConsent } from '../../api/cons
 import { getAccessToken } from '../../api/auth';
 import type { DocumentId, LegalDocumentBundle } from '../../api/consent';
 import demoDocuments from '../demo/legalDocuments.json';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { translateText } from '../locales';
 import './consent.css';
 

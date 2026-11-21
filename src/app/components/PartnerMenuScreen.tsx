@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import type { Language, UserProfile } from '../App';
+import type { Language, UserProfile } from '../types';
 import { RESTAURANTS } from '../demo/restaurants';
 import { buildPartnerMenus } from '../demo/partnerMenus';
 import { ResultsScreen } from './ResultsScreen';

@@ -1,5 +1,5 @@
 import { BadgeCheck } from 'lucide-react';
-import type { Language } from '../../App';
+import type { Language } from '../../types';
 import type { Restaurant } from '../../demo/restaurants';
 import { createTranslator } from '../../locales';
 
