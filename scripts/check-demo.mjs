@@ -150,9 +150,13 @@ try {
     new Set(CURATION_ARTICLES.map((article) => article.id)).size,
     CURATION_ARTICLES.length,
   );
+  const { CURATION_BODIES } = await server.ssrLoadModule(
+    '/src/app/constants/curationBodies.ts',
+  );
+  assert.deepEqual(Object.keys(CURATION_BODIES).sort(), CURATION_ARTICLES.map((article) => article.id).sort());
   for (const article of EXTRA_CURATION_ARTICLES)
     for (const language of ['ko', 'en', 'ar', 'zh-TW'])
-      assert.ok(article.body[language].split('\n\n').length >= 3);
+      assert.ok(CURATION_BODIES[article.id][language].split('\n\n').length >= 3);
   for (const article of CURATION_ARTICLES) {
     if (article.image.startsWith('/images/curation/')) assert.ok(existsSync(new URL('../public' + article.image, import.meta.url)), article.id + ' image must exist');
     else assert.ok(article.image.startsWith('https://commons.wikimedia.org/'), article.id + ' must have an editorial image');

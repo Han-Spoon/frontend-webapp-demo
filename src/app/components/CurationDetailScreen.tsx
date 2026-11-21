@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import type { Language } from '../App';
 import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
-import { createTranslator, LANGUAGE_LOCALES, translateText } from '../locales';
+import { createTranslator, LANGUAGE_LOCALES, translateText, type LocalizedText } from '../locales';
 import { StoryImage } from './curation/StoryImage';
+import { CURATION_BODIES } from '../constants/curationBodies';
 import { CURATION_BODY_DRAFTS } from '../constants/curationBodyDrafts';
 import { OfflineBanner } from './OfflineBanner';
 
@@ -28,6 +29,7 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
   const { id } = useParams();
   const scrollRef = useRef<HTMLDivElement>(null);
   const article = CURATION_ARTICLES.find((a) => a.id === id);
+  const articleBody: LocalizedText | undefined = article && CURATION_BODIES[article.id];
 
   const t = createTranslator(language);
 
@@ -45,7 +47,7 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
     return [...same, ...rest].slice(0, 3);
   }, [id]);
 
-  if (!article) {
+  if (!article || !articleBody) {
     return (
       <div className="h-dvh flex flex-col bg-rice-cream">
         <div className="h-16 border-b border-border-warm bg-rice-white/95 flex items-center px-4 flex-shrink-0">
@@ -61,8 +63,8 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
   }
 
   const body = language === 'ko' || language === 'en' || language === 'ar'
-    ? translateText(language, article.body)
-    : CURATION_BODY_DRAFTS[article.id]?.[language] ?? translateText(language, article.body);
+    ? translateText(language, articleBody)
+    : CURATION_BODY_DRAFTS[article.id]?.[language] ?? translateText(language, articleBody);
   const paragraphs = body.split('\n\n');
 
   return (
