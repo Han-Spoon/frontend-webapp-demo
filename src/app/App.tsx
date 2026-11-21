@@ -1,25 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingScreen } from './components/LandingScreen';
-import { PartnerMenuScreen } from './components/PartnerMenuScreen';
-import { OnboardingScreen } from './components/OnboardingScreen';
-import { ConsentScreen } from './components/ConsentScreen';
 import { HomeScreen } from './components/HomeScreen';
-import { RestaurantMapScreen } from './components/RestaurantMapScreen';
-import { ScanScreen } from './components/ScanScreen';
-import { ScanHistoryScreen } from './components/ScanHistoryScreen';
 import { readDemo, useDemoValue, writeDemo } from './demo/storage';
 import type { VisitRecord } from './demo/records';
-import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingFixtures';
-import { AnalyzingScreen } from './components/AnalyzingScreen';
-import { ResultsScreen } from './components/ResultsScreen';
-import { MyPageScreen } from './components/MyPageScreen';
-import { SavedMenusScreen } from './components/SavedMenusScreen';
-import { MyReviewsScreen } from './components/reviews/MyReviewsScreen';
-import { CurationScreen } from './components/CurationScreen';
-import { CurationDetailScreen } from './components/CurationDetailScreen';
-import { CardsScreen } from './components/CardsScreen';
+import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingProfile';
 import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
 import { getConsentStatus } from '../api/consent';
 import { clearAuthData, getAccessToken } from '../api/auth';
@@ -29,12 +15,33 @@ import type { ScanRecordResponse } from '../api/scan';
 import type { RiskLevel } from '../api/riskLevel';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
-import { DevResultsPreview } from './components/DevResultsPreview';
-import { ScreenErrorBoundary, ScreenErrorFallback } from './components/ScreenErrorBoundary';
+import { ScreenErrorBoundary, ScreenErrorFallback, ScreenLoading } from './components/ScreenErrorBoundary';
+import { lazyScreen, retryFailedScreens } from './lazyScreen';
 
-// 개발 서버 전용. 운영 빌드에서는 import 자체가 빠져 가상 가게 데이터가 번들에 들어가지 않는다.
+// 첫 화면(랜딩·로그인·홈) 밖의 화면은 들어갈 때 코드를 받는다.
+const PartnerMenuScreen = lazyScreen(() => import('./components/PartnerMenuScreen').then((module) => module.PartnerMenuScreen));
+const OnboardingScreen = lazyScreen(() => import('./components/OnboardingScreen').then((module) => module.OnboardingScreen));
+const ConsentScreen = lazyScreen(() => import('./components/ConsentScreen').then((module) => module.ConsentScreen));
+const RestaurantMapScreen = lazyScreen(() => import('./components/RestaurantMapScreen').then((module) => module.RestaurantMapScreen));
+const ScanScreen = lazyScreen(() => import('./components/ScanScreen').then((module) => module.ScanScreen));
+const ScanHistoryScreen = lazyScreen(() => import('./components/ScanHistoryScreen').then((module) => module.ScanHistoryScreen));
+const AnalyzingScreen = lazyScreen(() => import('./components/AnalyzingScreen').then((module) => module.AnalyzingScreen));
+const ResultsScreen = lazyScreen(() => import('./components/ResultsScreen').then((module) => module.ResultsScreen));
+const MyPageScreen = lazyScreen(() => import('./components/MyPageScreen').then((module) => module.MyPageScreen));
+const SavedMenusScreen = lazyScreen(() => import('./components/SavedMenusScreen').then((module) => module.SavedMenusScreen));
+const MyReviewsScreen = lazyScreen(() => import('./components/reviews/MyReviewsScreen').then((module) => module.MyReviewsScreen));
+const CurationScreen = lazyScreen(() => import('./components/CurationScreen').then((module) => module.CurationScreen));
+const CurationDetailScreen = lazyScreen(() => import('./components/CurationDetailScreen').then((module) => module.CurationDetailScreen));
+const CardsScreen = lazyScreen(() => import('./components/CardsScreen').then((module) => module.CardsScreen));
+// 스캔 흐름은 식당 안 약한 네트워크에서 끊기지 않게 홈에 들어온 뒤 미리 받는다.
+const SCAN_FLOW_SCREENS = [ScanScreen, AnalyzingScreen, ResultsScreen];
+
+// 개발 서버 전용. 운영 빌드에서는 import 자체가 빠져 가상 데이터가 번들에 들어가지 않는다.
+const DevResultsPreview = import.meta.env.DEV
+  ? lazyScreen(() => import('./components/DevResultsPreview').then((module) => module.DevResultsPreview))
+  : null;
 const DevMapPreview = import.meta.env.DEV
-  ? lazy(() => import('./components/DevMapPreview').then((module) => ({ default: module.DevMapPreview })))
+  ? lazyScreen(() => import('./components/DevMapPreview').then((module) => module.DevMapPreview))
   : null;
 
 export type { Language } from './locales';
@@ -193,6 +200,17 @@ const formatHistoryTitle = (language: Language, date: Date) => {
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  useEffect(() => {
+    if (location.pathname !== '/home') return;
+    const run = () => SCAN_FLOW_SCREENS.forEach((screen) => screen.preload());
+    // Safari는 requestIdleCallback이 없어 잠시 뒤 실행.
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(run, 1500);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
   const [demoMode, setDemoMode] = useState(() => import.meta.env.VITE_DEMO_MODE === 'true'
     || sessionStorage.getItem('han-spoon-demo-session') === '1'
     || (import.meta.env.DEV && (new URLSearchParams(window.location.search).get('demo') === '1' || window.location.pathname === '/dev/results-preview')));
@@ -533,6 +551,7 @@ export default function App() {
       <div className="mobile-container w-full max-w-[430px] min-h-dvh bg-rice-cream shadow-[0_24px_80px_rgba(41,54,46,0.16)] relative overflow-hidden sm:border-x sm:border-border-warm">
         <ScreenErrorBoundary
           resetKey={location.pathname}
+          onReset={retryFailedScreens}
           fallback={(reset) => (
             <ScreenErrorFallback
               language={language}
@@ -542,6 +561,7 @@ export default function App() {
             />
           )}
         >
+        <Suspense fallback={<ScreenLoading language={language} />}>
         <Routes>
           <Route
             path="/"
@@ -676,13 +696,13 @@ export default function App() {
           {import.meta.env.DEV && (
             <Route
               path="/dev/results-preview"
-              element={<DevResultsPreview fallbackLanguage={language} />}
+              element={DevResultsPreview && <DevResultsPreview fallbackLanguage={language} />}
             />
           )}
           {import.meta.env.DEV && (
             <Route
               path="/dev/map-preview"
-              element={DevMapPreview && <Suspense fallback={null}><DevMapPreview fallbackLanguage={language} /></Suspense>}
+              element={DevMapPreview && <DevMapPreview fallbackLanguage={language} />}
             />
           )}
           <Route
@@ -717,6 +737,7 @@ export default function App() {
           <Route path="/mypage/reviews" element={<MyReviewsScreen language={language} profile={userProfile} demoMode={demoMode} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </Suspense>
         </ScreenErrorBoundary>
       </div>
     </div>

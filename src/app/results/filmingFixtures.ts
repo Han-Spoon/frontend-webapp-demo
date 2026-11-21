@@ -1,12 +1,8 @@
-import type { LocalizedMenuText, MenuAnalysis, MenuIngredientEvidence, UserProfile } from '../App';
+import type { LocalizedMenuText, MenuAnalysis, MenuIngredientEvidence } from '../App';
 import { translateText } from '../locales';
 
 /** Fixed filming scenario only. No OCR, model inference, recipe verification or staff records. */
-export const FILMING_PROFILE: UserProfile = {
-  nationality: 'ES', languageCode: 'ko', isFirstTime: false,
-  isVegan: true, veganType: 'vegan', hasReligion: false, religionType: null,
-  hasAllergies: true, allergies: ['shrimp'], noSpicy: false, noAlcohol: false,
-};
+export { FILMING_PROFILE } from './filmingProfile';
 const L = (ko: string, en: string): LocalizedMenuText => ({
   ko,
   en,
