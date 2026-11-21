@@ -11,12 +11,12 @@ import { getConsentStatus } from '../api/consent';
 import { clearAuthData, getAccessToken } from '../api/auth';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
 import { appliedScanProfile, deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
-import type { ScanRecordResponse } from '../api/scan';
-import type { StoreCandidate, StoreSummary } from '../api/store';
-import type { HistoryItem, MenuAnalysis, PendingMenuImage, UserProfile } from './types';
+import type { StoreCandidate } from '../api/store';
+import type { HistoryItem, PendingMenuImage, UserProfile } from './types';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { ScreenErrorBoundary, ScreenErrorFallback, ScreenLoading } from './components/ScreenErrorBoundary';
 import { lazyScreen, retryFailedScreens } from './lazyScreen';
+import { EMPTY_RESULT, useResultSession } from './hooks/useResultSession';
 
 // 첫 화면(랜딩·로그인·홈) 밖 화면은 진입 시 코드 로드.
 const PartnerMenuScreen = lazyScreen(() => import('./components/PartnerMenuScreen').then((module) => module.PartnerMenuScreen));
@@ -82,9 +82,8 @@ export default function App() {
     : null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [consentAccepted, setConsentAccepted] = useState<boolean | null>(demoMode ? true : null);
-  const [currentAnalysis, setCurrentAnalysis] = useState<MenuAnalysis[]>([]);
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
-  const [resultPhotoUrl, setResultPhotoUrl] = useState<string | null>(null);
+  const { result, showResult, clearPhoto } = useResultSession();
   const [analysisHistory, setAnalysisHistory] = useState<HistoryItem[]>([]);
   // 서버 기록 목록 불러오기 실패. 빈 목록과 구분해 다시 시도 표시.
   const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
@@ -102,7 +101,7 @@ export default function App() {
     setUserProfile(null);
     setCurrentUser(null);
     setAnalysisHistory([]);
-    setCurrentAnalysis([]);
+    showResult(EMPTY_RESULT);
     setSelectedStore(null);
     setConsentAccepted(false);
     navigate('/terms?demo=1');
@@ -139,17 +138,7 @@ export default function App() {
       }),
     );
   }, [language]);
-  const [activeScanId, setActiveScanId] = useState<string | undefined>();
-  const [activeRecordId, setActiveRecordId] = useState<string | undefined>();
   const [selectedStore, setSelectedStore] = useState<StoreCandidate | null>(null);
-  const [activeScanStore, setActiveScanStore] = useState<StoreSummary | null>(null);
-  const [activeScanRecord, setActiveScanRecord] = useState<ScanRecordResponse | null>(null);
-  const [historyProfile, setHistoryProfile] = useState<UserProfile | null | undefined>();
-  // 기록의 판정 당시 식단 없음(dietSnapshot null).
-  const [scanProfileUnknown, setScanProfileUnknown] = useState(false);
-  useEffect(() => () => {
-    if (resultPhotoUrl?.startsWith('blob:')) URL.revokeObjectURL(resultPhotoUrl);
-  }, [resultPhotoUrl]);
   const combinedHistory = [...localRecords, ...analysisHistory.filter(item => !localRecords.some(record => record.sourceScanId === item.id))];
 
   useEffect(() => {
@@ -223,32 +212,37 @@ export default function App() {
 
   // 기록 열기: 서버 상세 조회 → 결과 화면.
   const openHistory = async (item: HistoryItem) => {
-    setResultPhotoUrl(null);
+    clearPhoto();
     const local = localRecords.find(record => record.id === item.id);
     if (local) {
-      setCurrentAnalysis(local.menus);
-      setActiveRecordId(local.id);
-      setActiveScanId(local.sourceScanId);
-      setHistoryProfile(local.profileSnapshot);
-      setScanProfileUnknown(false);
-      setActiveScanStore(null);
-      setActiveScanRecord(null);
+      showResult({
+        menus: local.menus,
+        scanId: local.sourceScanId,
+        recordId: local.id,
+        store: null,
+        record: null,
+        profile: local.profileSnapshot,
+        profileUnknown: false,
+        photoUrl: null,
+      });
       writeDemo('selected-restaurant', local.restaurantId);
       navigate('/results');
       return;
     }
     try {
-      const result = await getScanResult(item.id);
-      const snapshot = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language);
-      setCurrentAnalysis((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, snapshot)));
+      const scan = await getScanResult(item.id);
+      const snapshot = appliedScanProfile(scan.dietSnapshot, userProfile, scan.locale ?? language);
       setAnalysisImage(null);
-      setActiveScanId(item.id);
-      setActiveRecordId(undefined);
       // 스캔 당시 식단 기준, 없으면 '판정 기준 확인 불가'.
-      setHistoryProfile(snapshot ?? undefined);
-      setScanProfileUnknown(snapshot === null);
-      setActiveScanStore(result.record?.store ?? result.store ?? null);
-      setActiveScanRecord(result.record ?? null);
+      showResult({
+        menus: (scan.menus ?? []).map((menu, index) => mapMenuResult(menu, index, scan.locale ?? language, snapshot)),
+        scanId: item.id,
+        store: scan.record?.store ?? scan.store ?? null,
+        record: scan.record ?? null,
+        profile: snapshot ?? undefined,
+        profileUnknown: snapshot === null,
+        photoUrl: null,
+      });
       writeDemo('selected-restaurant', null);
       navigate('/results');
     } catch (error) {
@@ -500,15 +494,16 @@ export default function App() {
                 userProfile={userProfile}
                 fixedResults={demoMode}
                 onComplete={(_scanId, menus, store, appliedProfile) => {
-                  setActiveScanId(_scanId ?? undefined);
-                  setActiveRecordId(undefined);
-                  // 새 스캔의 판정 기준: 스캔 당시 식단(없으면 지금 식단).
-                  setHistoryProfile(_scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : appliedProfile ?? undefined);
-                  setScanProfileUnknown(false);
-                  setCurrentAnalysis(menus);
-                  setActiveScanStore(store);
-                  setActiveScanRecord(null);
-                  setResultPhotoUrl(analysisImage?.previewUrl ?? null);
+                  showResult({
+                    menus,
+                    scanId: _scanId ?? undefined,
+                    store,
+                    record: null,
+                    // 새 스캔의 판정 기준: 스캔 당시 식단(없으면 지금 식단).
+                    profile: _scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : appliedProfile ?? undefined,
+                    profileUnknown: false,
+                    photoUrl: analysisImage?.previewUrl ?? null,
+                  });
                   setAnalysisImage(null);
                   navigate('/results');
                   // 저장된 최신 기록으로 목록 갱신.
@@ -532,19 +527,19 @@ export default function App() {
             element={
               <ResultsScreen
                 language={language}
-                menus={currentAnalysis}
-                userProfile={historyProfile === undefined ? userProfile : historyProfile}
+                menus={result.menus}
+                userProfile={result.profile === undefined ? userProfile : result.profile}
                 currentUserProfile={userProfile}
-                sourceScanId={activeScanId}
+                sourceScanId={result.scanId}
                 onSavedRecord={loadHistory}
-                store={activeScanStore}
-                record={activeScanRecord}
-                savedRecordId={activeRecordId}
+                store={result.store}
+                record={result.record}
+                savedRecordId={result.recordId}
                 demoMode={demoMode}
-                menuPhotoUrl={resultPhotoUrl}
-                scanProfileUnknown={scanProfileUnknown}
-                onBack={() => { setResultPhotoUrl(null); navigate('/home'); }}
-                onRescan={() => { setResultPhotoUrl(null); navigate('/scan'); }}
+                menuPhotoUrl={result.photoUrl}
+                scanProfileUnknown={result.profileUnknown}
+                onBack={() => { clearPhoto(); navigate('/home'); }}
+                onRescan={() => { clearPhoto(); navigate('/scan'); }}
               />
             }
           />
