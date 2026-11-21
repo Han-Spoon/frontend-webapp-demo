@@ -41,3 +41,5 @@ export function useResultSession() {
     clearPhoto: () => setResult((current) => (current.photoUrl ? { ...current, photoUrl: null } : current)),
   };
 }
+
+export type ResultSessionHandle = ReturnType<typeof useResultSession>;

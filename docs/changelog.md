@@ -1,5 +1,14 @@
 # 변경 기록
 
+## 2026-11-22 — App.tsx 분리
+
+- 공용 도메인 타입을 `app/types.ts`로(화면·API 54개 파일 import 경로 변경).
+- 결과 화면 상태 8개를 `useResultSession` 객체 하나로. 항상 통째로 바꿔 이전 결과 값이 섞이지 않음.
+- 계정(`useAccount`)·기록 목록(`useScanHistory`)·문서 언어(`useDocumentLanguage`)를 훅으로.
+- 라우트·지연 로딩 선언·화면 사이 흐름을 `AppRoutes.tsx`로. `App.tsx`는 화면 틀·가드·오류 경계·훅 조합(600줄 → 54줄).
+- 동의 가드를 한 곳으로 합침. `/onboarding`·`/home` 안 중복 조건 삭제. 동작 변경 하나: 시연 모드에서 동의 전 `/home` 등 직접 진입도 약관으로(이전엔 `/onboarding`만).
+- 번들(첫 화면): JS 411.65kB → 412.40kB(gzip 141.11kB).
+
 ## 2026-11-22 — 큐레이션 본문 분리
 
 - 22편 본문을 `constants/curationBodies.ts`로 분리(기존 글 ko/en/ar, 추가 글 ko/en/ar/zh-TW). 상세 화면만 가져와 첫 화면 묶음에서 제외. `CurationArticle`은 목록용 메타·제목·요약만.

@@ -81,3 +81,5 @@ export function useScanHistory(language: Language) {
     clearServerHistory: () => setServerHistory([]),
   };
 }
+
+export type ScanHistory = ReturnType<typeof useScanHistory>;

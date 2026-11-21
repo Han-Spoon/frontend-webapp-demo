@@ -223,3 +223,5 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
     clearSession,
   };
 }
+
+export type Account = ReturnType<typeof useAccount>;
