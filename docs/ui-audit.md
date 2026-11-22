@@ -137,7 +137,7 @@
 | T-03 | P1 ✅ 해결 | E | 레포 루트 | tsconfig·타입 검사 없음. `pnpm build`는 타입 오류를 잡지 않는다 | [코드] |
 | T-04 | P1 ✅ 해결 | A | `src/app/components/ui/` | 48개 파일이 화면에서 한 번도 import되지 않는다. 화면은 Radix Dialog와 직접 쓴 Tailwind로 만들어졌다. `react-hook-form`도 `ui/form`에서만 쓰인다 | [실행] 스크립트 집계 |
 | T-05 | P1 ✅ 해결 | D | `package.json` | import 0건 의존성 14개: `@emotion/react`, `@emotion/styled`, `@mui/material`, `@mui/icons-material`, `@popperjs/core`, `canvas-confetti`, `date-fns`, `motion`, `react-dnd`, `react-dnd-html5-backend`, `react-popper`, `react-responsive-masonry`, `react-slick`, `react-router`(직접 import 없음). `ui/`를 지우면 Radix 23개(`react-dialog` 제외)·`cmdk`·`embla`·`vaul`·`recharts`·`sonner`·`input-otp`·`react-day-picker`·`react-resizable-panels`·`next-themes`·`react-hook-form`도 빠진다 | [실행] |
-| T-06 | P1 ◐ 일부 해결(지연 로딩, `locales.ts`는 3단계 2번) | D | 번들 | JS 762kB / gzip 256kB 단일 청크. 구성(소스맵 기준): react-dom 128kB, `locales.ts` 53kB, react-router 37kB, 큐레이션 상수 3개 52kB, lucide 24kB, 결과 fixture 12kB(실제 모드에도 포함). 라우트 lazy loading이 없다 | [실행] |
+| T-06 | P1 ✅ 해결 | D | 번들 | JS 762kB / gzip 256kB 단일 청크. 구성(소스맵 기준): react-dom 128kB, `locales.ts` 53kB, react-router 37kB, 큐레이션 상수 3개 52kB, lucide 24kB, 결과 fixture 12kB(실제 모드에도 포함). 라우트 lazy loading이 없다 | [실행] |
 | T-07 | P1 ✅ 해결 | A·B | `App.tsx` 686줄 | 인증·동의·프로필·기록·스캔 결과·데모 세션·문서 제목·라우팅을 한 컴포넌트가 가진다. `useState` 15개, 결과 화면에만 props 12개를 내려 준다 | [코드] |
 | T-08 | P1 ✅ 해결(상태 통합, URL은 17번) | B | `App.tsx:200-260` | 같은 사실을 여러 곳에 저장: 결과는 `currentAnalysis`+`activeScanId`+`activeScanStore`+`activeScanRecord`+`historyProfile`+`resultPhotoUrl`. URL에 스캔 ID가 없다(UX-13) | [코드] |
 | T-09 | P1 | B | `demo/storage.ts` 사용처 | "데모 저장소"가 실제 모드에서도 쓰인다: 기기 기록(`records`)이 서버 기록과 합쳐지고, 식당 연결(`selected-restaurant`)·찜(서버 스캔 ID 없을 때)이 데모 키에 저장된다. AGENTS.md의 "미구현 데이터는 demo/에" 규칙과 "실제 저장 상태" 경계가 흐리다 | [코드] |
@@ -215,9 +215,10 @@
 이슈 하나 = PR 하나. 화면 수정은 4단계에서 한 번에.
 
 1. ✅ (2026-11-22) fix: 시연 모드 기록 불러오기 실패 표시, 로그인 직후 기록 미로딩. (#54)
-2. perf: 첫 화면 로딩 줄이기 — 큐레이션 사진(8장 3.6MB, 1536×1024 JPG, 화면 최대 430px) 폭 축소·WebP, 번역 구조(T-11), `locales.ts` 언어별 분리. (#56, T-06 후속)
+2. ✅ (2026-11-22) perf: 첫 화면 로딩 줄이기 — 큐레이션 사진(8장 3.6MB, 1536×1024 JPG, 화면 최대 430px) 폭 축소·WebP, 번역 구조(T-11), `locales.ts` 언어별 분리. (#56, T-06 후속)
     - ✅ 사진(2026-11-22): 1080px WebP 품질 80, 8장 3.6MB → 0.86MB. 홈 첫 진입(시연)의 큐레이션 사진 838kB → 184kB. 의존성 추가 없이 1회 변환.
     - ✅ 번역 구조(2026-11-22): 메시지 ID 전환 대신 한국어 키 유지 + `check-demo` 검사(끊긴 키·누락 수). 끊긴 키 114개 정리(1개 복구). 첫 화면 JS 412.50kB → 390.72kB.
+    - ✅ 사전 언어별 분리(2026-11-22): `src/app/i18n/<언어>.ts`, 언어 선택 시 로드(15~38kB). 첫 화면 JS 390.72kB → 319.77kB(gzip 134.49 → 108.58kB). 지연 로딩 전 820.83kB 대비 39%.
 3. fix: 분석 상태 확인(폴링) 안정화 — 간격 증가, 탭 숨김 시 중지, 일시적 오류 허용, 503·404 구분. (T-13, UX-11 동작 부분) 새 문구는 4단계.
 4. refactor: 데모 저장소와 실제 저장 상태 경계. 로그인 사용자가 시연을 시작하면 기기 기록 삭제되는 위험 포함. (T-09) 저장 키 변경이라 착수 전 제안.
 5. chore: 이름 잔재 정리, 린트·포맷 도입. (T-15, T-17)

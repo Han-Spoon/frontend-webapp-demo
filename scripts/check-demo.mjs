@@ -227,14 +227,20 @@ try {
   delete globalThis.localStorage;
 
   // 번역 사전(T-11): 한국어 원문이 키라 문구를 고치면 키가 끊겨 조용히 영어로 표시됨.
-  const { PROVISIONAL_TRANSLATIONS, translateText } = await server.ssrLoadModule('/src/app/locales.ts');
+  const { loadLanguage, translateText } = await server.ssrLoadModule('/src/app/locales.ts');
+  const translationKeys = new Set();
+  for (const language of Object.keys(I18N_MISSING_BASELINE)) {
+    await loadLanguage(language);
+    for (const key of Object.keys((await server.ssrLoadModule(`/src/app/i18n/${language}.ts`)).default)) translationKeys.add(key);
+  }
   const srcDir = fileURLToPath(new URL('../src/', import.meta.url));
   const localesFile = fileURLToPath(new URL('../src/app/locales.ts', import.meta.url));
+  const dictionaryDir = fileURLToPath(new URL('../src/app/i18n/', import.meta.url));
   const sourceFiles = [];
   const walk = (dir) => {
     for (const name of readdirSync(dir)) {
       const path = dir + name;
-      if (statSync(path).isDirectory()) walk(path + '/');
+      if (statSync(path).isDirectory()) path + '/' !== dictionaryDir && walk(path + '/');
       else if (/\.tsx?$/.test(name) && path !== localesFile) sourceFiles.push(path);
     }
   };
@@ -262,8 +268,8 @@ try {
     };
     visit(ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true));
   }
-  const orphanKeys = Object.keys(PROVISIONAL_TRANSLATIONS).filter((key) => !literals.has(key));
-  assert.deepEqual(orphanKeys, [], 'Translation keys must match source text (Korean wording changed without updating locales.ts?)');
+  const orphanKeys = [...translationKeys].filter((key) => !literals.has(key));
+  assert.deepEqual(orphanKeys, [], 'Translation keys must match source text (Korean wording changed without updating src/app/i18n?)');
   const FALLBACK = '\u0000en';
   const missing = Object.fromEntries(Object.keys(I18N_MISSING_BASELINE).map((language) => [
     language,
@@ -272,7 +278,7 @@ try {
   assert.deepEqual(missing, I18N_MISSING_BASELINE, 'Missing translation counts changed: add translations or update I18N_MISSING_BASELINE');
 
   console.log(
-    `PASS: currency parsing / 7 currencies / caution-only profile matching / probability boundaries / ${EXTRA_CURATION_ARTICLES.length} original articles / region and feedback filtering / save upsert / unavailable storage fallback / ${Object.keys(PROVISIONAL_TRANSLATIONS).length} translation keys`,
+    `PASS: currency parsing / 7 currencies / caution-only profile matching / probability boundaries / ${EXTRA_CURATION_ARTICLES.length} original articles / region and feedback filtering / save upsert / unavailable storage fallback / ${translationKeys.size} translation keys`,
   );
 } finally {
   await server.close();

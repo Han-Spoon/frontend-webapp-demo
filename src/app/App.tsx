@@ -7,6 +7,7 @@ import { useAccount } from './hooks/useAccount';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage';
 import { useResultSession } from './hooks/useResultSession';
 import { useScanHistory } from './hooks/useScanHistory';
+import { useShownLanguage } from './hooks/useShownLanguage';
 import { retryFailedScreens } from './lazyScreen';
 
 // 로그인·동의 없이 열리는 화면
@@ -19,8 +20,12 @@ export default function App() {
   const account = useAccount({ onSignedIn: () => void scanHistory.loadHistory() });
   const scanHistory = useScanHistory(account.language, account.demoMode);
   const session = useResultSession();
-  const { demoMode, language, consentAccepted } = account;
-  useDocumentLanguage(language);
+  const { demoMode, consentAccepted } = account;
+  const language = useShownLanguage(account.language);
+  useDocumentLanguage(language ?? account.language);
+
+  // 저장된 언어의 사전을 받는 중(zh-CN·ja·zh-TW·es 첫 화면)
+  if (!language) return <div className="min-h-dvh bg-rice-cream" />;
 
   // 화면 가드: 로그인(시연 제외) → 필수 동의(시연 포함).
   if (!PUBLIC_PATHS.includes(location.pathname)) {
@@ -45,7 +50,7 @@ export default function App() {
           )}
         >
           <Suspense fallback={<ScreenLoading language={language} />}>
-            <AppRoutes account={account} scanHistory={scanHistory} session={session} />
+            <AppRoutes account={account} language={language} scanHistory={scanHistory} session={session} />
           </Suspense>
         </ScreenErrorBoundary>
       </div>

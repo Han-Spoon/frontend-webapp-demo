@@ -10,6 +10,7 @@ import type { Account } from './hooks/useAccount';
 import { EMPTY_RESULT, type ResultSessionHandle } from './hooks/useResultSession';
 import type { ScanHistory } from './hooks/useScanHistory';
 import { lazyScreen } from './lazyScreen';
+import type { Language } from './locales';
 import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingProfile';
 import type { HistoryItem, PendingMenuImage } from './types';
 
@@ -41,15 +42,17 @@ const DevMapPreview = import.meta.env.DEV
 
 interface AppRoutesProps {
   account: Account;
+  /** 사전을 받은 화면 언어(`account.language`는 고른 언어) */
+  language: Language;
   scanHistory: ScanHistory;
   session: ResultSessionHandle;
 }
 
 /** 라우트 정의와 화면 사이 흐름(시연 시작·기록 열기·스캔 → 분석 → 결과) */
-export function AppRoutes({ account, scanHistory, session }: AppRoutesProps) {
+export function AppRoutes({ account, language, scanHistory, session }: AppRoutesProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { demoMode, language, setLanguage, userProfile, currentUser } = account;
+  const { demoMode, setLanguage, userProfile, currentUser } = account;
   const { result, showResult, clearPhoto } = session;
   const [analysisImage, setAnalysisImage] = useState<PendingMenuImage | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreCandidate | null>(null);
