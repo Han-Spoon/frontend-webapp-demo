@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 import { createServer } from 'vite';
+
+// 4개 언어(zh-CN·ja·zh-TW·es) 번역 누락 문구 수. 바뀌면 번역을 채우거나 이 값과 docs/i18n-accessibility.md를 갱신.
+const I18N_MISSING_BASELINE = { 'zh-CN': 275, ja: 275, 'zh-TW': 152, es: 275 };
 
 // Exercise actual source modules with Vite's existing TS loader; no test dependencies needed.
 const server = await createServer({
@@ -220,8 +225,54 @@ try {
   assert.equal(manifest.display, 'standalone');
   delete globalThis.window;
   delete globalThis.localStorage;
+
+  // 번역 사전(T-11): 한국어 원문이 키라 문구를 고치면 키가 끊겨 조용히 영어로 표시됨.
+  const { PROVISIONAL_TRANSLATIONS, translateText } = await server.ssrLoadModule('/src/app/locales.ts');
+  const srcDir = fileURLToPath(new URL('../src/', import.meta.url));
+  const localesFile = fileURLToPath(new URL('../src/app/locales.ts', import.meta.url));
+  const sourceFiles = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const path = dir + name;
+      if (statSync(path).isDirectory()) walk(path + '/');
+      else if (/\.tsx?$/.test(name) && path !== localesFile) sourceFiles.push(path);
+    }
+  };
+  walk(srcDir);
+  const literalText = (node) => (node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : null);
+  const literals = new Set();
+  const uiTexts = new Map(); // 한국어 원문 → 직접 넣은 언어
+  for (const file of sourceFiles) {
+    const visit = (node) => {
+      const text = literalText(node);
+      if (text !== null) literals.add(text);
+      // createTranslator의 t(ko, en, ar)만(화면별 키 방식 t('key') 제외)
+      if (ts.isCallExpression(node) && node.expression.getText() === 't' && node.arguments.length === 3 && literalText(node.arguments[0]) !== null)
+        uiTexts.set(literalText(node.arguments[0]), uiTexts.get(literalText(node.arguments[0])) ?? new Set());
+      if (ts.isObjectLiteralExpression(node)) {
+        const props = new Map(node.properties.filter(ts.isPropertyAssignment).map((prop) => [prop.name.getText().replace(/'/g, ''), prop.initializer]));
+        const ko = literalText(props.get('ko'));
+        if (ko !== null && props.has('en') && props.has('ar')) {
+          const direct = uiTexts.get(ko) ?? new Set();
+          for (const language of Object.keys(I18N_MISSING_BASELINE)) if (props.has(language)) direct.add(language);
+          uiTexts.set(ko, direct);
+        }
+      }
+      node.forEachChild(visit);
+    };
+    visit(ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true));
+  }
+  const orphanKeys = Object.keys(PROVISIONAL_TRANSLATIONS).filter((key) => !literals.has(key));
+  assert.deepEqual(orphanKeys, [], 'Translation keys must match source text (Korean wording changed without updating locales.ts?)');
+  const FALLBACK = '\u0000en';
+  const missing = Object.fromEntries(Object.keys(I18N_MISSING_BASELINE).map((language) => [
+    language,
+    [...uiTexts].filter(([ko, direct]) => !direct.has(language) && translateText(language, { ko, en: FALLBACK, ar: FALLBACK }) === FALLBACK).length,
+  ]));
+  assert.deepEqual(missing, I18N_MISSING_BASELINE, 'Missing translation counts changed: add translations or update I18N_MISSING_BASELINE');
+
   console.log(
-    `PASS: currency parsing / 7 currencies / caution-only profile matching / probability boundaries / ${EXTRA_CURATION_ARTICLES.length} original articles / region and feedback filtering / save upsert / unavailable storage fallback`,
+    `PASS: currency parsing / 7 currencies / caution-only profile matching / probability boundaries / ${EXTRA_CURATION_ARTICLES.length} original articles / region and feedback filtering / save upsert / unavailable storage fallback / ${Object.keys(PROVISIONAL_TRANSLATIONS).length} translation keys`,
   );
 } finally {
   await server.close();
