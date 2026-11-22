@@ -15,8 +15,8 @@ const formatHistoryTitle = (language: Language, date: Date) => {
   }).format(date);
 };
 
-/** 스캔 기록 목록: 서버 기록 + 기기 저장 기록(같은 스캔은 기기 기록 우선) */
-export function useScanHistory(language: Language) {
+/** 스캔 기록 목록: 서버 기록 + 기기 저장 기록(같은 스캔은 기기 기록 우선). 시연은 기기 기록만. */
+export function useScanHistory(language: Language, demoMode: boolean) {
   const [serverHistory, setServerHistory] = useState<HistoryItem[]>([]);
   // 서버 기록 목록 불러오기 실패. 빈 목록과 구분해 다시 시도 표시.
   const [loadFailed, setLoadFailed] = useState(false);
@@ -24,6 +24,8 @@ export function useScanHistory(language: Language) {
   const history = [...localRecords, ...serverHistory.filter(item => !localRecords.some(record => record.sourceScanId === item.id))];
 
   const loadHistory = async () => {
+    // 시연은 로그인 토큰 없음 → 서버 조회 생략
+    if (demoMode) return;
     try {
       setLoadFailed(false);
       const items = await getScanHistory();
@@ -78,7 +80,10 @@ export function useScanHistory(language: Language) {
     loadHistory,
     deleteHistory,
     renameHistory,
-    clearServerHistory: () => setServerHistory([]),
+    clearServerHistory: () => {
+      setServerHistory([]);
+      setLoadFailed(false);
+    },
   };
 }
 

@@ -15,9 +15,9 @@ const PUBLIC_PATHS = ['/', '/login', '/terms'];
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  // onSignedIn은 첫 로드 effect에서 호출되므로 그때는 scanHistory 준비됨.
+  // onSignedIn은 렌더 뒤(effect·이벤트)에만 호출되므로 그때는 scanHistory 준비됨.
   const account = useAccount({ onSignedIn: () => void scanHistory.loadHistory() });
-  const scanHistory = useScanHistory(account.language);
+  const scanHistory = useScanHistory(account.language, account.demoMode);
   const session = useResultSession();
   const { demoMode, language, consentAccepted } = account;
   useDocumentLanguage(language);
