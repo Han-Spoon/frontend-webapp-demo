@@ -192,7 +192,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
       <Route path="/curation/:id" element={<CurationDetailScreen language={language} />} />
       <Route
         path="/cards"
-        element={<CardsScreen language={language} demoMode={demoMode} onMyPage={() => navigate('/mypage')} />}
+        element={<CardsScreen userProfile={userProfile} language={language} demoMode={demoMode} onMyPage={() => navigate('/mypage')} />}
       />
       <Route
         path="/analyzing"

@@ -63,7 +63,7 @@ interface OwnerCommunicationSheetProps {
 
 export function OwnerCommunicationSheet({
   menu,
-  type,
+  type: initialType,
   userProfile,
   language,
   demoMode = false,
@@ -73,6 +73,7 @@ export function OwnerCommunicationSheet({
   onServerAnswer,
   onClose,
 }: OwnerCommunicationSheetProps) {
+  const [type, setType] = useState<OwnerCommunicationType>(initialType);
   const [response, setResponse] = useState<OwnerResponseId | null>(initialResponse);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -251,6 +252,11 @@ export function OwnerCommunicationSheet({
         </div>
 
         <div className="px-6 pb-8 pt-6 relative">
+          {initialType !== 'ingredient' && <nav className="mb-4 flex flex-wrap gap-2" aria-label={t('주문 카드 선택', 'Order options', 'خيارات الطلب')}>
+            {([['order', t('주문하기', 'Order', 'طلب')], ['request', t('재료 제외 요청', 'Request ingredient removal', 'طلب إزالة مكوّن')], ...(menu.isSpicy ? [['lessSpicy', t('덜 맵게 요청', 'Less spicy', 'أقل حدة')]] : [])] as Array<[OwnerCommunicationType, string]>).map(([value, label]) => <button key={value} type="button" aria-pressed={type === value} onClick={() => { setType(value); setResponse(null); setSaved(false); }} className="min-h-11 rounded-xl border border-border-warm px-3 text-sm font-bold">{label}</button>)}
+          </nav>}
+          {type === 'request' && response === 'difficult' && <div role="status" className="mb-4 rounded-xl bg-brand-primary-soft p-4 text-lg font-bold">{t('이 재료를 빼기 어렵다면, 제 식단에 맞는 다른 음식을 추천해 주실 수 있나요?', 'If this ingredient cannot be removed, could you recommend another dish that meets my dietary needs?', 'إذا تعذرت إزالة هذا المكوّن، هل يمكن اقتراح طبق آخر يناسب احتياجاتي الغذائية؟')}{language !== 'ko' && <p className="mt-2 text-sm">이 재료를 빼기 어렵다면, 제 식단에 맞는 다른 음식을 추천해 주실 수 있나요?</p>}</div>}
+
           <div className="mb-4 flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-2 break-words text-2xl font-extrabold leading-tight text-text-primary">

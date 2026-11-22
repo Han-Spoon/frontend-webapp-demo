@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Camera, ChevronDown, ChevronUp, MessageSquareText, Trash2, User, Volume2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Language } from '../types';
+import type { Language, UserProfile } from '../types';
+import { getAllergyName } from '../i18n';
 import { deleteCard, getSavedCards, type CardType, type SavedCard } from '../../api/card';
 import { BottomNav } from './BottomNav';
 import { createTranslator, translateText, type LocalizedText } from '../locales';
@@ -12,6 +13,7 @@ import { deleteDemoCard, listDemoCards } from '../demo/cards';
 interface CardsScreenProps {
   language: Language;
   demoMode: boolean;
+  userProfile: UserProfile | null;
   onMyPage: () => void;
 }
 
@@ -43,7 +45,7 @@ function speakKorean(text: string) {
   window.speechSynthesis.speak(utterance);
 }
 
-export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) {
+export function CardsScreen({ language, onMyPage, demoMode, userProfile }: CardsScreenProps) {
   const [cards, setCards] = useState<SavedCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +55,8 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
 
   const t = createTranslator(language);
   const navigate = useNavigate();
+  const allergyNames = (locale: Language) => (userProfile?.hasAllergies ? userProfile.allergies : []).map(code => getAllergyName(code, locale)).join(', ');
+  const phrases = allergyNames('ko') ? [{ ko: `저는 ${allergyNames('ko')} 알레르기가 있어요. 이 재료가 들어가지 않은 음식은 무엇인가요?`, en: `I am allergic to ${allergyNames('en')}. Which dishes do not contain these ingredients?`, ar: `لدي حساسية من ${allergyNames('ar')}. ما الأطباق التي لا تحتوي على هذه المكونات؟` }, ...COMMON_PHRASES] : COMMON_PHRASES;
 
   const localized = (item: Speakable) => translateText(language, {
     ko: item.ko,
@@ -135,7 +139,7 @@ export function CardsScreen({ language, onMyPage, demoMode }: CardsScreenProps) 
           </button>
           {expanded && (
             <div className="p-3 space-y-2">
-              {COMMON_PHRASES.map((phrase) => (
+              {phrases.map((phrase) => (
                 <button
                   key={phrase.ko}
                   onClick={() => setSelected(phrase)}

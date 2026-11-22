@@ -65,14 +65,14 @@ export function LandingScreen({
         <main className="mt-auto pt-[42vh]">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-extrabold tracking-[.14em] text-white/90 backdrop-blur-md">
             <span className="size-1.5 rounded-full bg-brand-orange-500" />
-            {t('YOUR TASTE, YOUR KOREA', 'YOUR TASTE, YOUR KOREA', 'ذوقك، كوريا الخاصة بك')}
+            {t('한식 메뉴 가이드', 'YOUR TASTE, YOUR KOREA', 'ذوقك، كوريا الخاصة بك')}
           </div>
 
           <h1 className="max-w-[370px] whitespace-pre-line text-[38px] font-extrabold leading-[1.08] tracking-[-0.045em]">
             {t(
-              '낯선 메뉴도,\n맛있는 발견으로.',
-              'Turn an unfamiliar menu\ninto a delicious discovery.',
-              'حوّل القائمة الجديدة\nإلى اكتشاف شهي.',
+              '낯선 한식 메뉴도,\n맛있는 발견으로.',
+              'Discover Korean food,\none menu at a time.',
+              'اكتشف الطعام الكوري\nإلى اكتشاف شهي.',
             )}
           </h1>
           <p className="mt-4 max-w-[350px] text-[15px] font-medium leading-6 text-white/72">
@@ -83,6 +83,13 @@ export function LandingScreen({
             )}
           </p>
 
+          <p className="mt-4 max-w-[350px] text-sm leading-6 text-white/80">
+            {t(
+              '한식 메뉴를 내 식단 기준으로 살펴보세요. 재료의 포함 여부와 확인이 필요한 정보를 구분하고, 궁금한 점은 직원에게 물어볼 수 있어요.',
+              'Explore Korean dishes with your dietary needs in mind. See ingredient information and what still needs checking, then ask staff your questions.',
+              'استكشف الأطباق الكورية وفق احتياجاتك الغذائية. اطّلع على معلومات المكونات وما يحتاج إلى تحقق، ثم اسأل الموظفين.',
+            )}
+          </p>
           <div className="mt-6 grid grid-cols-3 gap-2" aria-label={t('한스푼 주요 기능', 'Han Spoon highlights', 'مزايا هان سبون')}>
             {[
               [ScanLine, t('메뉴 번역', 'Translate', 'ترجمة')],

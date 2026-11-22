@@ -74,7 +74,7 @@ export function ProfileCommunicationSheet({ items, language, onClose }: ProfileC
           ) : <span className="size-11" aria-hidden="true" />}
           <ModalSheetTitle asChild>
             <h2 className="min-w-0 flex-1 text-center text-base font-extrabold">
-              {t('내 식단 전달하기', 'Share my dietary needs', 'شارك احتياجاتي الغذائية')}
+              {t('직원에게 내 식단 보여주기', 'Show staff my dietary needs', 'شارك احتياجاتي الغذائية')}
             </h2>
           </ModalSheetTitle>
           <button type="button" onClick={onClose} className="touch-target inline-flex items-center justify-center rounded-full hover:bg-surface-subtle" aria-label={t('닫기', 'Close', 'إغلاق')}>
