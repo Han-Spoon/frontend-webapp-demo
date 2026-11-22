@@ -19,7 +19,7 @@ import { CurationDetailScreen } from './components/CurationDetailScreen';
 import { CardsScreen } from './components/CardsScreen';
 import { ApiError, createProfile, getMe, getProfile, updateMe, updateProfile } from '../api/user';
 import type { CurrentUser, UserProfilePayload } from '../api/user';
-import { appliedScanProfile, deleteScan, getScanHistory, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
+import { appliedScanProfile, deleteScan, getScanHistoryPage, getScanResult, mapMenuResult, updateScanTitle } from '../api/scan';
 import type { StoreCandidate, StoreSummary } from '../api/store';
 import { isBackendLanguage, isLanguage, LANGUAGE_LOCALES, toBackendLanguage, translateText, type Language } from './locales';
 import { DevResultsPreview } from './components/DevResultsPreview';
@@ -74,6 +74,9 @@ export type EvidenceSourceType =
   | 'staff';
 
 export interface MenuIngredientEvidence {
+  status?: 'present' | 'absent' | 'unknown';
+  evidenceConfidence?: number | null;
+  priorSource?: string | null;
   name: LocalizedMenuText;
   /** Optional proposed output contract. 0–100; render only for caution + an active matched profile. */
   inclusionProbability?: number;
@@ -118,6 +121,10 @@ export interface MenuExplainability {
 }
 
 export interface MenuAnalysis {
+  priceOptions?: Array<{ label: string; priceText: string; inferred: boolean }>;
+  evidenceBasis?: 'confirmed' | 'estimated' | 'unknown';
+  informationStatus?: 'complete' | 'partial' | 'none';
+  notes?: Array<{ code: string; text: string }>;
   id: string;
   image?: string;
   imagePosition?: string;
@@ -268,11 +275,21 @@ export default function App() {
     }
   };
 
-  const loadHistory = async () => {
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyMore, setHistoryMore] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const loadHistory = async (page = 0) => {
+    setHistoryLoading(true);
+    setHistoryError('');
+    setHistoryPage(page);
     try {
-      const items = await getScanHistory();
-      setAnalysisHistory(
-        items.map((item) => ({
+      const data = await getScanHistoryPage(page);
+      const items = data.items ?? [];
+      setHistoryPage(page);
+      setHistoryMore(data.totalPages !== undefined ? page + 1 < data.totalPages : items.length === 20);
+      setAnalysisHistory(previous => [
+        ...(page ? previous : []), ...items.filter(item => !page || !previous.some(old => old.id === item.scanId)).map((item) => ({
           id: item.scanId,
           title:
             item.title ??
@@ -282,12 +299,17 @@ export default function App() {
           dangerCount: item.dangerCount ?? 0,
           menus: [],
           store: item.store ?? null,
-        })),
+        }))],
       );
     } catch (error) {
-      console.warn('Unable to fetch scan history:', error);
-    }
+      setHistoryError(error instanceof Error ? error.message : String(error));
+    } finally { setHistoryLoading(false); }
   };
+
+  const historyFooter = !demoMode && <div className="p-4 text-center">
+    {historyError && <p role="alert" className="mb-2 text-sm text-status-danger-text">{historyError}</p>}
+    {(historyLoading || historyMore || historyError) && <button disabled={historyLoading} onClick={() => void loadHistory(historyError ? historyPage : historyPage + 1)} className="min-h-11 rounded-xl border border-border-warm px-5 text-sm font-bold">{translateText(language, {ko: historyLoading ? '불러오는 중…' : historyError ? '다시 시도' : '기록 더 보기', en: historyLoading ? 'Loading…' : historyError ? 'Retry' : 'Load more', ar: historyLoading ? 'جار التحميل…' : historyError ? 'إعادة المحاولة' : 'عرض المزيد'})}</button>}
+  </div>;
 
   // 기록 열기: 상세를 백엔드에서 가져와 결과화면으로.
   const openHistory = async (item: HistoryItem) => {
@@ -470,7 +492,7 @@ export default function App() {
           <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
           <Route path="/restaurants/:id/menu" element={<PartnerMenuScreen language={language} userProfile={userProfile} />} />
-          <Route path="/history" element={<ScanHistoryScreen language={language} history={combinedHistory} onOpen={openHistory} onDelete={handleDeleteHistory} onRename={handleRenameHistory} />} />
+          <Route path="/history" element={<ScanHistoryScreen footer={historyFooter} language={language} history={combinedHistory} onOpen={openHistory} onDelete={handleDeleteHistory} onRename={handleRenameHistory} />} />
           <Route
             path="/scan"
             element={
@@ -561,6 +583,7 @@ export default function App() {
             path="/mypage"
             element={
               <MyPageScreen
+                historyFooter={historyFooter}
                 language={language}
                 setLanguage={handleLanguageChange}
                 currentUser={currentUser}

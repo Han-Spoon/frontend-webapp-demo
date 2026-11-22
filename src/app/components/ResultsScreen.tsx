@@ -19,6 +19,7 @@ import logo from '../../assets/brand/han-spoon-logo.svg';
 import { findMenuImageByName } from '../../api/image';
 import type { StoreSummary } from '../../api/store';
 import { getScanImage, getScanResult, mapMenuResult } from '../../api/scan';
+import { getExchangeRates, type ExchangeRates } from '../../api/exchangeRates';
 import { ApiError } from '../../api/user';
 import { deleteSavedMenu, getSavedMenus, saveMenu } from '../../api/savedMenus';
 import { getMenuPronunciation } from '../constants/menuNames';
@@ -123,6 +124,8 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
   const userProfile = menus.some(menu => menu.demoScenario === 'bunsik-vegan-shrimp')
     ? { ...FILMING_PROFILE, languageCode: language } : suppliedProfile;
   const navigate = useNavigate();
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
+  useEffect(() => { if (demoMode) return; let active = true; getExchangeRates().then(data => { if (active) setExchangeRates(data); }).catch(() => { if (active) setExchangeRates(null); }); return () => { active = false; }; }, [demoMode]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [selectedMenu, setSelectedMenu] = useState<MenuAnalysis | null>(null);
@@ -222,7 +225,10 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
     if (!sourceScanId) return;
     try {
       const result = await getScanResult(sourceScanId);
-      setUpdatedMenus((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, userProfile)));
+      const refreshed = (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, userProfile));
+      setUpdatedMenus(refreshed);
+      setSelectedMenu(current => current ? refreshed.find(menu => menu.id === current.id) ?? current : null);
+      onSavedRecord?.();
     } catch (error) { console.warn('Unable to refresh staff result:', error); }
   };
 
@@ -292,13 +298,10 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
             const viewModel = buildMenuResultViewModel(menu, language);
             const cardDetailsId = `menu-details-${menu.id}`;
             const isSpicy = Boolean(menu.isSpicy || menu.is_spicy);
-            const price = menuPrice(menu.price, language);
+            const price = menuPrice(menu.price, language, exchangeRates?.rates);
             const likeKey = menu.menuName.trim().toLocaleLowerCase();
             const liked = demoMode || !sourceScanId ? likedMenus.includes(likeKey) : savedMenuIds.includes(menu.id);
-            const requestActions = [
-              ...(menu.riskLevel !== 'safe' ? [{ id: 'request', label: t('빼고 요청', 'Request removal', 'طلب الإزالة'), onClick: () => openSheet(menu, 'request') }] : []),
-              ...(isSpicy ? [{ id: 'less-spicy', label: t('덜 맵게 요청', 'Less spicy', 'أقل حدة'), onClick: () => openSheet(menu, 'lessSpicy') }] : []),
-            ];
+
 
             return (
               <Fragment key={menu.id}>
@@ -308,11 +311,13 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
                     <div className="min-w-0 flex-1 py-0.5">
                       <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                         <RiskBadge level={menu.riskLevel} t={t} />
+                        <span className="text-xs text-text-secondary">{menu.evidenceBasis === 'confirmed' ? t('확인된 근거', 'Confirmed evidence', 'أدلة مؤكدة') : menu.evidenceBasis === 'estimated' ? t('추정 근거', 'Estimated evidence', 'أدلة تقديرية') : t('근거 확인 필요', 'Evidence needs checking', 'يجب التحقق من الأدلة')}</span>
                         <button aria-label={`${t('메뉴 찜', 'Save menu', 'احفظ الطبق')}: ${menu.menuName}`} aria-pressed={liked} disabled={favoritePending === menu.id} onClick={() => void toggleFavorite(menu)} className={`-mt-1 flex size-11 shrink-0 items-center justify-center rounded-full ${liked ? 'bg-brand-accent-soft text-brand-accent' : 'bg-surface-subtle text-text-tertiary'}`}><Heart className={`size-5 ${liked ? 'fill-current' : ''}`} /></button>
                       </div>
                       <h3 className="break-words text-lg font-extrabold tracking-[-0.015em]">{menu.menuName}</h3>
                       {language !== 'ko' && translatedName.trim() !== menu.menuName.trim() && <p className="mt-0.5 break-words text-sm font-semibold text-text-secondary">{translatedName}</p>}
                       {price ? <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1"><span className="text-sm font-extrabold tabular-nums" dir="ltr">{price.original}</span>{price.converted && <span className="text-xs font-semibold text-text-secondary" dir="ltr">≈ {price.converted}</span>}</div> : <p className="mt-2 text-xs text-text-tertiary">{t('가격 확인 필요', 'Price needs checking', 'يجب التحقق من السعر')}</p>}
+                      {menu.priceOptions?.map((option, index) => <p key={index} className="mt-1 text-xs text-text-secondary">{option.label} · {option.priceText}{option.inferred && ` · ${t('추정', 'Estimated', 'تقديري')}`}</p>)}
                       {pronunciation && <p className="mt-1 text-xs text-text-tertiary">{pronunciation}</p>}
                       {description && <p className="mt-1 line-clamp-2 text-xs leading-5 text-text-secondary">{description}</p>}
                     </div>
@@ -323,13 +328,13 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
                     {menu.riskLevel !== 'caution' && viewModel.primaryReason && <div><p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-text-tertiary">{t('가장 중요한 판정 이유', 'Key reason', 'السبب الرئيسي')}</p><p className="text-sm font-semibold leading-5.5 text-text-primary">{viewModel.primaryReason}</p></div>}
                     {(viewModel.ingredients.length > 0 || isSpicy) && (
                       <div className="flex flex-wrap gap-1.5">
-                        {viewModel.ingredients.slice(0, 4).map((ingredient) => <span key={ingredient.localizedName} className="rounded-lg border border-border-warm bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">{ingredient.localizedName}</span>)}
+                        {viewModel.ingredients.slice(0, 4).map((ingredient) => <span key={ingredient.localizedName} className="rounded-lg border border-border-warm bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">{ingredient.localizedName} · {ingredient.status === 'present' ? t('포함 확인', 'Confirmed present', 'موجود بالتأكيد') : ingredient.status === 'absent' ? t('미포함 확인', 'Confirmed absent', 'غير موجود بالتأكيد') : t('포함 여부 확인 필요', 'Presence needs checking', 'يجب التحقق من وجوده')}</span>)}
                         {isSpicy && <span className="inline-flex items-center gap-1 rounded-lg border border-border-warm bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary"><Flame className="size-3" />{t('매운 음식', 'Spicy', 'حار')}</span>}
                       </div>
                     )}
 
                     <CommunicationActions
-                      primaryAction={menu.riskLevel !== 'safe' ? { id: 'ingredient', label: t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات'), onClick: () => openSheet(menu, 'ingredient'), icon: <MessageSquareText className="size-4" /> } : undefined}
+                      primaryAction={menu.riskLevel !== 'safe' ? { id: 'ingredient', label: menu.staffQuestions?.length ? t(`직원에게 질문 ${menu.staffQuestions.length}개 확인하기`, `Ask staff ${menu.staffQuestions.length} questions`, `اسأل الموظف ${menu.staffQuestions.length} أسئلة`) : t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات'), onClick: () => openSheet(menu, 'ingredient'), icon: <MessageSquareText className="size-4" /> } : undefined}
                       requestActions={[]}
                       trailingAction={{ id: 'order', label: t('주문 카드', 'Order card', 'بطاقة الطلب'), onClick: () => openSheet(menu, 'order') }}
                     />
@@ -346,7 +351,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
             );
           })}
 
-          {menuList.length > 0 && <p className="px-1 text-center text-[10px] leading-5 text-text-tertiary">{t('환율은 매일 00:00 (한국 시간)에 업데이트돼요. 환산 가격은 참고용이에요.', 'Exchange rates update daily at 00:00 KST. Converted prices are estimates.', 'تُحدّث أسعار الصرف يومياً عند 00:00 بتوقيت كوريا. الأسعار المحوّلة تقريبية.')}</p>}
+          {menuList.length > 0 && <p className="px-1 text-center text-[10px] leading-5 text-text-tertiary">{exchangeRates ? t(`환율 기준: ${exchangeRates.asOf} · 환산 가격은 참고용이에요.`, `Rates as of ${exchangeRates.asOf} · Converted prices are estimates.`, `أسعار الصرف بتاريخ ${exchangeRates.asOf} · الأسعار تقريبية.`) : t('고정 참고 환율로 계산한 가격입니다. 실제 환율과 다를 수 있어요.', 'Prices use fixed reference rates and may differ from current rates.', 'تستخدم الأسعار أسعار صرف مرجعية ثابتة وقد تختلف عن الأسعار الحالية.')}</p>}
           {favoriteError && <p role="alert" className="text-center text-xs text-status-danger-text">{favoriteError}</p>}
           {recommendedArticles.length > 0 && <section className="border-t border-border-warm pt-6"><p className="eyebrow">{t('A LITTLE MORE KOREA', 'A LITTLE MORE KOREA', 'المزيد عن كوريا')}</p><h3 className="mb-4 mt-1 text-lg font-extrabold">{t('메뉴를 골랐다면, 한식 이야기', 'Chosen your dish? Discover its story.', 'اخترت طبقك؟ اكتشف قصته.')}</h3><div className="space-y-2">{recommendedArticles.map(article => <button key={article.id} onClick={() => navigate(`/curation/${article.id}`)} className="flex w-full items-center gap-3 rounded-2xl border border-border-warm bg-rice-white p-3 text-start"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-accent-soft text-2xl">{article.emoji}</span><span className="min-w-0 flex-1"><span className="block text-sm font-bold">{translateText(language, article.title)}</span><span className="mt-1 block line-clamp-1 text-xs text-text-secondary">{translateText(language, article.excerpt)}</span></span><ChevronRight className="size-4 rtl:rotate-180" /></button>)}</div></section>}
 

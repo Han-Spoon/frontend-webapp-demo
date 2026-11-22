@@ -436,8 +436,9 @@ function LiveRestaurantMapScreen({
       searchCenter?: { latitude: number; longitude: number };
     } | null
   )?.searchCenter;
-  const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<number | null>(selectedStore?.storeId ?? null);
+  const incoming = routeLocation.state as { initialQuery?: string; selectedStoreId?: number } | null;
+  const [query, setQuery] = useState(incoming?.initialQuery ?? '');
+  const [selectedId, setSelectedId] = useState<number | null>(incoming?.selectedStoreId ?? selectedStore?.storeId ?? null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const {
     candidates,

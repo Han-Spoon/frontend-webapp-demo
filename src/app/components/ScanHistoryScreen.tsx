@@ -6,12 +6,14 @@ import { ScanHistoryList } from './ScanHistoryList';
 import { BottomNav } from './BottomNav';
 
 export function ScanHistoryScreen({
+  footer,
   language,
   history,
   onOpen,
   onDelete,
   onRename,
 }: {
+  footer?: import('react').ReactNode;
   language: Language;
   history: HistoryItem[];
   onOpen: (item: HistoryItem) => void;
@@ -67,6 +69,7 @@ export function ScanHistoryScreen({
             </button>
           </div>
         )}
+        {footer}
       </main>
       <BottomNav language={language} />
     </div>

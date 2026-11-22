@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import type { Language } from '../App';
 import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import { createTranslator, LANGUAGE_LOCALES, translateText } from '../locales';
+import { RelatedRestaurants } from './curation/RelatedRestaurants';
 import { StoryImage } from './curation/StoryImage';
 import { CURATION_BODY_DRAFTS } from '../constants/curationBodyDrafts';
 
@@ -83,6 +84,7 @@ export function CurationDetailScreen({ language }: CurationDetailScreenProps) {
           <article className="space-y-6 py-7">{paragraphs.map((para, i) => <p key={i} className="text-[15px] leading-[1.95] text-white/85">{para}</p>)}</article>
           <p className="mb-6 text-[10px] leading-5 text-white/40">{t('사진은 글의 이해를 돕는 참고 이미지입니다.', 'Images illustrate the story.', 'الصور توضيحية للمقال.')}</p>
         </div>
+        <RelatedRestaurants key={article.id} articleId={article.id} language={language} />
         <section className="border-t border-white/10 px-5 pb-8 pt-6">
           <p className="text-[10px] tracking-[.2em] text-[#afd1bf]">{t('계속 둘러보기', 'Keep exploring', 'واصل الاستكشاف')}</p>
           <h2 className="mb-5 mt-2 text-xl font-bold">{t('다음 한 입의 이야기', 'Your next discovery', 'اكتشافك التالي')}</h2>

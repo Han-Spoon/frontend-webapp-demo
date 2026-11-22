@@ -22,6 +22,7 @@ const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_MS = 300000;
 
 export function AnalyzingScreen({ language, image, userProfile, fixedResults = false, onComplete, onRetryWithNewImage, onCancel }: AnalyzingScreenProps) {
+  const [retakeDetails, setRetakeDetails] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>('analyzing');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -120,6 +121,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
             return;
           }
           if (status === 'needs_retake') {
+            setRetakeDetails([...(result.retakeReasons ?? []), ...(result.retakeSuggestions ?? [])]);
             setPhase('retake');
             return;
           }
@@ -181,7 +183,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
             <Camera className="size-7 text-brand-accent" />
           </div>
           <p className="max-w-xs text-lg font-bold leading-relaxed text-soy-ink">
-            {t('가이드라인에 맞춰 촬영해주세요', 'Please take the photo following the guideline.', 'يرجى التقاط الصورة وفقًا للإرشادات.')}
+            {retakeDetails.length ? retakeDetails.join(' · ') : t('메뉴판 전체가 선명하게 보이도록 촬영해 주세요.', 'Retake a clear photo of the whole menu.', 'التقط صورة واضحة للقائمة كاملة.')}
           </p>
         </div>
         <div className="border-t border-border-warm bg-rice-white/95 px-5 py-4 flex-shrink-0">

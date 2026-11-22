@@ -41,6 +41,7 @@ export interface MenuResult {
   menuNameKo?: string;
   menuNameEn?: string | null;
   priceText?: string | null;
+  priceOptions?: Array<{ label: string; priceText: string; inferred: boolean }>;
   isSpicy?: boolean | null;
   riskLevel: 'safe' | 'caution' | 'danger' | null;
   evidenceBasis?: 'confirmed' | 'estimated' | 'unknown';
@@ -108,6 +109,7 @@ export interface StartScanPayload {
 
 interface PageResponse<T> {
   items: T[];
+  totalPages?: number;
 }
 
 async function parse<T>(response: Response): Promise<T> {
@@ -158,10 +160,14 @@ export function normalizeScanStatus(status?: string | null): NormalizedScanStatu
   return 'unknown';
 }
 
-export async function getScanHistory(page = 0, size = 20): Promise<ScanHistoryItem[]> {
+export async function getScanHistoryPage(page = 0, size = 20): Promise<PageResponse<ScanHistoryItem>> {
   const response = await authFetch(`/api/v1/scans?page=${page}&size=${size}`, { method: 'GET' });
   const data = await parse<PageResponse<ScanHistoryItem>>(response);
-  return data.items ?? [];
+  return data;
+}
+
+export async function getScanHistory(page = 0, size = 20): Promise<ScanHistoryItem[]> {
+  return (await getScanHistoryPage(page, size)).items ?? [];
 }
 
 export async function updateScanTitle(scanId: string, title: string): Promise<ScanHistoryItem> {
@@ -218,15 +224,29 @@ export function mapMenuResult(menu: MenuResult, index: number, locale: Language 
   const v2Message = menu.message && 'verdict' in menu.message ? menu.message : null;
   const legacyMessage = menu.message && 'ko' in menu.message ? menu.message : null;
   const localized = (value: string) => ({ ko: value, [locale]: value });
-  const profileIds = profile ? [
-    ...(profile.hasAllergies ? profile.allergies.map(code => `allergy:${code}`) : []),
-    ...(profile.noSpicy ? ['preference:no-spicy'] : []),
-    ...(profile.noAlcohol ? ['preference:no-alcohol'] : []),
-  ] : [];
+  const profileTags: Array<[string, string[]]> = [];
+  if (profile?.hasAllergies) for (const code of profile.allergies) profileTags.push([`allergy:${code}`, [`is_${code}`]]);
+  if (profile?.noSpicy) profileTags.push(['preference:no-spicy', ['is_spicy']]);
+  if (profile?.noAlcohol) profileTags.push(['preference:no-alcohol', ['is_alcohol']]);
+  const meat = ['is_beef', 'is_pork', 'is_chicken', 'is_meat'];
+  const seafood = ['is_fish', 'is_mackerel', 'is_crab', 'is_shrimp', 'is_squid', 'is_shellfish'];
+  if (profile?.isVegan && profile.veganType) {
+    const style = profile.veganType.toLowerCase().replace(/-/g, '_');
+    const tags = [...meat, ...(style !== 'pesco' ? seafood : []), ...(['vegan', 'lacto'].includes(style) ? ['is_egg'] : []), ...(['vegan', 'ovo'].includes(style) ? ['is_milk'] : [])];
+    profileTags.push([`vegan:${style}`, tags]);
+  }
+  if (profile?.hasReligion && profile.religionType) {
+    const religion = profile.religionType.toLowerCase();
+    const tags = religion === 'halal' ? ['is_pork', 'is_alcohol'] : religion === 'kosher' ? ['is_pork', 'is_crab', 'is_shrimp', 'is_squid', 'is_shellfish'] : religion === 'hindu' ? ['is_beef'] : [];
+    profileTags.push([`religion:${religion}`, tags]);
+  }
   const riskIngredients = (menu.riskIngredients ?? []).map(ingredient => {
-    const matchedProfileIds = profileIds.filter(id => ingredient.matchedTags.includes(`is_${id.split(':').pop()?.replace(/-/g, '_')}`));
+    const matchedProfileIds = profileTags.filter(([, tags]) => tags.some(tag => ingredient.matchedTags.includes(tag))).map(([id]) => id);
     const probability = ingredient.posteriorMean;
     return {
+      status: ingredient.status,
+      evidenceConfidence: ingredient.confidence,
+      priorSource: ingredient.priorSource,
       name: { ko: ingredient.name.ko ?? '', ...(ingredient.name as Record<string, string>) },
       profileIds: matchedProfileIds,
       inclusionProbability: typeof probability === 'number' && Number.isFinite(probability) && probability >= 0 && probability <= 1 ? probability * 100 : undefined,
@@ -251,6 +271,10 @@ export function mapMenuResult(menu: MenuResult, index: number, locale: Language 
       ingredients: riskIngredients,
     } : undefined,
     price: menu.priceText ?? undefined,
+    priceOptions: menu.priceOptions,
+    evidenceBasis: menu.evidenceBasis,
+    informationStatus: menu.informationStatus,
+    notes: v2Message?.notes,
     riskLevel: menu.riskLevel ?? 'unknown',
     staffQuestions: menu.staffQuestions ?? [],
     riskReasons: tags,

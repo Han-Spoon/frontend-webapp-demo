@@ -30,6 +30,7 @@ interface HistoryItem {
 }
 
 interface MyPageScreenProps {
+  historyFooter?: import('react').ReactNode;
   language: Language;
   setLanguage: (language: Language) => void;
   currentUser: CurrentUser | null;
@@ -48,6 +49,7 @@ interface MyPageScreenProps {
 type TabType = 'profile' | 'scan' | 'saved' | 'reviews' | 'setting';
 
 export function MyPageScreen({
+  historyFooter,
   language,
   currentUser,
   userProfile,
@@ -305,6 +307,7 @@ export function MyPageScreen({
           </div>
         )}
 
+        {activeTab === 'scan' && historyFooter}
         {activeTab === 'saved' && <SavedMenuList language={language} onOpenScan={onOpenSavedScan} />}
         {activeTab === 'reviews' && <MyReviewsList language={language} profile={userProfile} />}
 
