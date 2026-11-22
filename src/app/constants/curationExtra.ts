@@ -5,18 +5,18 @@ const commons = (file: string, width = 900) =>
   `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${width}`;
 
 const storyPhotos: Record<string, string> = {
-  'sauce-on-side': '/images/curation/sauce-on-side.jpg',
+  'sauce-on-side': '/images/curation/sauce-on-side.webp',
   'market-small-plates': commons('Seoul-Namdaemun.Market-Street.food-02.jpg'),
-  'solo-table': '/images/curation/solo.jpg',
+  'solo-table': '/images/curation/solo.webp',
   'broth-question': commons('Korean stew-Sundubu jjigae-05.jpg'),
   'seongsu-walk': commons('Seongsu Street.jpg'),
   'busan-seaside': commons('Haeundae Beach, Busan.jpg'),
   'spice-conversation': commons('Korean.snacks-Tteokbokki-08.jpg'),
-  'banchan-questions': '/images/curation/banchan-table.jpg',
+  'banchan-questions': '/images/curation/banchan-table.webp',
   'cafe-pause': commons('Coffee and Tea at Droptop Cafe, Seoul.jpg'),
-  'halal-conversation': '/images/curation/diet-conversation.jpg',
-  'menu-memory': '/images/curation/meal-memory.jpg',
-  'ordering-rhythm': '/images/curation/diet-conversation.jpg',
+  'halal-conversation': '/images/curation/diet-conversation.webp',
+  'menu-memory': '/images/curation/meal-memory.webp',
+  'ordering-rhythm': '/images/curation/diet-conversation.webp',
 };
 
 // 시연용 자체 작성 글. zh-TW는 대만 전용 문안으로 별도 관리.

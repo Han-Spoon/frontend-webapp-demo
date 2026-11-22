@@ -8,7 +8,8 @@ React 18 + TypeScript + React Router + Vite 6 + Tailwind 4. pnpm 10.12.1. 이 �
 | --- | --- |
 | `src/app/App.tsx` | 화면 틀, 화면 가드(로그인·필수 동의), 오류 경계, 훅 조합 |
 | `src/app/AppRoutes.tsx` | 라우트 정의, 화면 지연 로딩·스캔 흐름 미리 받기, 시연 시작·기록 열기·스캔 → 분석 → 결과 흐름 |
-| `src/app/hooks/` | `useAccount`(시연 세션·언어·사용자·식단·동의), `useScanHistory`(서버 기록 + 기기 기록), `useResultSession`(결과 화면 한 건), `useDocumentLanguage`(문서 제목·`lang`·`dir`) |
+| `src/app/locales.ts`, `src/app/i18n/` | 7개 언어 목록·번역 함수, 4개 언어 사전(언어 선택 시 지연 로드) |
+| `src/app/hooks/` | `useAccount`(시연 세션·언어·사용자·식단·동의), `useScanHistory`(서버 기록 + 기기 기록), `useResultSession`(결과 화면 한 건), `useDocumentLanguage`(문서 제목·`lang`·`dir`), `useShownLanguage`(사전 받은 뒤 화면 언어 전환) |
 | `src/app/types.ts` | 화면 공용 도메인 타입(프로필·메뉴 분석·근거·기록) |
 | `src/api/` | 기존 인증·프로필·업로드·스캔·카드 어댑터 |
 | `src/app/components/HomeScreen.tsx` | 식당 발견, 지역과 사진 중심 추천, 식당 상세 |
@@ -28,6 +29,8 @@ React 18 + TypeScript + React Router + Vite 6 + Tailwind 4. pnpm 10.12.1. 이 �
 ## 데모 경로
 
 홈 데이터는 `restaurants.ts`의 12개 가상 식당이다. 지도는 SVG 개략도이며 핀 위치를 위도·경도 차이에서 구한다. 내 주변의 기준은 성수 고정이다. 외부 지도/위치 호출은 하지 않는다.
+
+큐레이션 사진은 `public/images/curation/`의 1080px WebP(품질 80). 새 사진도 같은 설정으로 변환해 넣는다(`curation-image-audit.md`).
 
 `VITE_DEMO_MODE=true` 또는 개발 서버 첫 진입 `?demo=1`에서 샘플 프로필을 제공한다. 데모 촬영은 업로드를 생략하고 fixture 결과로 이동한다. 일반 모드 스캔 API는 유지한다.
 

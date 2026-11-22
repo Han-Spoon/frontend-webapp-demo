@@ -33,18 +33,18 @@
 
 ## 저장 위치와 제작 방식
 
-내장 image_gen 도구의 기본 모드로 8장 각각 생성했다. CLI/API fallback은 사용하지 않았다. 최종 JPEG는 `public/images/curation/`에 저장하며 원본 생성 PNG는 별도로 보존했다. 1536×1024, JPEG 품질 82로 제공한다.
+내장 image_gen 도구의 기본 모드로 8장 각각 생성했다. CLI/API fallback은 사용하지 않았다. 원본 생성 PNG는 별도로 보존했다. 2026-11-22부터 `public/images/curation/`에 폭 1080px(1080×720) WebP 품질 80으로 제공한다(이전 1536×1024 JPEG 품질 82, 8장 3.6MB → 0.86MB). 새 사진도 같은 설정으로 변환한다.
 
 | 최종 파일 | 장면 |
 | --- | --- |
-| `public/images/curation/sauce-on-side.jpg` | 소스 별도 요청 |
-| `public/images/curation/solo.jpg` | 식당에서의 혼밥 |
-| `public/images/curation/banchan-table.jpg` | 한국 밥상·반찬 |
-| `public/images/curation/diet-conversation.jpg` | 식단 의사소통 |
-| `public/images/curation/meal-memory.jpg` | 식사 사진 기록 |
-| `public/images/curation/fermentation.jpg` | 발효 식품 |
-| `public/images/curation/chimaek.jpg` | 치킨과 맥주 |
-| `public/images/curation/grill.jpg` | 고기 자르기 |
+| `public/images/curation/sauce-on-side.webp` | 소스 별도 요청 |
+| `public/images/curation/solo.webp` | 식당에서의 혼밥 |
+| `public/images/curation/banchan-table.webp` | 한국 밥상·반찬 |
+| `public/images/curation/diet-conversation.webp` | 식단 의사소통 |
+| `public/images/curation/meal-memory.webp` | 식사 사진 기록 |
+| `public/images/curation/fermentation.webp` | 발효 식품 |
+| `public/images/curation/chimaek.webp` | 치킨과 맥주 |
+| `public/images/curation/grill.webp` | 고기 자르기 |
 
 ## 최종 프롬프트 세트 — 재사용용 정리
 
