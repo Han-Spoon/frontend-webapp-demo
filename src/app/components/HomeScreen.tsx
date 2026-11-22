@@ -224,9 +224,11 @@ export function HomeScreen({
                     }
                     className="group relative h-[244px] w-full overflow-hidden rounded-[30px] bg-brand-green-900 text-start text-white shadow-[0_18px_44px_rgba(24,61,45,.18)]"
                   >
+                    {/* 첫 슬라이드 사진 우선. React 18은 fetchPriority 미지원 → 소문자 속성. */}
                     <img
                       src={article.image}
                       alt=""
+                      {...(index === 0 ? { fetchpriority: 'high' } : {})}
                       className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                     />
                     <span className="absolute inset-0 bg-gradient-to-t from-[#082b1f]/95 via-[#0b3828]/30 to-transparent" />
@@ -358,6 +360,7 @@ export function HomeScreen({
                 <img
                   src={selected.image}
                   alt=""
+                  loading="lazy"
                   className="size-16 shrink-0 rounded-2xl object-cover"
                 />
                 <span className="min-w-0 flex-1">
