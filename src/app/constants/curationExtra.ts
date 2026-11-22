@@ -1,19 +1,16 @@
 import type { CurationArticle, CurationTag } from './curation';
 import { CURATION_EXTRA_ZH_TW } from './curationExtraZhTw';
 
-const commons = (file: string, width = 900) =>
-  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${width}`;
-
 const storyPhotos: Record<string, string> = {
   'sauce-on-side': '/images/curation/sauce-on-side.webp',
-  'market-small-plates': commons('Seoul-Namdaemun.Market-Street.food-02.jpg'),
+  'market-small-plates': '/images/curation/market-street.webp',
   'solo-table': '/images/curation/solo.webp',
-  'broth-question': commons('Korean stew-Sundubu jjigae-05.jpg'),
-  'seongsu-walk': commons('Seongsu Street.jpg'),
-  'busan-seaside': commons('Haeundae Beach, Busan.jpg'),
-  'spice-conversation': commons('Korean.snacks-Tteokbokki-08.jpg'),
+  'broth-question': '/images/curation/sundubu.webp',
+  'seongsu-walk': '/images/curation/seongsu.webp',
+  'busan-seaside': '/images/curation/haeundae.webp',
+  'spice-conversation': '/images/curation/tteokbokki.webp',
   'banchan-questions': '/images/curation/banchan-table.webp',
-  'cafe-pause': commons('Coffee and Tea at Droptop Cafe, Seoul.jpg'),
+  'cafe-pause': '/images/curation/cafe.webp',
   'halal-conversation': '/images/curation/diet-conversation.webp',
   'menu-memory': '/images/curation/meal-memory.webp',
   'ordering-rhythm': '/images/curation/diet-conversation.webp',

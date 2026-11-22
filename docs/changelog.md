@@ -1,5 +1,11 @@
 # 변경 기록
 
+## 2026-11-23 — 큐레이션 Commons 사진 저장소 보관
+
+- 큐레이션 22편 중 13편의 사진이 "Image unavailable"로 표시되던 문제 수정. 원인: Wikimedia Commons 직링크(사진당 캐시 없는 리다이렉트 2번)가 요청 제한(HTTP 429)에 걸림.
+- Commons 사진 9장을 폭 1080px WebP(품질 80)로 변환해 `public/images/curation/`에 보관, 경로 교체. 출처·라이선스는 `curation-image-audit.md`.
+- 큐레이션 외부 사진 요청 13개 → 0개. 로그인 배경·시연 결과 메뉴 사진은 아직 Commons 직링크.
+
 ## 2026-11-22 — 번역 사전 언어별 분리
 
 - zh-CN·ja·zh-TW·es 사전을 `locales.ts`에서 `src/app/i18n/<언어>.ts`로 분리(#56). 그 언어를 고를 때만 받음(zh-CN 15.16kB, ja 18.18kB, zh-TW 37.91kB, es 16.60kB). ko·en·ar 사용자는 받지 않음.

@@ -30,7 +30,7 @@ React 18 + TypeScript + React Router + Vite 6 + Tailwind 4. pnpm 10.12.1. 이 �
 
 홈 데이터는 `restaurants.ts`의 12개 가상 식당이다. 지도는 SVG 개략도이며 핀 위치를 위도·경도 차이에서 구한다. 내 주변의 기준은 성수 고정이다. 외부 지도/위치 호출은 하지 않는다.
 
-큐레이션 사진은 `public/images/curation/`의 1080px WebP(품질 80). 새 사진도 같은 설정으로 변환해 넣는다(`curation-image-audit.md`).
+큐레이션 사진은 `public/images/curation/`의 1080px WebP(품질 80). 외부 사진 직링크 없음(Commons 사진도 저장소 보관). 새 사진도 같은 설정으로 변환해 넣는다(`curation-image-audit.md`).
 
 `VITE_DEMO_MODE=true` 또는 개발 서버 첫 진입 `?demo=1`에서 샘플 프로필을 제공한다. 데모 촬영은 업로드를 생략하고 fixture 결과로 이동한다. 일반 모드 스캔 API는 유지한다.
 

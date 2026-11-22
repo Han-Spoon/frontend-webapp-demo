@@ -2,10 +2,6 @@ import type { Language } from '../types';
 import { translateText, type LocalizedText } from '../locales';
 import { EXTRA_CURATION_ARTICLES } from './curationExtra';
 
-/** 큐레이션 이미지: Wikimedia Commons 직링크. 로드 실패 시 컴포넌트의 그라데이션·이모지 대체. */
-const commons = (file: string, width = 800) =>
-  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${width}`;
-
 export type CurationTag = 'culture' | 'restaurant' | 'food' | 'tips';
 
 export const CURATION_TAGS: { key: CurationTag; label: LocalizedText }[] = [
@@ -24,6 +20,7 @@ export interface CurationArticle {
   id: string;
   emoji: string;
   accent: string;
+  /** public/images/curation/ 사진. 출처·라이선스는 docs/curation-image-audit.md */
   image: string;
   imagePosition?: string;
   date: string; // ISO
@@ -106,7 +103,7 @@ export const CURATION_ARTICLES: CurationArticle[] = [
     id: 'bunsik',
     emoji: '🌶️',
     accent: 'bg-rose-50',
-    image: commons('Korean.snacks-Tteokbokki-08.jpg'),
+    image: '/images/curation/tteokbokki.webp',
     date: '2026-06-02',
     tag: 'food',
     featured: true,
@@ -165,7 +162,7 @@ export const CURATION_ARTICLES: CurationArticle[] = [
     id: 'kimchi-200',
     emoji: '🥬',
     accent: 'bg-orange-50',
-    image: commons('Korea-Sokcho-Kkakdugi-Radish kimchi-01.jpg'),
+    image: '/images/curation/kkakdugi.webp',
     date: '2026-05-20',
     tag: 'food',
     title: {
@@ -183,7 +180,7 @@ export const CURATION_ARTICLES: CurationArticle[] = [
     id: 'shared-stew',
     emoji: '🍲',
     accent: 'bg-amber-50',
-    image: commons('Korean stew-Sundubu jjigae-05.jpg'),
+    image: '/images/curation/sundubu.webp',
     date: '2026-05-15',
     tag: 'culture',
     title: {
@@ -201,7 +198,7 @@ export const CURATION_ARTICLES: CurationArticle[] = [
     id: 'haejangguk',
     emoji: '🍜',
     accent: 'bg-red-50',
-    image: commons('Haejangguk (hangover soup).jpg'),
+    image: '/images/curation/haejangguk.webp',
     date: '2026-05-10',
     tag: 'culture',
     title: {
@@ -219,7 +216,7 @@ export const CURATION_ARTICLES: CurationArticle[] = [
     id: 'metal-chopsticks',
     emoji: '🥢',
     accent: 'bg-neutral-100',
-    image: commons('Cuchara y palitos coreanos.JPG'),
+    image: '/images/curation/sujeo.webp',
     date: '2026-05-04',
     tag: 'tips',
     title: {

@@ -59,6 +59,20 @@
 - **chimaek:** Fresh crispy golden Korean fried chicken on a ceramic platter with a small side of cubed pickled radish, and one tall cold golden beer with a clean white foamy head. Modern Korean chicken restaurant at night with soft amber bokeh. Chicken and beer both clearly visible within the central frame.
 - **grill:** Close candid view of a Korean restaurant server's hands, one hand holding stainless tongs and the other safe kitchen scissors, cutting cooked golden pork belly above a tabletop Korean barbecue grill. Side dishes softly blurred, warm appetizing evening light. Show the cutting action clearly with anatomically natural hands and tools.
 
-## 외부 이미지
+## Commons 사진
 
-유지한 Commons 사진의 정확한 파일명과 URL은 `constants/curation.ts`와 `constants/curationExtra.ts`에 있다. 제목·피사체 적합성 확인과 저작권 라이선스 준수는 별개다. 공개 운영 전 각 파일의 크레딧·라이선스 표시 의무를 최종 확인한다. 이미지 로딩 실패 시 무관한 대체 사진을 보여주지 않는다.
+2026-11-23부터 저장소에 넣어 제공한다. 이전 Wikimedia Commons 직링크는 요청 제한(HTTP 429)으로 일부 사진이 "Image unavailable"로 표시됐다. 폭 1080px(원본이 더 작으면 원본 크기) WebP 품질 80, 원본 비율 유지. 9장 0.99MB.
+
+| 최종 파일 | Commons 원본 | 작가 | 라이선스 |
+| --- | --- | --- | --- |
+| `market-street.webp` | [Seoul-Namdaemun.Market-Street.food-02.jpg](https://commons.wikimedia.org/wiki/File:Seoul-Namdaemun.Market-Street.food-02.jpg) | d'n'c | CC BY-SA 2.0 |
+| `sundubu.webp` | [Korean stew-Sundubu jjigae-05.jpg](https://commons.wikimedia.org/wiki/File:Korean_stew-Sundubu_jjigae-05.jpg) | titanium22 | CC BY-SA 2.0 |
+| `seongsu.webp` | [Seongsu Street.jpg](https://commons.wikimedia.org/wiki/File:Seongsu_Street.jpg) | Qhairy | CC BY 4.0 |
+| `haeundae.webp` | [Haeundae Beach, Busan.jpg](https://commons.wikimedia.org/wiki/File:Haeundae_Beach,_Busan.jpg) | Gregory Foster | CC BY 2.0 |
+| `tteokbokki.webp` | [Korean.snacks-Tteokbokki-08.jpg](https://commons.wikimedia.org/wiki/File:Korean.snacks-Tteokbokki-08.jpg) | jetalone | CC BY 2.0 |
+| `cafe.webp` | [Coffee and Tea at Droptop Cafe, Seoul.jpg](https://commons.wikimedia.org/wiki/File:Coffee_and_Tea_at_Droptop_Cafe,_Seoul.jpg) | ProjectManhattan | CC BY-SA 3.0 |
+| `kkakdugi.webp` | [Korea-Sokcho-Kkakdugi-Radish kimchi-01.jpg](https://commons.wikimedia.org/wiki/File:Korea-Sokcho-Kkakdugi-Radish_kimchi-01.jpg) | Junho Jung | CC BY-SA 3.0 |
+| `haejangguk.webp` | [Haejangguk (hangover soup).jpg](https://commons.wikimedia.org/wiki/File:Haejangguk_(hangover_soup).jpg) | sangmins | CC0 |
+| `sujeo.webp` | [Cuchara y palitos coreanos.JPG](https://commons.wikimedia.org/wiki/File:Cuchara_y_palitos_coreanos.JPG) | Aleposta | CC BY-SA 4.0 |
+
+크기 변경·WebP 변환은 원본 수정에 해당한다. 제목·피사체 적합성 확인과 저작권 라이선스 준수는 별개다. 공개 운영 전 CC BY·BY-SA 사진의 작가·라이선스·변경 사실을 화면에 표시한다(BY-SA는 같은 라이선스 유지). 이미지 로딩 실패 시 무관한 대체 사진을 보여주지 않는다.

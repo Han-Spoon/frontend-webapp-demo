@@ -45,13 +45,13 @@ pnpm dev --host 127.0.0.1 --port 5173
 | 라이킷/식당 찜 | han-spoon-demo:liked-menus / saved-restaurants |
 | 장소 선택 | han-spoon-demo:selected-restaurant |
 | 기록·피드백 | han-spoon-demo:records |
-| 큐레이션 | constants/curation.ts + curationExtra.ts 총 22편; public/images/curation/의 생성 사진 8장 + 기존 Commons 사진 |
+| 큐레이션 | constants/curation.ts + curationExtra.ts 총 22편; public/images/curation/의 생성 사진 8장 + Commons 사진 9장(저장소 보관) |
 
 사진은 참조용 이미지다. 레스토랑의 실제 음식 사진이나 인증 증거가 아니다. `전체 레시피 인증`도 시연용 상태이며 실제 계약/검증 데이터가 아니다. 외부 이미지 네트워크가 차단되면 브랜드 색상/대체 화면으로 표시한다. 본격 배포 전 이미지 사용 조건과 최종 에셋을 검토한다.
 
 지도 렌더링에는 `VITE_NAVER_MAP_KEY_ID`와 Naver Cloud의 Web 서비스 URL 등록이 필요하다. 식당 좌표는 현재 `demo/restaurants.ts`의 fixture이며 실제 DB 좌표가 준비되면 `StoreMap`의 `stores` 입력만 서버 데이터로 교체한다. 키가 없거나 인증에 실패하면 식당 목록을 이용하도록 폴백 안내를 표시한다.
 
-큐레이션 사진 22편 전체를 재검토했다. 부적절한 사진은 내장 이미지 생성 도구로 제작한 8개 장면으로 교체하고, 주제에 맞는 Wikimedia Commons 사진은 유지했다. [전체 사진 감사와 프롬프트](curation-image-audit.md)에 글별 선택 근거를 기록했다. Commons 유지 파일은 실제 배포 시 저작자·라이선스 조건에 맞춰 크레딧 화면을 제공해야 한다.
+큐레이션 사진 22편 전체를 재검토했다. 부적절한 사진은 내장 이미지 생성 도구로 제작한 8개 장면으로 교체하고, 주제에 맞는 Wikimedia Commons 사진은 유지했다. [전체 사진 감사와 프롬프트](curation-image-audit.md)에 글별 선택 근거를 기록했다. Commons 사진도 `public/images/curation/`에 WebP로 보관한다. 실제 배포 시 저작자·라이선스 조건에 맞춰 크레딧 화면을 제공해야 한다.
 
 랜딩 화면은 Unsplash의 [Bibimbap with fried egg](https://unsplash.com/photos/-UUkXJIXgy4)(Deepthi Clicks, Unsplash License) 실사 URL을 사용한다. 정돈된 플레이팅·입체적인 조명·짙은 배경으로 음식 전문 촬영의 분위기를 표현한다. 로그인 화면은 Wikimedia Commons의 `Samgyeopsal table.jpg`(이동원, CC0)를 사용한다. 공개 전 이미지 크레딧과 각 라이선스 조건을 다시 확인한다.
 
