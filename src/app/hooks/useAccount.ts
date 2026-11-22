@@ -11,7 +11,7 @@ import type { UserProfile } from '../types';
 
 /**
  * 계정 상태: 시연 세션, 언어, 사용자·식단 프로필, 필수 동의.
- * `onSignedIn`: 첫 로드에서 로그인·동의가 확인되면 호출(기록 목록 불러오기).
+ * `onSignedIn`: 로그인·동의 확인 시 호출(첫 로드, 로그인 직후, 동의 직후). 기록 목록 불러오기.
  */
 export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
   const navigate = useNavigate();
@@ -168,6 +168,7 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
       navigate('/terms');
       return;
     }
+    onSignedIn();
 
     if (hasProfile) {
       await loadUserProfile();
@@ -190,6 +191,7 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
       navigate('/mypage');
       return;
     }
+    onSignedIn();
     const user = await getMe();
     setCurrentUser(user);
     if (user.hasProfile) {
