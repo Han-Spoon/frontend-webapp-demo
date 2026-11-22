@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, MapPin, Pencil, Trash2, X } from 'lucide-react';
-import type { HistoryItem, Language } from '../App';
+import type { HistoryItem, Language } from '../types';
 import { createTranslator, LANGUAGE_LOCALES, translateText, type LocalizedText } from '../locales';
 import { ConfirmDialog } from './common/ConfirmDialog';
 

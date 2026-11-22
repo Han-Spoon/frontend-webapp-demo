@@ -1,4 +1,4 @@
-import type { Language, UserAllergy } from './App';
+import type { Language, UserAllergy } from './types';
 import { ALLERGY_OPTIONS } from './constants/onboarding';
 import { translateText, type LocalizedText } from './locales';
 

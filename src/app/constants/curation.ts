@@ -1,4 +1,4 @@
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { translateText, type LocalizedText } from '../locales';
 import { EXTRA_CURATION_ARTICLES } from './curationExtra';
 

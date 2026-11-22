@@ -3,7 +3,7 @@ import { ArrowLeft, Languages, LockKeyhole, LogIn, ScanLine, ShieldCheck } from 
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/brand/han-spoon-logo.svg';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { googleLogin } from '../../api/auth';
 import { createTranslator, LANGUAGE_LOCALES, LANGUAGE_OPTIONS } from '../locales';
 

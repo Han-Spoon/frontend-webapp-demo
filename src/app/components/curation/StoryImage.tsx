@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ImageOff } from 'lucide-react';
 import type { CurationArticle } from '../../constants/curation';
-import type { Language } from '../../App';
+import type { Language } from '../../types';
 import { createTranslator } from '../../locales';
 
 export function StoryImage({ article, language, className }: { article: CurationArticle; language: Language; className: string }) {

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Camera, MessageSquareHeart, Home, Map } from 'lucide-react';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { createTranslator } from '../locales';
 
 interface BottomNavProps {

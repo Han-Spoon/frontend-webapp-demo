@@ -138,8 +138,8 @@
 | T-04 | P1 ✅ 해결 | A | `src/app/components/ui/` | 48개 파일이 화면에서 한 번도 import되지 않는다. 화면은 Radix Dialog와 직접 쓴 Tailwind로 만들어졌다. `react-hook-form`도 `ui/form`에서만 쓰인다 | [실행] 스크립트 집계 |
 | T-05 | P1 ✅ 해결 | D | `package.json` | import 0건 의존성 14개: `@emotion/react`, `@emotion/styled`, `@mui/material`, `@mui/icons-material`, `@popperjs/core`, `canvas-confetti`, `date-fns`, `motion`, `react-dnd`, `react-dnd-html5-backend`, `react-popper`, `react-responsive-masonry`, `react-slick`, `react-router`(직접 import 없음). `ui/`를 지우면 Radix 23개(`react-dialog` 제외)·`cmdk`·`embla`·`vaul`·`recharts`·`sonner`·`input-otp`·`react-day-picker`·`react-resizable-panels`·`next-themes`·`react-hook-form`도 빠진다 | [실행] |
 | T-06 | P1 | D | 번들 | JS 762kB / gzip 256kB 단일 청크. 구성(소스맵 기준): react-dom 128kB, `locales.ts` 53kB, react-router 37kB, 큐레이션 상수 3개 52kB, lucide 24kB, 결과 fixture 12kB(실제 모드에도 포함). 라우트 lazy loading이 없다 | [실행] |
-| T-07 | P1 | A·B | `App.tsx` 686줄 | 인증·동의·프로필·기록·스캔 결과·데모 세션·문서 제목·라우팅을 한 컴포넌트가 가진다. `useState` 15개, 결과 화면에만 props 12개를 내려 준다 | [코드] |
-| T-08 | P1 | B | `App.tsx:200-260` | 같은 사실을 여러 곳에 저장: 결과는 `currentAnalysis`+`activeScanId`+`activeScanStore`+`activeScanRecord`+`historyProfile`+`resultPhotoUrl`. URL에 스캔 ID가 없다(UX-13) | [코드] |
+| T-07 | P1 ✅ 해결 | A·B | `App.tsx` 686줄 | 인증·동의·프로필·기록·스캔 결과·데모 세션·문서 제목·라우팅을 한 컴포넌트가 가진다. `useState` 15개, 결과 화면에만 props 12개를 내려 준다 | [코드] |
+| T-08 | P1 ✅ 해결(상태 통합, URL은 17번) | B | `App.tsx:200-260` | 같은 사실을 여러 곳에 저장: 결과는 `currentAnalysis`+`activeScanId`+`activeScanStore`+`activeScanRecord`+`historyProfile`+`resultPhotoUrl`. URL에 스캔 ID가 없다(UX-13) | [코드] |
 | T-09 | P1 | B | `demo/storage.ts` 사용처 | "데모 저장소"가 실제 모드에서도 쓰인다: 기기 기록(`records`)이 서버 기록과 합쳐지고, 식당 연결(`selected-restaurant`)·찜(서버 스캔 ID 없을 때)이 데모 키에 저장된다. AGENTS.md의 "미구현 데이터는 demo/에" 규칙과 "실제 저장 상태" 경계가 흐리다 | [코드] |
 | T-10 | P1 | A | `ResultsScreen.tsx` 357줄 | 한 줄 300자 이상 JSX가 다수. 메뉴 카드가 화면 안에 인라인으로 있어 `PartnerMenuScreen`과 공유가 어렵다. 메뉴 카드·필터·결과 머리는 분리 후보 | [코드] |
 | T-11 | P1 | E | `locales.ts:789` | `createTranslator`가 `(ko, en, ar)` 3인자라 새 언어는 한국어 원문을 키로 한 사전에서 찾는다. 문구 수정 시 키가 깨져 조용히 영어로 떨어진다(UX-23) | [코드] |
@@ -199,7 +199,9 @@
     - 번들(전 → 후): JS 779.21kB(gzip 261.17kB) → 778.71kB(gzip 260.89kB), CSS 195.82kB(gzip 38.38kB) → 131.65kB(gzip 29.59kB). 새로 설치한 `node_modules` 522MB → 225MB.
     - JS 0.5kB 차이는 `react-dialog`가 자기 선언 버전의 `compose-refs`(1.1.2 → 1.1.1)를 쓰게 된 것. CSS는 Tailwind가 `ui/` 안 클래스까지 만들던 것이 빠진 것.
     - `theme.css`의 `--chart-*`·`--sidebar-*` 토큰은 이번엔 유지.
-14. refactor: `App.tsx` 분리 — 인증·동의 가드, 스캔 결과 상태, 라우트 정의. (T-07, T-08)
+14. ✅ (2026-11-22) refactor: `App.tsx` 분리 — 인증·동의 가드, 스캔 결과 상태, 라우트 정의. (T-07, T-08)
+    - `App.tsx` 600줄 → 54줄. 공용 타입 `types.ts`, 훅 4개(`hooks/`), 라우트 `AppRoutes.tsx`. 결과 상태 useState 8개 → 객체 하나.
+    - 동의 가드 한 곳으로. 시연 모드도 동의 전에는 약관으로(이전엔 `/onboarding`만).
 15. refactor: 결과 메뉴 카드를 도메인 컴포넌트로 분리. (T-10)
 16. ✅ (2026-11-22) perf: 라우트 lazy loading, 큐레이션 본문·fixture를 해당 화면 청크로. (T-06) 목표: 첫 화면 JS 절반 이하[추정].
     - 첫 화면 JS 820.83kB → 467.22kB(약 57%, gzip 278.20 → 165.69kB). 촬영 fixture는 분석·결과 화면 묶음으로.

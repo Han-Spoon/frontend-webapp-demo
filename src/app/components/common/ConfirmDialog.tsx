@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import type { Language } from '../../App';
+import type { Language } from '../../types';
 import { useReturnFocus } from './returnFocus';
 
 interface ConfirmDialogProps {

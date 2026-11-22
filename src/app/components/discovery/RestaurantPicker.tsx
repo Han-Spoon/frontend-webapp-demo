@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, Check, Loader2, Map as MapIcon, MapPin, Navigation, Search } from 'lucide-react';
 import type { StoreCandidate } from '../../../api/store';
-import type { Language } from '../../App';
+import type { Language } from '../../types';
 import {
   AREAS,
   RESTAURANTS,

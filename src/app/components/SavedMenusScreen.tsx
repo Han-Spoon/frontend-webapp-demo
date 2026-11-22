@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Heart, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { deleteSavedMenu, getSavedMenus, type SavedMenu } from '../../api/savedMenus';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { useDemoValue } from '../demo/storage';
 import { createTranslator } from '../locales';
 import { RiskBadge } from './results/ResultEvidence';

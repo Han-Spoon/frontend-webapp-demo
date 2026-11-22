@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import { createTranslator, LANGUAGE_LOCALES, translateText, type LocalizedText } from '../locales';
 import { StoryImage } from './curation/StoryImage';

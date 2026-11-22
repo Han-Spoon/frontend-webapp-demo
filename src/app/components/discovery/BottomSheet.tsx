@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { Language } from '../../App';
+import type { Language } from '../../types';
 import { createTranslator } from '../../locales';
 import { useReturnFocus } from '../common/returnFocus';
 

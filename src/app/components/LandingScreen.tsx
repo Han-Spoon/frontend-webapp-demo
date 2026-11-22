@@ -1,7 +1,7 @@
 import { ArrowRight, Languages, MessageSquareText, ScanLine, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/brand/han-spoon-logo.svg';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { createTranslator, LANGUAGE_OPTIONS } from '../locales';
 
 const HERO_IMAGE =

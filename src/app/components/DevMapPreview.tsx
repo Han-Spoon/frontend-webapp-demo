@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { StoreCandidate } from '../../api/store';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { isLanguage } from '../locales';
 import { MAP_PREVIEW_CANDIDATES, MAP_PREVIEW_CENTER, MAP_PREVIEW_EXTRAS } from '../demo/mapPreviewStores';
 import { BottomSheet } from './discovery/BottomSheet';

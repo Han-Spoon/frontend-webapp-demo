@@ -1,5 +1,5 @@
 import { ArrowDown, CircleHelp, ClipboardCheck, GitBranch, Leaf, ShieldQuestion } from 'lucide-react';
-import type { Language, MenuAnalysis, UserProfile } from '../../App';
+import type { Language, MenuAnalysis, UserProfile } from '../../types';
 import { createTranslator } from '../../locales';
 import { buildMenuResultViewModel, CONFIDENCE_LABELS, getCautionProbabilities, localizeMenuText } from '../../results/resultViewModel';
 

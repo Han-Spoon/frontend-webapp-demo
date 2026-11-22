@@ -1,4 +1,4 @@
-import type { LocalizedMenuText, UserProfile } from '../App';
+import type { LocalizedMenuText, UserProfile } from '../types';
 import { getProfileCommunicationItems } from '../results/resultViewModel';
 
 export const AREAS = [

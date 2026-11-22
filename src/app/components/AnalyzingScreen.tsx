@@ -3,7 +3,7 @@ import { Camera, ChevronDown, CircleAlert, CircleDashed, Clock, Database, Loader
 import { appliedScanProfile, deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
 import { ApiError } from '../../api/user';
 import type { StoreSummary } from '../../api/store';
-import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../App';
+import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../types';
 import { createTranslator, translateText, type LocalizedText } from '../locales';
 import { FILMING_MENUS } from '../results/filmingFixtures';
 import { ConfirmDialog } from './common/ConfirmDialog';

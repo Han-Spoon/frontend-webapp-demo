@@ -5,7 +5,7 @@ import { clearAuthData, logout } from '../../api/auth';
 import { getConsentStatus, type ConsentStatus } from '../../api/consent';
 import { deleteMe } from '../../api/user';
 import type { CurrentUser } from '../../api/user';
-import type { HistoryItem, Language, UserProfile } from '../App';
+import type { HistoryItem, Language, UserProfile } from '../types';
 import { createTranslator, LANGUAGE_OPTIONS } from '../locales';
 import { getProfileSummary } from '../results/resultViewModel';
 import { MAP_LANGUAGE_OPTIONS, setMapLanguage, useMapLanguage } from '../../lib/mapLanguage';

@@ -1,7 +1,7 @@
 import { authFetch } from './authFetch';
 import { ApiError } from './user';
 import type { StoreSummary } from './store';
-import type { MenuAnalysis } from '../app/App';
+import type { MenuAnalysis } from '../app/types';
 import { normalizeRiskLevel } from './riskLevel';
 
 /** 화면용 찜 메뉴. 서버 기록의 id는 명세 V2 scanMenuId. */

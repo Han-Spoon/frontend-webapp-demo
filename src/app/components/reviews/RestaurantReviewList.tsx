@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Info, Loader2, MessageSquare, User } from 'lucide-react';
 import type { ReportReason, RestaurantReview } from '../../../api/reviews';
-import type { Language, UserProfile } from '../../App';
+import type { Language, UserProfile } from '../../types';
 import { createTranslator } from '../../locales';
 import { getProfileCommunicationItems, localizeMenuText } from '../../results/resultViewModel';
 import { ReviewCards } from './ReviewCards';

@@ -1,4 +1,4 @@
-import type { HistoryItem, UserProfile } from '../App';
+import type { HistoryItem, UserProfile } from '../types';
 import { readDemo, writeDemo } from './storage';
 
 export interface VisitRecord extends HistoryItem {

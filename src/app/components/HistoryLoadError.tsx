@@ -1,5 +1,5 @@
 import { RotateCcw } from 'lucide-react';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { translateText } from '../locales';
 
 /** 서버 기록 목록 불러오기 실패 안내('기록 없음' 대신). 기기 저장 기록은 가리지 않음. */

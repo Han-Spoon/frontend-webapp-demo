@@ -6,7 +6,7 @@ import type {
   MenuAnalysis,
   MenuIngredientEvidence,
   UserProfile,
-} from '../App';
+} from '../types';
 import { getAllergyName, getHitTagLabel } from '../i18n';
 import { getCurationIdForMenu } from '../constants/menuCuration';
 import { translateText, type LocalizedText } from '../locales';

@@ -1,4 +1,4 @@
-import type { MenuAnalysis, UserProfile } from '../App';
+import type { MenuAnalysis, UserProfile } from '../types';
 
 export const RESULT_PREVIEW_PROFILE: UserProfile = {
   nationality: 'ES',

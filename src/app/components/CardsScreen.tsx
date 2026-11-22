@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Camera, ChevronDown, ChevronUp, MessageSquareText, Trash2, User, Volume2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { deleteCard, getSavedCards, type CardType, type SavedCard } from '../../api/card';
 import { BottomNav } from './BottomNav';
 import { createTranslator, translateText, type LocalizedText } from '../locales';

@@ -1,7 +1,7 @@
 import { ArrowLeft, BookOpen } from 'lucide-react';
 import { HistoryLoadError } from './HistoryLoadError';
 import { useNavigate } from 'react-router-dom';
-import type { HistoryItem, Language } from '../App';
+import type { HistoryItem, Language } from '../types';
 import { createTranslator } from '../locales';
 import { ScanHistoryList } from './ScanHistoryList';
 import { BottomNav } from './BottomNav';

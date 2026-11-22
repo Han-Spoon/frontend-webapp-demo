@@ -1,4 +1,4 @@
-import type { LocalizedMenuText, MenuAnalysis, UserProfile } from '../App';
+import type { LocalizedMenuText, MenuAnalysis, UserProfile } from '../types';
 import { getProfileCommunicationItems } from '../results/resultViewModel';
 import { localizeMenuText } from '../results/resultViewModel';
 import { translateText } from '../locales';

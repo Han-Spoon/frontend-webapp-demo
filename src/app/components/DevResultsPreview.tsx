@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { isLanguage } from '../locales';
 import { FILMING_MENUS as RESULT_PREVIEW_MENUS, FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from '../results/filmingFixtures';
 import { ResultsScreen } from './ResultsScreen';

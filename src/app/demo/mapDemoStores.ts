@@ -1,5 +1,5 @@
 import type { StoreCandidate } from '../../api/store';
-import type { Language } from '../App';
+import type { Language } from '../types';
 import type { StoreCoordinates } from '../hooks/useStoreCandidates';
 import { localizeMenuText } from '../results/resultViewModel';
 import { AREAS, RESTAURANTS, type Restaurant } from './restaurants';

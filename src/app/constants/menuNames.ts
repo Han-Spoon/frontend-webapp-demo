@@ -1,4 +1,4 @@
-import type { Language } from '../App';
+import type { Language } from '../types';
 
 /**
  * 자주 나오는 한식 메뉴 뜻 사전(ko → en/ar). 설명 앞에 붙임. 발음(회색 줄)은 알고리즘 음역.

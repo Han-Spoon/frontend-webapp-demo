@@ -6,7 +6,10 @@ React 18 + TypeScript + React Router + Vite 6 + Tailwind 4. pnpm 10.12.1. 이 �
 
 | 위치 | 역할 |
 | --- | --- |
-| `src/app/App.tsx` | 라우팅, 사용자/분석 상태, 서버 이력과 로컬 기록 통합 |
+| `src/app/App.tsx` | 화면 틀, 화면 가드(로그인·필수 동의), 오류 경계, 훅 조합 |
+| `src/app/AppRoutes.tsx` | 라우트 정의, 화면 지연 로딩·스캔 흐름 미리 받기, 시연 시작·기록 열기·스캔 → 분석 → 결과 흐름 |
+| `src/app/hooks/` | `useAccount`(시연 세션·언어·사용자·식단·동의), `useScanHistory`(서버 기록 + 기기 기록), `useResultSession`(결과 화면 한 건), `useDocumentLanguage`(문서 제목·`lang`·`dir`) |
+| `src/app/types.ts` | 화면 공용 도메인 타입(프로필·메뉴 분석·근거·기록) |
 | `src/api/` | 기존 인증·프로필·업로드·스캔·카드 어댑터 |
 | `src/app/components/HomeScreen.tsx` | 식당 발견, 지역과 사진 중심 추천, 식당 상세 |
 | `src/app/components/ScanScreen.tsx` | 이전 홈의 촬영·파일 검증·업로드 |

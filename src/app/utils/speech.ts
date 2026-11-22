@@ -1,4 +1,4 @@
-import type { Language } from '../App';
+import type { Language } from '../types';
 import { LANGUAGE_LOCALES } from '../locales';
 
 export const ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;

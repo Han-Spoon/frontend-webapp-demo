@@ -2,7 +2,7 @@ import { authFetch } from './authFetch';
 import { ApiError } from './user';
 import type { StoreMatchMethod, StoreSummary } from './store';
 import { normalizeRiskLevel } from './riskLevel';
-import type { Language, MenuAnalysis, UserProfile } from '../app/App';
+import type { Language, MenuAnalysis, UserProfile } from '../app/types';
 
 export type ScanStatus =
   | 'pending'
