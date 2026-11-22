@@ -257,7 +257,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
             ) : <p className="text-xs leading-5 text-text-secondary">{t('설정된 식단 조건이 없어요', 'No dietary conditions are set.', 'لا توجد شروط غذائية محددة.')}</p>}
             {profileCommunicationItems.length > 0 && (
               <button type="button" onClick={() => setProfileSheetOpen(true)} className="mt-3 min-h-11 w-full rounded-xl border border-brand-primary bg-surface-raised px-3 py-2 text-sm font-bold text-brand-primary hover:bg-brand-primary-soft">
-                <span className="inline-flex items-center justify-center gap-2"><MessageSquareText className="size-4" />{t('내 식단 전달하기', 'Share my dietary needs', 'شارك احتياجاتي الغذائية')}</span>
+                <span className="inline-flex items-center justify-center gap-2"><MessageSquareText className="size-4" />{t('직원에게 내 식단 보여주기', 'Show staff my dietary needs', 'شارك احتياجاتي الغذائية')}</span>
               </button>
             )}
           </div>
@@ -330,7 +330,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, c
 
                     <CommunicationActions
                       primaryAction={menu.riskLevel !== 'safe' ? { id: 'ingredient', label: t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات'), onClick: () => openSheet(menu, 'ingredient'), icon: <MessageSquareText className="size-4" /> } : undefined}
-                      requestActions={requestActions}
+                      requestActions={[]}
                       trailingAction={{ id: 'order', label: t('주문 카드', 'Order card', 'بطاقة الطلب'), onClick: () => openSheet(menu, 'order') }}
                     />
 

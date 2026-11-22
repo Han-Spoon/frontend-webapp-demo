@@ -162,7 +162,7 @@ export function MyPageScreen({
         {[
           { value: 'profile', label: t('프로필', 'Profile', 'الملف') },
           { value: 'scan', label: t('스캔 기록', 'Scans', 'عمليات المسح') },
-          { value: 'saved', label: t('저장한 메뉴', 'Saved', 'المحفوظات') },
+          { value: 'saved', label: t('저장한 음식', 'Saved', 'المحفوظات') },
           { value: 'reviews', label: t('내 후기', 'Reviews', 'تقييماتي') },
           { value: 'setting', label: t('설정', 'Setting', 'الإعدادات') },
         ].map(({ value, label }) => (

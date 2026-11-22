@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, MessageSquareText, Trash2, User, Volume2, X } from 'lucide-react';
-import type { Language } from '../App';
+import { getAllergyName } from '../i18n';
+import type { UserProfile, Language } from '../App';
 import { deleteCard, getSavedCards, type CardType, type SavedCard } from '../../api/card';
 import { BottomNav } from './BottomNav';
 import { createTranslator, translateText, type LocalizedText } from '../locales';
 
 interface CardsScreenProps {
   language: Language;
+  userProfile: UserProfile | null;
   onMyPage: () => void;
 }
 
 type Speakable = { ko: string; en?: string | null; ar?: string | null } & Partial<LocalizedText>;
 
 const CARD_TYPE_LABEL: Record<CardType, LocalizedText> = {
+  less_spicy: { ko: '덜 맵게', en: 'Less spicy', ar: 'أقل حدة' },
   order: { ko: '주문', en: 'Order', ar: 'طلب' },
   ingredient_check: { ko: '재료 확인', en: 'Ingredient check', ar: 'فحص المكونات' },
   exclude: { ko: '요청', en: 'Request', ar: 'طلب خاص' },
@@ -37,7 +40,7 @@ function speakKorean(text: string) {
   window.speechSynthesis.speak(utterance);
 }
 
-export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
+export function CardsScreen({ language, onMyPage, userProfile }: CardsScreenProps) {
   const [cards, setCards] = useState<SavedCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,6 +49,8 @@ export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
   const [selected, setSelected] = useState<Speakable | null>(null);
 
   const t = createTranslator(language);
+  const allergyNames = (locale: Language) => (userProfile?.hasAllergies ? userProfile.allergies : []).map(code => getAllergyName(code, locale)).join(', ');
+  const phrases = allergyNames('ko') ? [{ ko: `저는 ${allergyNames('ko')} 알레르기가 있어요. 이 재료가 들어가지 않은 음식은 무엇인가요?`, en: `I am allergic to ${allergyNames('en')}. Which dishes do not contain these ingredients?`, ar: `لدي حساسية من ${allergyNames('ar')}. ما الأطباق التي لا تحتوي على هذه المكونات؟` }, ...COMMON_PHRASES] : COMMON_PHRASES;
 
   const localized = (item: Speakable) => translateText(language, {
     ko: item.ko,
@@ -127,7 +132,7 @@ export function CardsScreen({ language, onMyPage }: CardsScreenProps) {
           </button>
           {expanded && (
             <div className="p-3 space-y-2">
-              {COMMON_PHRASES.map((phrase) => (
+              {phrases.map((phrase) => (
                 <button
                   key={phrase.ko}
                   onClick={() => setSelected(phrase)}
