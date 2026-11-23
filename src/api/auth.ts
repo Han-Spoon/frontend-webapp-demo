@@ -130,16 +130,13 @@ export function refreshAccessToken(): Promise<AuthData> {
 
 export async function logout() {
   const accessToken = getAccessToken();
-  const refreshToken = getRefreshToken();
 
   const response = await fetch('/api/v1/auth/logout', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     credentials: 'include',
-    body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
   });
 
   const responseText = await response.text();

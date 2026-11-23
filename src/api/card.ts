@@ -34,13 +34,12 @@ interface PageResponse<T> {
 
 async function parse<T>(response: Response): Promise<T> {
   const text = await response.text();
-  const json = text ? JSON.parse(text) : {};
-
   if (!response.ok) {
     console.error('Card API request failed:', response.status, text);
     throw new ApiError(response.status, text);
   }
 
+  const json = text ? JSON.parse(text) : {};
   return (json.data ?? json) as T;
 }
 

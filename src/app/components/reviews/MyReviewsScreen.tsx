@@ -1,3 +1,5 @@
+import { isEndpointUnavailable } from '../../../api/user';
+import { remoteFeatureUnavailable } from '../remoteFeatureMessage';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -28,7 +30,7 @@ export function MyReviewsScreen({ language, profile, demoMode }: { language: Lan
     setLoading(true);
     setError('');
     getMyReviews().then(items => { if (active) setReviews(items); })
-      .catch(() => { if (active) setError(t('후기를 불러오지 못했어요.', 'Could not load reviews.', 'تعذر تحميل المراجعات.')); })
+      .catch(error => { if (active) setError(isEndpointUnavailable(error) ? remoteFeatureUnavailable(language) : t('후기를 불러오지 못했어요.', 'Could not load reviews.', 'تعذر تحميل المراجعات.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [demoMode, reload]);

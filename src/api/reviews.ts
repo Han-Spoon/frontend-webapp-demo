@@ -86,7 +86,10 @@ async function parse<T>(response: Response): Promise<T> {
 
 const parseList = async (response: Response) => {
   const items = await parse<WireReview[] | null>(response);
-  return (Array.isArray(items) ? items : []).map(fromWireReview);
+  if (!Array.isArray(items) || items.some(item => !item || typeof item.reviewId !== 'string' || !Array.isArray(item.menus))) {
+    throw new Error('Invalid review list response');
+  }
+  return items.map(fromWireReview);
 };
 
 export const getStoreReviews = (storeId: number) =>

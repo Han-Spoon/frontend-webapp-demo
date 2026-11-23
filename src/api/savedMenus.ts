@@ -47,7 +47,10 @@ const fromWire = (item: WireSavedMenu): SavedMenu => ({
 
 export async function getSavedMenus(): Promise<SavedMenu[]> {
   const items = await parse<WireSavedMenu[] | null>(await authFetch('/api/v1/saved-menus'));
-  return (Array.isArray(items) ? items : []).map(fromWire);
+  if (!Array.isArray(items) || items.some(item => !item || typeof item.scanMenuId !== 'string' || typeof item.displayName !== 'string')) {
+    throw new Error('Invalid saved-menu list response');
+  }
+  return items.map(fromWire);
 }
 
 export async function saveMenu(scanMenuId: string): Promise<SavedMenu> {

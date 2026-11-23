@@ -32,6 +32,14 @@ export interface UserProfilePayload {
   noAlcohol: boolean;
 }
 
+export function isEndpointUnavailable(error: unknown): boolean {
+  if (!(error instanceof ApiError) || error.status !== 404) return false;
+  try {
+    const problem = JSON.parse(error.body);
+    return problem?.code === 'HTTP_404' && typeof problem.detail === 'string' && problem.detail.startsWith('No static resource ');
+  } catch { return false; }
+}
+
 export class ApiError extends Error {
   status: number;
   body: string;
@@ -46,13 +54,12 @@ export class ApiError extends Error {
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const text = await response.text();
-  const json = text ? JSON.parse(text) : {};
-
   if (!response.ok) {
     console.error('API request failed:', response.status, text);
     throw new ApiError(response.status, text);
   }
 
+  const json = text ? JSON.parse(text) : {};
   return (json.data ?? json) as T;
 }
 
@@ -109,7 +116,7 @@ export async function getProfile(): Promise<UserProfilePayload> {
   return parseResponse<UserProfilePayload>(response);
 }
 
-export async function updateProfile(profile: UserProfilePayload): Promise<UserProfilePayload> {
+export async function updateProfile(profile: Partial<UserProfilePayload>): Promise<UserProfilePayload> {
   const response = await authFetch('/api/v1/users/me/profile', {
     method: 'PATCH',
     headers: {

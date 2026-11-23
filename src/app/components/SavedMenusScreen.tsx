@@ -1,3 +1,5 @@
+import { isEndpointUnavailable } from '../../api/user';
+import { remoteFeatureUnavailable } from './remoteFeatureMessage';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Heart, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +24,7 @@ export function SavedMenusScreen({ language, demoMode }: { language: Language; d
     setLoading(true);
     setError('');
     getSavedMenus().then(items => { if (active) setServerMenus(items); })
-      .catch(() => { if (active) setError(t('저장한 메뉴를 불러오지 못했어요.', 'Could not load saved menus.', 'تعذر تحميل الأطباق المحفوظة.')); })
+      .catch(error => { if (active) setError(isEndpointUnavailable(error) ? remoteFeatureUnavailable(language) : t('저장한 메뉴를 불러오지 못했어요.', 'Could not load saved menus.', 'تعذر تحميل الأطباق المحفوظة.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [demoMode, reload]);

@@ -15,13 +15,12 @@ function fallbackHeaders(contentType: string): Record<string, string> {
 
 async function parse<T>(response: Response): Promise<T> {
   const text = await response.text();
-  const json = text ? JSON.parse(text) : {};
-
   if (!response.ok) {
     console.error('Upload ticket request failed:', response.status, text);
     throw new ApiError(response.status, text);
   }
 
+  const json = text ? JSON.parse(text) : {};
   return (json.data ?? json) as T;
 }
 
