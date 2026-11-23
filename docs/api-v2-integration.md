@@ -55,3 +55,12 @@
 ### main 병합 검증 (2026-11-23)
 
 main의 화면 분리·7개 언어 사전·이미지·재촬영 안내·API 오류 처리를 유지하며 최신 feature 변경을 병합했다. 공유 타입은 `types.ts`, 기록 페이지 처리는 `useScanHistory.ts`에 반영했다. 설치된 TypeScript의 `tsc --noEmit`, Vite 빌드, `check-demo.mjs`, `check-api-v2.mjs`, diff 검사를 통과했다. pnpm 실행은 fetch 오류로 실패해 설치된 실행 파일로 검증했다. 로컬 브라우저에서 재료 포함 상태·직원 질문 버튼·고정 참고 환율 안내와 직원 카드 진입을 확인했다. 배포 이후 인증 API 검증은 별도로 기록한다.
+
+### main 배포 후 확인 (2026-11-23)
+
+- [x] `f3cced2`를 origin/main에 push. GitHub의 Vercel 상태가 `success / Deployment has completed`임을 확인했다.
+- [x] han-spoon.site의 새 결과 번들에 고정 참고 환율 안내, Confirmed evidence, Presence needs checking 문구가 포함돼 최신 프런트 반영을 확인했다.
+- [ ] 로그인된 Chrome에서 새로고침 후 내 후기 조회 실패가 계속된다.
+- [ ] 같은 세션에서 저장한 음식 목록 조회 실패가 계속된다.
+- 인증 없는 별도 HTTP 확인에서는 두 API 모두 401을 반환했다. 이는 인증된 브라우저 요청의 상태를 뜻하지 않으며, 브라우저 실패의 원인으로 단정하지 않는다. 인증된 요청의 상태·응답 확인이 다음 진단 과제다.
+- 테스트 후기·직원 답변을 실제 식당에 생성하지 않았고, 백엔드·AI 레포는 변경하지 않았다.
