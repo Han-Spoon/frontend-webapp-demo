@@ -1,3 +1,4 @@
+import { getExchangeRates, type ExchangeRates } from '../../api/exchangeRates';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useNavigate } from 'react-router-dom';
@@ -123,6 +124,13 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const profileUnknown = !basisUnknown && !filmingScenario && userProfile === null;
   const verdictBasisUnknown = basisUnknown || profileUnknown;
   const navigate = useNavigate();
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
+  useEffect(() => {
+    if (demoMode) return;
+    let active = true;
+    getExchangeRates().then(data => { if (active) setExchangeRates(data); }).catch(() => { if (active) setExchangeRates(null); });
+    return () => { active = false; };
+  }, [demoMode]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [selectedMenu, setSelectedMenu] = useState<MenuAnalysis | null>(null);
@@ -252,7 +260,10 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
     if (!sourceScanId) return;
     try {
       const result = await getScanResult(sourceScanId);
-      setUpdatedMenus((result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, basisUnknown ? null : userProfile)));
+      const refreshed = (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, basisUnknown ? null : userProfile));
+      setUpdatedMenus(refreshed);
+      setSelectedMenu(current => current ? refreshed.find(menu => menu.id === current.id) ?? current : null);
+      onSavedRecord?.();
     } catch (error) { console.warn('Unable to refresh staff result:', error); }
   };
 
@@ -353,7 +364,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             const viewModel = buildMenuResultViewModel(menu, language);
             const cardDetailsId = `menu-details-${menu.id}`;
             const isSpicy = Boolean(menu.isSpicy || menu.is_spicy);
-            const price = menuPrice(menu.price, language);
+            const price = menuPrice(menu.price, language, exchangeRates?.rates);
             const favoriteKey = `${recordId}:${menu.id}`;
             const savedMenus = demoMode || !sourceScanId ? demoSavedMenus : serverSavedMenus;
             const favorite = savedMenus.find(item => demoMode || !sourceScanId
@@ -379,18 +390,19 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                   <div className="flex gap-3 border-b border-border-warm p-3">
                     <div className="size-20 shrink-0 overflow-hidden rounded-[18px] border border-border-warm bg-surface-subtle"><MenuImage menu={menu} translatedName={translatedName} t={t} /></div>
                     <div className="min-w-0 flex-1 space-y-1 pe-10">
-                      {showVerdicts && <div className="flex flex-wrap items-center gap-1.5"><RiskBadge level={menu.riskLevel} t={t} />{(Boolean(partnerRestaurantId) || (menu.explainability?.ingredients?.length ?? 0) > 0) && <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-bold text-text-secondary"><Sparkles className="size-3" />{partnerRestaurantId ? t('등록 레시피', 'Supplied recipe', 'وصفة مقدمة') : t('추정 정보', 'Estimated', 'معلومات تقديرية')}</span>}</div>}
+                      {showVerdicts && <div className="flex flex-wrap items-center gap-1.5"><RiskBadge level={menu.riskLevel} t={t} />{(Boolean(partnerRestaurantId) || (menu.explainability?.ingredients?.length ?? 0) > 0) && <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] font-bold text-text-secondary"><Sparkles className="size-3" />{partnerRestaurantId ? t('등록 레시피', 'Supplied recipe', 'وصفة مقدمة') : menu.evidenceBasis === 'confirmed' ? t('확인된 근거', 'Confirmed evidence', 'أدلة مؤكدة') : menu.evidenceBasis === 'estimated' ? t('추정 근거', 'Estimated evidence', 'أدلة تقديرية') : t('근거 확인 필요', 'Evidence needs checking', 'يجب التحقق من الأدلة')}</span>}</div>}
                       <h3 className="break-words text-lg font-extrabold leading-[1.4] tracking-[-0.015em]">{menu.menuName}</h3>
                       {language !== 'ko' && translatedName.trim() !== menu.menuName.trim() && <p className="break-words text-xs font-semibold text-text-secondary">{translatedName}</p>}
                       {price ? <div className="flex flex-wrap items-baseline gap-x-1.5"><span className="text-sm font-extrabold tabular-nums" dir="ltr">{price.original}</span>{price.converted && <span className="text-xs text-text-secondary" dir="ltr">≈ {price.converted}</span>}</div> : <p className="text-xs text-text-tertiary">{t('가격 확인 필요', 'Price needs checking', 'يجب التحقق من السعر')}</p>}
+                      {menu.priceOptions?.map((option, index) => <p key={index} className="mt-1 text-xs text-text-secondary">{option.label} · {option.priceText}{option.inferred && ` · ${t('추정', 'Estimated', 'تقديري')}`}</p>)}
                       {description && <p className="truncate text-xs leading-5 text-text-secondary">{description}</p>}
                     </div>
                   </div>
 
                   <div className="space-y-3 p-3">
-                    {causeItems.length > 0 && <div className="flex flex-wrap gap-1.5">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`min-h-8 max-w-full break-words rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : menu.riskLevel === 'unknown' ? 'bg-status-unknown-surface text-status-unknown-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="min-h-8 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
+                    {causeItems.length > 0 && <div className="flex flex-wrap gap-1.5">{displayedCauses.map(item => <button type="button" key={item.localizedName} onClick={() => toggleExpanded(menu.id)} className={`min-h-8 max-w-full break-words rounded-[14px] px-2.5 py-1.5 text-xs font-bold ${menu.riskLevel === 'danger' ? 'bg-status-danger-surface text-status-danger-text' : menu.riskLevel === 'unknown' ? 'bg-status-unknown-surface text-status-unknown-text' : 'bg-status-caution-surface text-status-caution-text'}`}>{item.localizedName} · {item.status === 'present' ? t('포함 확인', 'Confirmed present', 'موجود بالتأكيد') : item.status === 'absent' ? t('미포함 확인', 'Confirmed absent', 'غير موجود بالتأكيد') : t('포함 여부 확인 필요', 'Presence needs checking', 'يجب التحقق من وجوده')}</button>)}{hiddenCauseCount > 0 && <button type="button" onClick={() => toggleExpanded(menu.id)} className="min-h-8 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">+{hiddenCauseCount}</button>}</div>}
                     {!showVerdicts && (viewModel.ingredients.length > 0 || isSpicy) && <div className="flex gap-1.5 overflow-hidden whitespace-nowrap">{viewModel.ingredients.slice(0, 4).map(item => <span key={item.localizedName} className="rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary">{item.localizedName}</span>)}{isSpicy && <span className="inline-flex items-center gap-1 rounded-[14px] bg-surface-subtle px-2.5 py-1.5 text-xs font-bold text-text-secondary"><Flame className="size-3" />{t('매운 음식', 'Spicy', 'حار')}</span>}</div>}
-                    <div className="flex items-center gap-2"><button type="button" onClick={() => openSheet(menu, showVerdicts && menu.riskLevel !== 'safe' ? 'ingredient' : 'order')} className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-3 py-2.5 text-sm font-extrabold ${menu.riskLevel === 'danger' && showVerdicts ? 'border border-action-primary text-action-primary' : 'bg-action-primary text-action-primary-foreground'}`}><MessageSquareText className="size-4 shrink-0" />{showVerdicts && menu.riskLevel !== 'safe' ? causeItems.length ? t(`재료 ${causeItems.length}개 확인하기`, `Check ${causeItems.length} ingredients`, `تحقق من ${causeItems.length} مكونات`) : t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات') : t('주문 카드', 'Order card', 'بطاقة الطلب')}</button><button type="button" onClick={() => toggleExpanded(menu.id)} aria-expanded={expanded} aria-controls={cardDetailsId} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[18px] px-2 text-sm font-bold text-action-primary">{expanded ? t('접기', 'Hide', 'إخفاء') : t('근거 보기', 'Evidence', 'الأدلة')}<ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button></div>
+                    <div className="flex items-center gap-2"><button type="button" onClick={() => openSheet(menu, showVerdicts && menu.riskLevel !== 'safe' ? 'ingredient' : 'order')} className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-3 py-2.5 text-sm font-extrabold ${menu.riskLevel === 'danger' && showVerdicts ? 'border border-action-primary text-action-primary' : 'bg-action-primary text-action-primary-foreground'}`}><MessageSquareText className="size-4 shrink-0" />{showVerdicts && menu.riskLevel !== 'safe' ? menu.staffQuestions?.length ? t(`직원에게 질문 ${menu.staffQuestions.length}개 확인하기`, `Ask staff ${menu.staffQuestions.length} questions`, `اسأل الموظف ${menu.staffQuestions.length} أسئلة`) : t('직원에게 재료 확인하기', 'Ask staff about ingredients', 'اسأل الموظف عن المكونات') : t('주문 카드', 'Order card', 'بطاقة الطلب')}</button><button type="button" onClick={() => toggleExpanded(menu.id)} aria-expanded={expanded} aria-controls={cardDetailsId} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-[18px] px-2 text-sm font-bold text-action-primary">{expanded ? t('접기', 'Hide', 'إخفاء') : t('근거 보기', 'Evidence', 'الأدلة')}<ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button></div>
                   </div>
 
                   {expanded && <div id={cardDetailsId} className="border-t border-border-warm bg-surface-subtle/60 px-4 py-4"><div className="space-y-4">{description && <p className="text-sm leading-6 text-text-secondary">{description}</p>}{pronunciation && <p className="text-xs text-text-tertiary">{pronunciation}</p>}{menu.riskLevel === 'caution' && <CautionInsight menu={menu} profile={userProfile} language={language} anyProfile={basisUnknown} />}{viewModel.primaryReason && <div><p className="mb-1 text-[11px] font-extrabold text-text-tertiary">{t('판정 이유', 'Reason', 'السبب')}</p><p className="text-sm font-semibold leading-6">{viewModel.primaryReason}</p></div>}<CommunicationActions requestActions={[]} trailingAction={{ id: 'order', label: t('주문 카드', 'Order card', 'بطاقة الطلب'), onClick: () => openSheet(menu, 'order') }} /><AnalysisEvidence menu={menu} language={language} /></div></div>}
@@ -400,7 +412,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             );
           })}
 
-          {menuList.length > 0 && <p className="px-1 text-center text-[10px] leading-5 text-text-tertiary">{t('환율은 매일 00:00 (한국 시간)에 업데이트돼요. 환산 가격은 참고용이에요.', 'Exchange rates update daily at 00:00 KST. Converted prices are estimates.', 'تُحدّث أسعار الصرف يومياً عند 00:00 بتوقيت كوريا. الأسعار المحوّلة تقريبية.')}</p>}
+          {menuList.length > 0 && <p className="px-1 text-center text-[10px] leading-5 text-text-tertiary">{exchangeRates ? t(`환율 기준: ${exchangeRates.asOf} · 환산 가격은 참고용이에요.`, `Rates as of ${exchangeRates.asOf} · Converted prices are estimates.`, `أسعار الصرف بتاريخ ${exchangeRates.asOf} · الأسعار تقريبية.`) : t('고정 참고 환율로 계산한 가격입니다. 실제 환율과 다를 수 있어요.', 'Prices use fixed reference rates and may differ from current rates.', 'تستخدم الأسعار أسعار صرف مرجعية ثابتة وقد تختلف عن الأسعار الحالية.')}</p>}
           {favoriteError && <p role="alert" className="text-center text-xs text-status-danger-text">{favoriteError}</p>}
           {recommendedArticles.length > 0 && <section className="border-t border-border-warm pt-6"><p className="eyebrow">{t('A LITTLE MORE KOREA', 'A LITTLE MORE KOREA', 'المزيد عن كوريا')}</p><h3 className="mb-4 mt-1 text-lg font-extrabold">{t('메뉴를 골랐다면, 한식 이야기', 'Chosen your dish? Discover its story.', 'اخترت طبقك؟ اكتشف قصته.')}</h3><div className="space-y-2">{recommendedArticles.map(article => <button key={article.id} onClick={() => navigate(`/curation/${article.id}`)} className="flex w-full items-center gap-3 rounded-2xl border border-border-warm bg-rice-white p-3 text-start"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-accent-soft text-2xl">{article.emoji}</span><span className="min-w-0 flex-1"><span className="block text-sm font-bold">{translateText(language, article.title)}</span><span className="mt-1 block line-clamp-1 text-xs text-text-secondary">{translateText(language, article.excerpt)}</span></span><ChevronRight className="size-4 rtl:rotate-180" /></button>)}</div></section>}
 

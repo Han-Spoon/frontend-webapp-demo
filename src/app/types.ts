@@ -50,6 +50,9 @@ export type EvidenceSourceType =
   | 'staff';
 
 export interface MenuIngredientEvidence {
+  status?: 'present' | 'absent' | 'unknown';
+  evidenceConfidence?: number | null;
+  priorSource?: string | null;
   name: LocalizedMenuText;
   /** 0–100. 주의 판정 + 해당 프로필일 때만 표시. */
   inclusionProbability?: number;
@@ -91,6 +94,10 @@ export interface MenuExplainability {
 }
 
 export interface MenuAnalysis {
+  priceOptions?: Array<{ label: string; priceText: string; inferred: boolean }>;
+  evidenceBasis?: 'confirmed' | 'estimated' | 'unknown';
+  informationStatus?: 'complete' | 'partial' | 'none';
+  notes?: Array<{ code: string; text: string }>;
   id: string;
   image?: string;
   imagePosition?: string;

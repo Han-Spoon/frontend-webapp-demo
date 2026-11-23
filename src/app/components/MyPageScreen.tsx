@@ -21,6 +21,7 @@ import { OfflineBanner } from './OfflineBanner';
 type ProfileSection = 'language' | 'country' | 'diet';
 
 interface MyPageScreenProps {
+  historyFooter?: import('react').ReactNode;
   language: Language;
   setLanguage: (language: Language) => void;
   currentUser: CurrentUser | null;
@@ -43,6 +44,7 @@ interface MyPageScreenProps {
 type TabType = 'profile' | 'scan' | 'setting';
 
 export function MyPageScreen({
+  historyFooter,
   language,
   currentUser,
   demoMode,
@@ -266,6 +268,7 @@ export function MyPageScreen({
           </div>
         )}
 
+        {activeTab === 'scan' && historyFooter}
         {activeTab === 'setting' && (
           <div className="space-y-12 px-5 py-8 pb-12">
             {/* 지도 언어: 앱 언어와 별개인 기기 설정(네이버 지도는 ko/en/zh/ja만 지원) */}

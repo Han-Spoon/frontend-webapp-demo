@@ -8,6 +8,7 @@ import { BottomNav } from './BottomNav';
 import { OfflineBanner } from './OfflineBanner';
 
 export function ScanHistoryScreen({
+  footer,
   language,
   history,
   loadFailed,
@@ -16,6 +17,7 @@ export function ScanHistoryScreen({
   onDelete,
   onRename,
 }: {
+  footer?: import('react').ReactNode;
   language: Language;
   history: HistoryItem[];
   /** 서버 기록 목록 불러오기 실패('기록 없음' 숨김) */
@@ -76,6 +78,7 @@ export function ScanHistoryScreen({
             </button>
           </div>
         )}
+        {footer}
       </main>
       <BottomNav language={language} />
     </div>

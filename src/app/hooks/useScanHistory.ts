@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { deleteScan, getScanHistory, updateScanTitle } from '../../api/scan';
+import { useRef, useState } from 'react';
+import { deleteScan, getScanHistoryPage, updateScanTitle } from '../../api/scan';
 import type { VisitRecord } from '../demo/records';
 import { useDemoValue } from '../demo/storage';
 import { LANGUAGE_LOCALES, type Language } from '../locales';
@@ -20,17 +20,23 @@ export function useScanHistory(language: Language, demoMode: boolean) {
   const [serverHistory, setServerHistory] = useState<HistoryItem[]>([]);
   // 서버 기록 목록 불러오기 실패. 빈 목록과 구분해 다시 시도 표시.
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const nextPage = useRef(0);
+  const loadingRef = useRef(false);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
   const history = [...localRecords, ...serverHistory.filter(item => !localRecords.some(record => record.sourceScanId === item.id))];
 
-  const loadHistory = async () => {
+  const loadHistory = async (append = false) => {
     // 시연은 로그인 토큰 없음 → 서버 조회 생략
-    if (demoMode) return;
+    if (demoMode || loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
     try {
       setLoadFailed(false);
-      const items = await getScanHistory();
-      setServerHistory(
-        items.map((item) => ({
+      const page = append ? nextPage.current : 0;
+      const response = await getScanHistoryPage(page);
+      const mapped = (response.items ?? []).map((item) => ({
           id: item.scanId,
           title:
             item.title ??
@@ -41,11 +47,16 @@ export function useScanHistory(language: Language, demoMode: boolean) {
           cautionCount: item.cautionCount ?? null,
           menus: [],
           store: item.store ?? null,
-        })),
-      );
+        }));
+      setServerHistory(previous => append ? [...previous, ...mapped.filter(item => !previous.some(old => old.id === item.id))] : mapped);
+      nextPage.current = page + 1;
+      setHasMore(typeof response.totalPages === 'number' ? page + 1 < response.totalPages : mapped.length === 20);
     } catch (error) {
       console.warn('Unable to fetch scan history:', error);
       setLoadFailed(true);
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
     }
   };
 
@@ -77,11 +88,16 @@ export function useScanHistory(language: Language, demoMode: boolean) {
     history,
     localRecords,
     loadFailed,
+    loading,
+    hasMore,
+    loadMore: () => loadHistory(true),
     loadHistory,
     deleteHistory,
     renameHistory,
     clearServerHistory: () => {
       setServerHistory([]);
+      nextPage.current = 0;
+      setHasMore(false);
       setLoadFailed(false);
     },
   };

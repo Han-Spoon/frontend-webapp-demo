@@ -33,7 +33,7 @@ const dictionary: Record<string, string> = {
   '식당 연결하기 · 선택': 'Añadir restaurante · opcional',
   '식당 연결 해제': 'Quitar restaurante',
   '오늘의 한 끼를 기록했어요': 'Tu comida, guardada',
-  '환율은 매일 00:00 (한국 시간)에 업데이트돼요. 환산 가격은 참고용이에요.': 'El cambio se actualiza a las 00:00 KST. Los importes son orientativos.',
+  '고정 참고 환율로 계산한 가격입니다. 실제 환율과 다를 수 있어요.': 'Los precios usan tipos de cambio de referencia fijos y pueden diferir de los actuales.',
   '나와 같은 프로필의 경험': 'Experiencias de personas como tú',
   'Google ID Token을 받지 못했습니다.': 'No se pudo obtener el token de ID de Google.',
   'Google 로그인에 실패했습니다.': 'No se pudo iniciar sesión con Google.',

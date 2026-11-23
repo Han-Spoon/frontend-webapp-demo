@@ -24,10 +24,12 @@ export function parseKrw(price?: string): number | null {
   const value = Number(cleaned);
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
-export function menuPrice(price: string | undefined, language: Language) {
+export function menuPrice(price: string | undefined, language: Language, rates?: Array<{ quote: string; rate: number }>) {
   const amount = parseKrw(price);
   if (amount === null) return null;
-  const { code, krwPerUnit } = DEMO_CURRENCIES[language];
+  const { code, krwPerUnit: fallbackRate } = DEMO_CURRENCIES[language];
+  const liveRate = rates?.find(item => item.quote === code)?.rate;
+  const krwPerUnit = typeof liveRate === 'number' && Number.isFinite(liveRate) && liveRate > 0 ? liveRate : fallbackRate;
   return {
     original: new Intl.NumberFormat('ko-KR', {
       style: 'currency',

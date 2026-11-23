@@ -317,7 +317,8 @@ function LiveRestaurantMapScreen({
       searchCenter?: { latitude: number; longitude: number };
     } | null
   )?.searchCenter;
-  const [query, setQuery] = useState('');
+  const incoming = routeLocation.state as { initialQuery?: string; selectedStoreId?: number } | null;
+  const [query, setQuery] = useState(incoming?.initialQuery ?? '');
   const [detailStore, setDetailStore] = useState<StoreCandidate | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -358,7 +359,7 @@ function LiveRestaurantMapScreen({
         query={query}
         onQueryChange={setQuery}
         discovery={discovery}
-        initialSelectedId={selectedStore?.storeId ?? null}
+        initialSelectedId={incoming?.selectedStoreId ?? selectedStore?.storeId ?? null}
         onOpenDetail={openDetail}
         onScan={selectAndScan}
       />
@@ -516,7 +517,11 @@ export function StoreMapView({
     if (searchLocation) setViewCenter(searchLocation);
     setMovedByUser(false);
   }, [searchLocation]);
-  useEffect(() => { if (query.trim()) setSelectedId(null); }, [query]);
+  const previousQuery = useRef(query);
+  useEffect(() => {
+    if (previousQuery.current !== query) setSelectedId(null);
+    previousQuery.current = query;
+  }, [query]);
   // 정렬(기본: 서버 순서)·음식 종류. 음식 종류는 핀·카드에도 적용.
   const [sort, setSort] = useState<StoreSort>('default');
   const [category, setCategory] = useState<FoodCategoryId | 'all'>('all');

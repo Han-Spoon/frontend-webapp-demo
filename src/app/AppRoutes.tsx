@@ -1,3 +1,4 @@
+import { createTranslator } from './locales';
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { appliedScanProfile, getScanResult, mapMenuResult } from '../api/scan';
@@ -119,6 +120,8 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
     }
   };
 
+  const t = createTranslator(language);
+  const historyFooter = !demoMode && (scanHistory.hasMore || scanHistory.loading) ? <div className="px-5 pb-5 text-center"><button type="button" disabled={scanHistory.loading} onClick={() => void scanHistory.loadMore()} className="min-h-11 rounded-xl border border-border-warm px-5 text-sm font-bold">{scanHistory.loading ? t('불러오는 중…', 'Loading…', 'جار التحميل…') : t('기록 더 보기', 'Load more records', 'تحميل المزيد من السجلات')}</button></div> : null;
   return (
     <Routes>
       <Route
@@ -164,7 +167,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
       <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
       <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
       <Route path="/restaurants/:id/menu" element={<PartnerMenuScreen language={language} userProfile={userProfile} />} />
-      <Route path="/history" element={<ScanHistoryScreen language={language} history={scanHistory.history} loadFailed={scanHistory.loadFailed} onRetryLoad={() => void scanHistory.loadHistory()} onOpen={openHistory} onDelete={scanHistory.deleteHistory} onRename={scanHistory.renameHistory} />} />
+      <Route path="/history" element={<ScanHistoryScreen footer={historyFooter} language={language} history={scanHistory.history} loadFailed={scanHistory.loadFailed} onRetryLoad={() => void scanHistory.loadHistory()} onOpen={openHistory} onDelete={scanHistory.deleteHistory} onRename={scanHistory.renameHistory} />} />
       <Route
         path="/scan"
         element={
@@ -268,6 +271,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         path="/mypage"
         element={
           <MyPageScreen
+            historyFooter={historyFooter}
             language={language}
             demoMode={demoMode}
             setLanguage={account.changeLanguage}
