@@ -84,6 +84,7 @@ export interface MenuExplainability {
     status: 'observed' | 'inferred' | 'unverified';
     finding: LocalizedMenuText;
   }[];
+  verdict?: LocalizedMenuText;
   decisionReason?: LocalizedMenuText;
   profileRelatedItems?: LocalizedMenuText[];
   ingredients?: MenuIngredientEvidence[];

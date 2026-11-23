@@ -38,6 +38,7 @@ export interface IngredientViewModel extends MenuIngredientEvidence {
 }
 
 export interface MenuResultViewModel {
+  verdictSummary: string;
   primaryReason: string;
   profileRelatedItems: string[];
   ingredients: IngredientViewModel[];
@@ -102,10 +103,14 @@ export function buildMenuResultViewModel(menu: MenuAnalysis, language: Language)
         ar: menu.descriptionAr ?? menu.descriptionEn ?? menu.description,
       });
 
+  const verdictSummary = explainability?.verdict ? localizeMenuText(explainability.verdict, language).trim() : '';
+  const reason = explainability?.decisionReason
+      ? localizeMenuText(explainability.decisionReason, language).trim()
+      : verdictSummary ? '' : firstReason ?? description;
+
   return {
-    primaryReason: explainability?.decisionReason
-      ? localizeMenuText(explainability.decisionReason, language)
-      : firstReason ?? description,
+    verdictSummary,
+    primaryReason: reason === verdictSummary ? '' : reason,
     profileRelatedItems: (explainability?.profileRelatedItems ?? []).map((item) => localizeMenuText(item, language)),
     ingredients: localizedIngredients,
     hiddenIngredientPaths: (explainability?.hiddenIngredientPaths ?? []).map((path) =>

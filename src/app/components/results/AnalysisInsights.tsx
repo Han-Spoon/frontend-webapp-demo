@@ -6,10 +6,8 @@ import { buildMenuResultViewModel, CONFIDENCE_LABELS, getCautionProbabilities, l
 export function CautionInsight({ menu, profile, language, anyProfile = false }: { menu: MenuAnalysis; profile: UserProfile | null; language: Language; anyProfile?: boolean }) {
   const t = createTranslator(language);
   const evidence = getCautionProbabilities(menu, profile, anyProfile);
-  const vm = buildMenuResultViewModel(menu, language);
   return <section className="overflow-hidden rounded-2xl border border-status-caution-border bg-status-caution-surface" aria-label={t('주의 판정 요약', 'Caution at a glance', 'ملخص التنبيه')}>
     <div className="flex items-center gap-2 border-b border-status-caution-border/60 px-4 py-3 text-status-caution-text"><ShieldQuestion className="size-5" /><h4 className="text-sm font-extrabold">{t('확인하고 선택해요', 'Check before choosing', 'تحقق قبل الاختيار')}</h4><span className="ms-auto text-[10px] font-semibold">{t('재료 확인 필요', 'Ingredients to verify', 'تحقق من المكونات')}</span></div>
-    {vm.primaryReason && <p className="px-4 pt-3 text-sm font-semibold leading-6 text-text-primary">{vm.primaryReason}</p>}
     {evidence.length > 0 ? <div className="grid grid-cols-1 gap-2 p-3 min-[380px]:grid-cols-2">{evidence.map((ingredient, index) => <div key={index} className="flex items-center gap-2 rounded-xl border border-white/70 bg-white/80 p-3">
       <div className="relative size-14 shrink-0" role="img" aria-label={`${localizeMenuText(ingredient.name, language)} ${ingredient.inclusionProbability?.toFixed(1)}%`}>
         <svg viewBox="0 0 64 64" className="size-full -rotate-90" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--color-status-caution-border, #e9d8ad)" strokeWidth="5" /><circle cx="32" cy="32" r="27" fill="none" stroke="var(--color-status-caution, #b97b20)" strokeWidth="5" pathLength="100" strokeDasharray={`${ingredient.inclusionProbability} 100`} strokeLinecap="round" /></svg>

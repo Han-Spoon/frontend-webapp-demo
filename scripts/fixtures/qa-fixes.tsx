@@ -2,6 +2,7 @@
 import React, { Suspense, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { ResultsScreen } from '../../src/app/components/ResultsScreen';
 import { SavedMenusScreen } from '../../src/app/components/SavedMenusScreen';
 import { MyReviewsScreen } from '../../src/app/components/reviews/MyReviewsScreen';
 import { OwnerCommunicationSheet } from '../../src/app/components/OwnerCommunicationSheet';
@@ -20,8 +21,9 @@ const Failed = lazyScreen(async () => { throw new TypeError('Fixture obsolete ch
 function QA() {
  const [screen,setScreen]=useState('saved'); const [ar,setAr]=useState(false); const [closed,setClosed]=useState(false);
  const language=ar?'ar':'ko';
- return <><aside style={{position:'fixed',left:0,top:0,zIndex:100,padding:8,background:'white',maxWidth:180}}><b>LOCAL QA ONLY</b>{['saved','reviews','owner','map','chunk'].map(s=><button style={{display:'block',padding:8}} key={s} onClick={()=>{setScreen(s);setClosed(false);}}>{s}</button>)}<button onClick={()=>setAr(!ar)}>Arabic</button><p id="requests">Unexpected requests: 0</p></aside><main dir={ar?'rtl':'ltr'} style={{position:'relative',margin:'auto',width:430,height:'100dvh'}} key={screen+ar}>
- {screen==='saved'&&<SavedMenusScreen language={language}/>}
+ return <><aside style={{position:'fixed',left:0,top:0,zIndex:100,padding:8,background:'white',maxWidth:180}}><b>LOCAL QA ONLY</b>{['saved','reviews','owner','map','chunk','result'].map(s=><button style={{display:'block',padding:8}} key={s} onClick={()=>{setScreen(s);setClosed(false);}}>{s}</button>)}<button onClick={()=>setAr(!ar)}>Arabic</button><p id="requests">Unexpected requests: 0</p></aside><main dir={ar?'rtl':'ltr'} style={{position:'relative',margin:'auto',width:430,height:'100dvh'}} key={screen+ar}>
+ {screen==='result'&&<ResultsScreen language={language} menus={[{...menu, explainability:{...menu.explainability,verdict:{ko:'Fixture verdict summary',en:'Fixture verdict summary',ar:'ملخص الحكم'},decisionReason:{ko:'Fixture detailed reason',en:'Fixture detailed reason',ar:'سبب مفصل'}}}]} userProfile={null} scanProfileUnknown demoMode onBack={()=>setScreen('saved')} onRescan={()=>{}}/>}
+ {screen==='saved' &&<SavedMenusScreen language={language}/>}
  {screen==='reviews'&&<MyReviewsScreen language={language} profile={null}/>}
  {screen==='owner'&&(closed?<p>Sheet closed</p>:<OwnerCommunicationSheet language={language} menu={menu} userProfile={null} type="request" demoMode onClose={()=>setClosed(true)}/>)}
  {screen==='map'&&<MapStorePanel language={language} stores={stores} selectedId={-20261123} onSelect={()=>{}} origin={null} onOpenDetail={()=>{}} onScan={()=>{}}/>}

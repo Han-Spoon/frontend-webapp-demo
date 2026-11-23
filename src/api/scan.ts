@@ -286,7 +286,8 @@ export function mapMenuResult(menu: MenuResult, index: number, locale: Language 
     descriptionEn: menu.descriptionEn ?? undefined,
     descriptionLocalized: menu.translatedDescription ? { ko: menu.description ?? '', [locale]: menu.translatedDescription } : undefined,
     explainability: v2Message || legacyMessage || riskIngredients.length ? {
-      decisionReason: v2Message ? localized(v2Message.reason || v2Message.verdict) : legacyMessage ? {
+      verdict: v2Message ? localized(v2Message.verdict.trim()) : undefined,
+      decisionReason: v2Message ? localized(v2Message.reason?.trim() ?? '') : legacyMessage ? {
         ko: legacyMessage.ko || legacyMessage.en || legacyMessage.ar || '',
         en: legacyMessage.en ?? undefined, ar: legacyMessage.ar ?? undefined,
       } : undefined,

@@ -6,9 +6,17 @@ const originalStorage = globalThis.localStorage;
 try {
   globalThis.localStorage = { getItem: () => null };
   const { mapMenuResult, getScanHistoryPage } = await server.ssrLoadModule('/src/api/scan.ts');
-  const { getCautionProbabilities } = await server.ssrLoadModule('/src/app/results/resultViewModel.ts');
+  const { getCautionProbabilities, buildMenuResultViewModel } = await server.ssrLoadModule('/src/app/results/resultViewModel.ts');
   const base = { nationality: 'KR', languageCode: 'ko', isFirstTime: false, isVegan: false, hasReligion: false, hasAllergies: false, allergies: [], noSpicy: false, noAlcohol: false };
   const make = (tag, probability = 0.4, level = 'caution') => ({ displayName: 'test', riskLevel: level, matchedTags: [tag], riskIngredients: [{ name: {ko: 'test'}, status: 'unknown', posteriorMean: probability, matchedTags: [tag], confidence: 0.6, priorSource: 'store' }], evidenceBasis: 'estimated', informationStatus: 'partial', message: { verdict: 'verdict', reason: 'reason', notes: [{code: 'hard_to_remove', text: 'note'}] }, priceOptions: [{label:'2인', priceText:'18000', inferred:true}] });
+  for (const level of ['safe', 'caution', 'danger', 'unknown']) {
+    for (const [verdict, reason, expected] of [['Summary', 'Detail', 'Detail'], ['Summary', null, ''], ['Summary', '  ', ''], ['Same', ' Same ', ''], ['', 'Detail', 'Detail']]) {
+      const mapped = mapMenuResult({ ...make('is_shrimp', 0.4, level), message: { verdict, reason } }, 0, 'ar', base);
+      const vm = buildMenuResultViewModel(mapped, 'ar');
+      assert.equal(vm.verdictSummary, verdict);
+      assert.equal(vm.primaryReason, expected);
+    }
+  }
   for (const [profile, tag, expected] of [
     [{hasAllergies:true, allergies:['shrimp']},'is_shrimp',true],
     [{hasAllergies:true, allergies:['milk']},'is_shrimp',false],
