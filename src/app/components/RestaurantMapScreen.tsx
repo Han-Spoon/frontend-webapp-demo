@@ -1,3 +1,5 @@
+import { liveFeatures } from '../featureAvailability';
+import { preparingLabel, preparingMessage } from './FeaturePreparing';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -317,7 +319,7 @@ function LiveRestaurantMapScreen({
       searchCenter?: { latitude: number; longitude: number };
     } | null
   )?.searchCenter;
-  const incoming = routeLocation.state as { initialQuery?: string; selectedStoreId?: number } | null;
+  const incoming = routeLocation.state as { initialQuery?: string; selectedStoreId?: number; selectedStore?: StoreCandidate } | null;
   const [query, setQuery] = useState(incoming?.initialQuery ?? '');
   const [detailStore, setDetailStore] = useState<StoreCandidate | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -331,7 +333,7 @@ function LiveRestaurantMapScreen({
     locateUser: !initialSearchCenter,
   });
   useEffect(() => {
-    if (!detailStore || !showReviews) return;
+    if (!detailStore || !showReviews || !liveFeatures.reviews) return;
     let active = true;
     setReviews([]);
     setReviewsError('');
@@ -358,12 +360,12 @@ function LiveRestaurantMapScreen({
         language={language}
         query={query}
         onQueryChange={setQuery}
-        discovery={discovery}
+        discovery={{ ...discovery, candidates: incoming?.selectedStore && !query.trim() && discovery.searchLocation?.latitude === initialSearchCenter?.latitude && discovery.searchLocation?.longitude === initialSearchCenter?.longitude ? [incoming.selectedStore, ...discovery.candidates.filter(item => item.storeId !== incoming.selectedStore?.storeId)] : discovery.candidates }}
         initialSelectedId={incoming?.selectedStoreId ?? selectedStore?.storeId ?? null}
         onOpenDetail={openDetail}
         onScan={selectAndScan}
       />
-      {detailStore && showReviews && <BottomSheet language={language} title={storeDisplayName(detailStore)} description={detailStore.roadAddress ?? detailStore.categoryName ?? ''} onClose={() => setShowReviews(false)}><button type="button" onClick={() => selectAndScan(detailStore)} className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-brand-primary text-sm font-extrabold text-white"><Camera className="size-4" />{t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}</button><div className="border-t border-border-warm pt-5"><RestaurantReviewList key={detailStore.storeId} language={language} profile={userProfile} reviews={reviews} reviewCount={detailStore.reviewCount} loading={reviewsLoading} error={reviewsError} onRetry={() => setReviewRefresh(value => value + 1)} onReport={async (review, reason) => { await reportReview(review.id, reason); }} /></div><button type="button" onClick={() => { setShowReviews(false); setReviewing(true); }} className="mt-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button></BottomSheet>}
+      {detailStore && showReviews && <BottomSheet language={language} title={storeDisplayName(detailStore)} description={detailStore.roadAddress ?? detailStore.categoryName ?? ''} onClose={() => setShowReviews(false)}><button type="button" onClick={() => selectAndScan(detailStore)} className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-brand-primary text-sm font-extrabold text-white"><Camera className="size-4" />{t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}</button><div className="border-t border-border-warm pt-5"><>{!liveFeatures.reviews ? <p role="status" className="rounded-xl bg-surface-subtle p-4 text-sm">{preparingMessage(language)}</p> : <RestaurantReviewList key={detailStore.storeId} language={language} profile={userProfile} reviews={reviews} reviewCount={detailStore.reviewCount} loading={reviewsLoading} error={reviewsError} onRetry={() => setReviewRefresh(value => value + 1)} onReport={async (review, reason) => { await reportReview(review.id, reason); }} />}</></div><button type="button" disabled={!liveFeatures.reviews} onClick={() => { setShowReviews(false); setReviewing(true); }} className="mt-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}{!liveFeatures.reviews && ` · ${preparingLabel(language)}`}</button></BottomSheet>}
       {detailStore && reviewing && <MealReviewSheet language={language} profile={userProfile} store={{ id: detailStore.storeId, name: storeDisplayName(detailStore) }} demoMode={false} onClose={() => setReviewing(false)} onSaved={() => { setShowReviews(true); setReviewRefresh(value => value + 1); discovery.retrySearch(); }} />}
     </>
   );

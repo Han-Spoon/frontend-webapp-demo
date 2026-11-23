@@ -265,6 +265,14 @@ const dictionary: Record<string, string> = {
   '아직 확인 기록이 충분하지 않아요.': 'Aún no hay suficientes registros de confirmación',
   '홈으로': 'Volver al inicio',
   '메뉴 스캔하기': 'Escanear un menú',
+"저장한 음식을 불러오지 못했어요.": "No se pudieron cargar los platos guardados.",
+"스캔 기록과 별도로 찜한 음식을 모았어요.": "Platos guardados aparte del historial de escaneos.",
+"저장한 음식을 불러오는 중이에요.": "Cargando platos guardados…",
+"아직 찜한 음식이 없어요.": "Todavía no hay platos guardados.",
+"포함 확인": "Presencia confirmada",
+"미포함 확인": "Ausencia confirmada",
+"포함 여부 확인 필요": "Hay que confirmar su presencia",
+"후기 작성": "Escribir una reseña",
 };
 
 export default dictionary;

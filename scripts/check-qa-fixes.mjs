@@ -13,6 +13,9 @@ try {
   assert.equal(reloads, 0, 'Do not discard unsaved input automatically');
   lazy.retryFailedScreens();
   assert.equal(reloads, 1, 'Explicit recovery reloads the document, not the obsolete chunk');
+  const { deduplicateStores } = await server.ssrLoadModule('/src/api/store.ts');
+  const store = { storeId: 1, name: 'Fixture', roadAddress: 'Road 1', latitude: 37, longitude: 127 };
+  assert.deepEqual(deduplicateStores([store, { ...store, storeId: 2 }, { ...store, storeId: 3, branchName: 'Second' }, { ...store, storeId: 4, latitude: 38 }]).map(item => item.storeId), [1, 3, 4]);
   const config = JSON.parse(readFileSync('vercel.json', 'utf8'));
   const spa = new RegExp(`^${config.rewrites.at(-1).source}$`);
   for (const path of ['/map', '/cards', '/home', '/curation/sauce-on-side']) assert.ok(spa.test(path));

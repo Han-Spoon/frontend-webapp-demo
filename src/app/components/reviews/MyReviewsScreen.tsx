@@ -1,4 +1,7 @@
 import { isEndpointUnavailable } from '../../../api/user';
+import { liveFeatures } from '../../featureAvailability';
+import { FeaturePreparing } from '../FeaturePreparing';
+import { translateText } from '../../locales';
 import { remoteFeatureUnavailable } from '../remoteFeatureMessage';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
@@ -13,6 +16,10 @@ import { OfflineBanner } from '../OfflineBanner';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 
 export function MyReviewsScreen({ language, profile, demoMode }: { language: Language; profile: UserProfile | null; demoMode: boolean }) {
+  if (!demoMode && !liveFeatures.reviews) return <FeaturePreparing language={language} title={translateText(language, { ko: '내가 작성한 후기', en: 'My reviews', ar: 'مراجعاتي', 'zh-CN': '我的评价', 'zh-TW': '我的評論', ja: '自分のレビュー', es: 'Mis reseñas' })} />;
+  return <MyReviewsContent language={language} profile={profile} demoMode={demoMode} />;
+}
+function MyReviewsContent({ language, profile, demoMode }: { language: Language; profile: UserProfile | null; demoMode: boolean }) {
   const navigate = useNavigate();
   const t = createTranslator(language);
   const [reviews, setReviews] = useState<RestaurantReview[]>(demoMode ? listDemoMyReviews() : []);

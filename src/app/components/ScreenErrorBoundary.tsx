@@ -28,7 +28,7 @@ export class ScreenErrorBoundary extends Component<ScreenErrorBoundaryProps, Scr
   }
 
   componentDidUpdate(previous: ScreenErrorBoundaryProps) {
-    if (this.state.hasError && previous.resetKey !== this.props.resetKey) this.reset();
+    if (this.state.hasError && previous.resetKey !== this.props.resetKey) this.setState({ hasError: false });
   }
 
   reset = () => {

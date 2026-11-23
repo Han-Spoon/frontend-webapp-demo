@@ -189,7 +189,7 @@ export function OnboardingScreen({ language, setLanguage, initialProfile, onComp
           )}
           <h2 className="mx-auto max-w-[330px] text-[22px] font-extrabold leading-tight tracking-[-0.03em] text-soy-ink">{stepTitle}</h2>
           <p className="mx-auto mt-3 max-w-[320px] text-sm leading-6 text-sesame-gray">
-            {t(
+            {step === 2 ? translateText(language, { ko: '국가를 선택해 주세요. 환산 통화는 앱 언어를 기준으로 표시해요.', en: 'Choose your country. Converted prices use the app language to select currency.', ar: 'اختر بلدك. تحدد لغة التطبيق عملة الأسعار المحولة.', 'zh-CN': '请选择国家。换算货币根据应用语言显示。', 'zh-TW': '請選擇國家。換算貨幣依應用程式語言顯示。', ja: '国を選んでください。換算通貨はアプリの言語に基づきます。', es: 'Elige tu país. La moneda de conversión depende del idioma de la app.' }) : t(
               step === 1 ? '앱에서 쓸 언어를 골라 주세요.' : step === 2 ? '사는 곳에 맞는 언어와 통화 정보를 알려 드려요.' : '해당하는 것만 고르면 돼요.',
               step === 1 ? 'Choose the language you want to use.' : step === 2 ? 'We use this for local language and currency guidance.' : 'Select only what matters to you.',
               step === 1 ? 'اختر اللغة التي تريد استخدامها.' : step === 2 ? 'نستخدمها لإرشادات اللغة والعملة.' : 'اختر فقط ما يهمك.',

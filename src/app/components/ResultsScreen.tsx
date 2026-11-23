@@ -1,4 +1,6 @@
 import { getExchangeRates, type ExchangeRates } from '../../api/exchangeRates';
+import { liveFeatures } from '../featureAvailability';
+import { preparingLabel, preparingMessage } from './FeaturePreparing';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useNavigate } from 'react-router-dom';
@@ -126,11 +128,11 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const navigate = useNavigate();
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
   useEffect(() => {
-    if (demoMode) return;
+    if (demoMode || !liveFeatures.exchangeRates || language === 'ko') return;
     let active = true;
     getExchangeRates().then(data => { if (active) setExchangeRates(data); }).catch(() => { if (active) setExchangeRates(null); });
     return () => { active = false; };
-  }, [demoMode]);
+  }, [demoMode, language]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [selectedMenu, setSelectedMenu] = useState<MenuAnalysis | null>(null);
@@ -176,6 +178,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   const dietEmpty = !verdictBasisUnknown && profileSummary.length === 0;
   const editDiet = () => navigate('/onboarding', { state: { editSection: 'diet' } });
   const startReview = () => {
+    if (!demoMode && !liveFeatures.reviews) return;
     const knownStore = store ?? savedRecord?.store;
     if (knownStore) { setReviewStore({ id: knownStore.storeId, name: knownStore.name, linkedToScan: true }); return; }
     if (restaurant) { setReviewStore({ id: restaurant.id, name: localizeMenuText(restaurant.name, language), linkedToScan: true }); return; }
@@ -183,11 +186,12 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
   };
 
   useEffect(() => {
-    if (demoMode || !sourceScanId) return;
+    if (demoMode || !sourceScanId || !liveFeatures.savedMenus) return;
     getSavedMenus().then(setServerSavedMenus).catch(() => setFavoriteError(t('찜 목록을 불러오지 못했어요.', 'Could not load saved menus.', 'تعذر تحميل الأطباق المحفوظة.')));
   }, [demoMode, sourceScanId]);
 
   const toggleFavorite = async (menu: MenuAnalysis, key: string, existing: SavedMenu | undefined) => {
+    if (!demoMode && !liveFeatures.savedMenus) return;
     if (favoritePending) return;
     setFavoritePending(key);
     setFavoriteError('');
@@ -338,6 +342,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
           </div>
         </section>
 
+        {!demoMode && !liveFeatures.savedMenus && <p role="status" className="mx-5 mt-3 text-xs text-text-secondary">{t('저장한 음식', 'Saved dishes', 'الأطباق المحفوظة')} · {preparingLabel(language)}</p>}
         {favoriteError && <p role="alert" className="mx-5 mt-3 rounded-xl bg-status-danger-surface p-3 text-xs text-status-danger-text">{favoriteError}</p>}
 
         {showVerdicts && <nav className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b border-border-warm bg-surface-base/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t('결과 필터', 'Result filters', 'مرشحات النتائج')}>
@@ -386,7 +391,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             return (
               <Fragment key={menu.id}>
                 <article className="relative overflow-hidden rounded-[var(--radius-card)] border border-border-warm bg-surface-raised shadow-[var(--shadow-card)]">
-                  <button type="button" aria-label={`${liked ? t('찜 해제', 'Remove saved menu', 'إزالة الطبق المحفوظ') : t('메뉴 찜하기', 'Save menu', 'احفظ الطبق')}: ${menu.menuName}`} aria-pressed={liked} disabled={favoritePending === favoriteKey} onClick={() => void toggleFavorite(menu, favoriteKey, favorite)} className={`absolute end-1.5 top-1.5 z-[1] flex size-11 items-center justify-center rounded-full disabled:opacity-50 ${liked ? 'bg-brand-accent-soft text-brand-accent' : 'bg-surface-subtle text-text-tertiary'}`}><Heart className={`size-5 ${liked ? 'fill-current' : ''}`} /></button>
+                  <button type="button" aria-label={`${liked ? t('찜 해제', 'Remove saved menu', 'إزالة الطبق المحفوظ') : t('메뉴 찜하기', 'Save menu', 'احفظ الطبق')}: ${menu.menuName}`} aria-pressed={liked} disabled={(!demoMode && !liveFeatures.savedMenus) || favoritePending === favoriteKey} title={!demoMode && !liveFeatures.savedMenus ? preparingLabel(language) : undefined} onClick={() => void toggleFavorite(menu, favoriteKey, favorite)} className={`absolute end-1.5 top-1.5 z-[1] flex size-11 items-center justify-center rounded-full disabled:opacity-50 ${liked ? 'bg-brand-accent-soft text-brand-accent' : 'bg-surface-subtle text-text-tertiary'}`}><Heart className={`size-5 ${liked ? 'fill-current' : ''}`} /></button>
                   <div className="flex gap-3 border-b border-border-warm p-3">
                     <div className="size-20 shrink-0 overflow-hidden rounded-[18px] border border-border-warm bg-surface-subtle"><MenuImage menu={menu} translatedName={translatedName} t={t} /></div>
                     <div className="min-w-0 flex-1 space-y-1 pe-10">
@@ -412,7 +417,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             );
           })}
 
-          {menuList.length > 0 && <p className="px-1 text-center text-[10px] leading-5 text-text-tertiary">{exchangeRates ? t(`환율 기준: ${exchangeRates.asOf} · 환산 가격은 참고용이에요.`, `Rates as of ${exchangeRates.asOf} · Converted prices are estimates.`, `أسعار الصرف بتاريخ ${exchangeRates.asOf} · الأسعار تقريبية.`) : t('고정 참고 환율로 계산한 가격입니다. 실제 환율과 다를 수 있어요.', 'Prices use fixed reference rates and may differ from current rates.', 'تستخدم الأسعار أسعار صرف مرجعية ثابتة وقد تختلف عن الأسعار الحالية.')}</p>}
+          {language !== 'ko' && menuList.some(menu => menuPrice(menu.price, language)?.converted) && <p className="px-1 text-center text-[10px] leading-5 text-text-tertiary">{exchangeRates ? t(`환율 기준: ${exchangeRates.asOf} · 환산 가격은 참고용이에요.`, `Rates as of ${exchangeRates.asOf} · Converted prices are estimates.`, `أسعار الصرف بتاريخ ${exchangeRates.asOf} · الأسعار تقريبية.`) : t('고정 참고 환율로 계산한 가격입니다. 실제 환율과 다를 수 있어요.', 'Prices use fixed reference rates and may differ from current rates.', 'تستخدم الأسعار أسعار صرف مرجعية ثابتة وقد تختلف عن الأسعار الحالية.')}</p>}
           {favoriteError && <p role="alert" className="text-center text-xs text-status-danger-text">{favoriteError}</p>}
           {recommendedArticles.length > 0 && <section className="border-t border-border-warm pt-6"><p className="eyebrow">{t('A LITTLE MORE KOREA', 'A LITTLE MORE KOREA', 'المزيد عن كوريا')}</p><h3 className="mb-4 mt-1 text-lg font-extrabold">{t('메뉴를 골랐다면, 한식 이야기', 'Chosen your dish? Discover its story.', 'اخترت طبقك؟ اكتشف قصته.')}</h3><div className="space-y-2">{recommendedArticles.map(article => <button key={article.id} onClick={() => navigate(`/curation/${article.id}`)} className="flex w-full items-center gap-3 rounded-2xl border border-border-warm bg-rice-white p-3 text-start"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-accent-soft text-2xl">{article.emoji}</span><span className="min-w-0 flex-1"><span className="block text-sm font-bold">{translateText(language, article.title)}</span><span className="mt-1 block line-clamp-1 text-xs text-text-secondary">{translateText(language, article.excerpt)}</span></span><ChevronRight className="size-4 rtl:rotate-180" /></button>)}</div></section>}
 
@@ -429,7 +434,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
       <footer className="grid shrink-0 grid-cols-2 gap-3 border-t border-border-warm bg-surface-raised/95 px-5 py-3 backdrop-blur">
         <button onClick={onRescan} className="min-h-12 rounded-xl border border-action-primary bg-surface-raised px-3 text-sm font-extrabold text-action-primary hover:bg-action-primary-soft">{partnerRestaurantId ? t('프로필 수정하기', 'Edit profile', 'تعديل الملف') : t('다시 스캔하기', 'Scan again', 'المسح مرة أخرى')}</button>
         <button disabled={menuList.length === 0} onClick={() => setSaveOpen(true)} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-action-primary px-3 text-sm font-extrabold text-action-primary-foreground disabled:opacity-40"><Bookmark className="size-4" />{saved ? t('기록 수정', 'Edit record', 'تعديل السجل') : t('기록하기', 'Keep this scan', 'احفظ المسح')}</button>
-        {saved && <button type="button" onClick={startReview} className="col-span-2 min-h-11 rounded-xl border border-action-primary text-sm font-extrabold text-action-primary">{t('식당 후기 작성', 'Write a restaurant review', 'اكتب مراجعة للمطعم')}</button>}
+        {saved && <button type="button" disabled={!demoMode && !liveFeatures.reviews} onClick={startReview} className="col-span-2 min-h-11 rounded-xl border border-action-primary text-sm font-extrabold text-action-primary">{t('식당 후기 작성', 'Write a restaurant review', 'اكتب مراجعة للمطعم')}{!demoMode && !liveFeatures.reviews && ` · ${preparingLabel(language)}`}</button>}
       </footer>
 
       {saveOpen && <SaveScanSheet language={language} menus={menuList} profile={userProfile} recordId={recordId} sourceScanId={sourceScanId} restaurantId={restaurantId} scanStore={store} scanRecord={savedRecord} onClose={() => setSaveOpen(false)} onSaved={(nextRecord) => { setSavedRecord(nextRecord ?? null); setSaved(true); onSavedRecord?.(); }} />}

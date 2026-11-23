@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { Bookmark, Camera, ChevronRight, Clock, List, Map as MapIcon, Star, Utensils } from 'lucide-react';
 import type { StoreCandidate } from '../../../api/store';
 import type { StoreSearchOrigin } from '../../hooks/useStoreCandidates';
@@ -58,6 +58,16 @@ function readSaved(): number[] {
 /** 가게 저장(저장 API 전까지 기기에만) */
 function useSavedStores() {
   const [saved, setSaved] = useState<number[]>(readSaved);
+  const [snapshots, setSnapshots] = useState<StoreCandidate[]>(() => {
+    try { const data = JSON.parse(localStorage.getItem(`${SAVED_KEY}:details`) ?? '[]'); return Array.isArray(data) ? data.filter(item => item && typeof item.storeId === 'number' && typeof item.name === 'string') : []; } catch { return []; }
+  });
+  const remember = useCallback((stores: StoreCandidate[]) => {
+    const next = stores.filter(store => saved.includes(store.storeId));
+    const merged = [...next, ...snapshots.filter(store => saved.includes(store.storeId) && !next.some(item => item.storeId === store.storeId))];
+    if (JSON.stringify(merged) === JSON.stringify(snapshots)) return;
+    setSnapshots(merged);
+    try { localStorage.setItem(`${SAVED_KEY}:details`, JSON.stringify(merged)); } catch { /* Keep this session usable. */ }
+  }, [saved, snapshots]);
   const toggle = (storeId: number) => {
     setSaved((current) => {
       const next = current.includes(storeId) ? current.filter((id) => id !== storeId) : [...current, storeId];
@@ -65,7 +75,7 @@ function useSavedStores() {
       return next;
     });
   };
-  return { saved, toggle };
+  return { saved, toggle, snapshots, remember };
 }
 
 function StoreCard({
@@ -203,11 +213,17 @@ function ControlRow({ start, center, end, className = '', style }: { start?: Rea
  * - 선택 있음: 단일 카드. 옆으로 넘기면 주변 가게로 이동하고 지도 선택도 따라간다.
  */
 export function MapStorePanel(props: MapStorePanelProps) {
-  const { saved, toggle } = useSavedStores();
+  const { saved, toggle, snapshots, remember } = useSavedStores();
+  const [savedOnly, setSavedOnly] = useState(false);
+  useEffect(() => { remember(props.stores); }, [props.stores, remember]);
+  const tr = (text: Parameters<typeof translateText>[1]) => translateText(props.language, text);
+  const deviceNote = tr({ ko: '이 브라우저에만 저장돼요. 저장 당시 정보이며 다른 기기와 동기화되지 않아요.', en: 'Saved in this browser only. Details reflect when saved and do not sync across devices.', ar: 'محفوظة في هذا المتصفح فقط. المعلومات تعود لوقت الحفظ ولا تتزامن بين الأجهزة.', 'zh-CN': '仅保存在此浏览器中，为保存时的信息，不跨设备同步。', 'zh-TW': '僅儲存在此瀏覽器中，為儲存時的資訊，不跨裝置同步。', ja: 'このブラウザのみの保存です。保存時点の情報で、他の端末とは同期しません。', es: 'Guardado solo en este navegador, con los datos del momento de guardado. No se sincroniza entre dispositivos.' });
+  const controls = <button type="button" onClick={() => setSavedOnly(!savedOnly)} aria-pressed={savedOnly} className="min-h-11 rounded-full border border-border-warm bg-surface-raised px-3 text-xs font-bold shadow-sm">{savedOnly ? tr({ ko: '검색 결과로', en: 'Search results', ar: 'نتائج البحث', 'zh-CN': '搜索结果', 'zh-TW': '搜尋結果', ja: '検索結果へ', es: 'Resultados' }) : tr({ ko: '이 기기에 저장한 가게', en: 'Saved on this device', ar: 'المحفوظة على هذا الجهاز', 'zh-CN': '本机收藏餐厅', 'zh-TW': '本機收藏餐廳', ja: 'この端末に保存した店', es: 'Guardados en este dispositivo' })} ({snapshots.filter(item => saved.includes(item.storeId)).length})</button>;
+  if (savedOnly) return <><StoreListSheet {...props} stores={snapshots.filter(item => saved.includes(item.storeId))} selectedId={null} origin={null} expandSignal="saved" toolbar={() => <div className="space-y-2 px-4">{controls}<p className="text-xs text-text-secondary">{deviceNote}</p></div>} mapControls={undefined} fallback={snapshots.some(item => saved.includes(item.storeId)) ? undefined : <p className="p-4 text-sm">{tr({ ko: '저장한 가게가 없어요. 검색 결과의 북마크를 눌러 저장해 주세요.', en: 'No saved restaurants. Use the bookmark in search results.', ar: 'لا توجد مطاعم محفوظة. استخدم علامة الحفظ في نتائج البحث.', 'zh-CN': '还没有收藏的餐厅。请在搜索结果中点击收藏。', 'zh-TW': '尚未收藏餐廳。請在搜尋結果中點選收藏。', ja: '保存した店はありません。検索結果のブックマークから保存できます。', es: 'No hay restaurantes guardados. Usa el marcador en los resultados.' })}</p>} saved={saved} onToggleSave={toggle} /></>;
   const selected = props.selectedId === null ? null : props.stores.find((store) => store.storeId === props.selectedId) ?? null;
-  return selected
-    ? <StoreCarousel {...props} selectedId={selected.storeId} saved={saved} onToggleSave={toggle} />
-    : <StoreListSheet {...props} saved={saved} onToggleSave={toggle} />;
+  return <>{selected
+    ? <><div className="absolute end-3 top-28 z-40">{controls}</div><StoreCarousel {...props} selectedId={selected.storeId} saved={saved} onToggleSave={toggle} /></>
+    : <StoreListSheet {...props} toolbar={state => <><div className="px-4 pb-2">{controls}</div>{props.toolbar?.(state)}</>} saved={saved} onToggleSave={toggle} />}</>;
 }
 
 function StoreListSheet({

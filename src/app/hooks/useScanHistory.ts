@@ -15,7 +15,7 @@ const formatHistoryTitle = (language: Language, date: Date) => {
   }).format(date);
 };
 
-/** 스캔 기록 목록: 서버 기록 + 기기 저장 기록(같은 스캔은 기기 기록 우선). 시연은 기기 기록만. */
+/** 운영은 서버 기록만, 시연은 기기 기록만 표시한다. 기존 시연 데이터는 삭제하지 않는다. */
 export function useScanHistory(language: Language, demoMode: boolean) {
   const [serverHistory, setServerHistory] = useState<HistoryItem[]>([]);
   // 서버 기록 목록 불러오기 실패. 빈 목록과 구분해 다시 시도 표시.
@@ -25,7 +25,8 @@ export function useScanHistory(language: Language, demoMode: boolean) {
   const nextPage = useRef(0);
   const loadingRef = useRef(false);
   const [localRecords, setLocalRecords] = useDemoValue<VisitRecord[]>('records', []);
-  const history = [...localRecords, ...serverHistory.filter(item => !localRecords.some(record => record.sourceScanId === item.id))];
+  // Keep legacy demo data on disk, but never present it as authenticated server history.
+  const history = demoMode ? localRecords : serverHistory;
 
   const loadHistory = async (append = false) => {
     // 시연은 로그인 토큰 없음 → 서버 조회 생략
@@ -61,7 +62,7 @@ export function useScanHistory(language: Language, demoMode: boolean) {
   };
 
   const deleteHistory = async (id: string) => {
-    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.filter(record => record.id !== id)); return; }
+    if (demoMode && localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.filter(record => record.id !== id)); return; }
     try {
       await deleteScan(id);
       setServerHistory((prev) => prev.filter((item) => item.id !== id));
@@ -74,7 +75,7 @@ export function useScanHistory(language: Language, demoMode: boolean) {
   const renameHistory = async (id: string, title: string) => {
     const normalizedTitle = title.trim();
     if (!normalizedTitle || normalizedTitle.length > 30) return;
-    if (localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title: normalizedTitle } : record)); return; }
+    if (demoMode && localRecords.some(record => record.id === id)) { setLocalRecords(localRecords.map(record => record.id === id ? { ...record, title: normalizedTitle } : record)); return; }
     try {
       await updateScanTitle(id, normalizedTitle);
       setServerHistory((prev) => prev.map((item) => (item.id === id ? { ...item, title: normalizedTitle } : item)));

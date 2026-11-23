@@ -5,6 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { SavedMenusScreen } from '../../src/app/components/SavedMenusScreen';
 import { MyReviewsScreen } from '../../src/app/components/reviews/MyReviewsScreen';
 import '../../src/styles/index.css';
+import { liveFeatures } from '../../src/app/featureAvailability';
+// This explicit contract fixture tests future enabled responses, not production availability.
+liveFeatures.savedMenus = true;
+liveFeatures.reviews = true;
 
 type Scenario = 'success' | 'empty' | 'unavailable' | 'invalid';
 let scenario: Scenario = 'success';

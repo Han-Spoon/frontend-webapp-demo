@@ -60,5 +60,19 @@ export async function findStoreCandidates(
   if (!Array.isArray(data.items)) {
     throw new Error('Invalid store candidate response.');
   }
-  return data.items;
+  return deduplicateStores(data.items);
+}
+
+/** Collapse exact duplicates only; keep distinct branches or differing coordinates. */
+export function deduplicateStores(items: StoreCandidate[]): StoreCandidate[] {
+  const seen = new Set<string>();
+  return items.filter(item => {
+    const address = item.roadAddress?.trim().replace(/\s+/g, ' ');
+    const key = address && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
+      ? JSON.stringify([item.name.trim(), item.branchName?.trim() ?? '', address, item.latitude, item.longitude])
+      : 'id:' + item.storeId;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

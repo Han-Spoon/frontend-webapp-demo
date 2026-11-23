@@ -5,13 +5,13 @@ export type LazyScreen<P> = ComponentType<P> & {
   preload: () => void;
 };
 
-let loadFailed = false;
-export const hasScreenLoadFailure = () => loadFailed;
+const failedLoads = new Set<() => unknown>();
+export const hasScreenLoadFailure = () => failedLoads.size > 0;
 const failureResets = new Set<() => void>();
 
 /** 받기 실패한 화면을 다음 렌더에서 다시 받게 함. 화면 오류 경계 [다시 시도]에서 호출. */
 export function retryFailedScreens() {
-  if (loadFailed) { window.location.reload(); return; }
+  if (hasScreenLoadFailure()) { window.location.reload(); return; }
   failureResets.forEach((reset) => reset());
 }
 
@@ -28,8 +28,8 @@ export function lazyScreen<P extends object>(load: () => Promise<ComponentType<P
 
   const fetchOnce = () => {
     pending ??= load().then(
-      (component) => { Loaded = component; },
-      (error: unknown) => { loadFailed = true; pending = null; throw error; },
+      (component) => { failedLoads.delete(load); Loaded = component; },
+      (error: unknown) => { failedLoads.add(load); pending = null; throw error; },
     );
     return pending;
   };

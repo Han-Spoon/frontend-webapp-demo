@@ -56,7 +56,7 @@ export function CardsScreen({ language, onMyPage, demoMode, userProfile }: Cards
   const t = createTranslator(language);
   const navigate = useNavigate();
   const allergyNames = (locale: Language) => (userProfile?.hasAllergies ? userProfile.allergies : []).map(code => getAllergyName(code, locale)).join(', ');
-  const phrases = allergyNames('ko') ? [{ ko: `저는 ${allergyNames('ko')} 알레르기가 있어요. 이 재료가 들어가지 않은 음식은 무엇인가요?`, en: `I am allergic to ${allergyNames('en')}. Which dishes do not contain these ingredients?`, ar: `لدي حساسية من ${allergyNames('ar')}. ما الأطباق التي لا تحتوي على هذه المكونات؟` }, ...COMMON_PHRASES] : COMMON_PHRASES;
+  const phrases = allergyNames('ko') ? [{ ko: `저는 ${allergyNames('ko')} 알레르기가 있어요. 이 재료가 들어가지 않은 음식은 무엇인가요?`, en: `I am allergic to ${allergyNames('en')}. Which dishes do not contain these ingredients?`, ar: `لدي حساسية من ${allergyNames('ar')}. ما الأطباق التي لا تحتوي على هذه المكونات؟`, 'zh-CN': `我对${allergyNames('zh-CN')}过敏。哪些菜不含这些食材？`, 'zh-TW': `我對${allergyNames('zh-TW')}過敏。哪些菜不含這些食材？`, ja: `${allergyNames('ja')}のアレルギーがあります。これらを含まない料理はどれですか？`, es: `Tengo alergia a ${allergyNames('es')}. ¿Qué platos no contienen estos ingredientes?` }, ...COMMON_PHRASES] : COMMON_PHRASES;
 
   const localized = (item: Speakable) => translateText(language, {
     ko: item.ko,

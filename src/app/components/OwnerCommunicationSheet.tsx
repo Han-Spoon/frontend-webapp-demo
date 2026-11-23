@@ -13,7 +13,7 @@ import {
   type LocalizedText,
   type OwnerContent,
 } from '../i18n';
-import { createTranslator } from '../locales';
+import { createTranslator, translateText } from '../locales';
 import { saveDemoCard } from '../demo/cards';
 import { getProfileCommunicationItems, getProfileSummary, localizeMenuText } from '../results/resultViewModel';
 import { ModalSheet } from './common/ModalSheet';
@@ -81,6 +81,7 @@ export function OwnerCommunicationSheet({
   const [answeringQuestion, setAnsweringQuestion] = useState<string | null>(null);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, StaffAnswer>>({});
   const t = createTranslator(language);
+  const [removalKeys, setRemovalKeys] = useState<string[]>([]);
 
   // 시트 카드 종류 → 백엔드 CardType
   const toCardType = (sheetType: OwnerCommunicationType): CardType => {
@@ -113,6 +114,13 @@ export function OwnerCommunicationSheet({
     es: flaggedFor('es'),
   };
 
+  const removalOptions: LocalizedText[] = [
+    ...(menu.explainability?.ingredients ?? []).map(item => ({ ...item.name, ko: item.name.ko, en: item.name.en ?? item.name.ko, ar: item.name.ar ?? item.name.en ?? item.name.ko })),
+    ...(!relevantIngredients.length ? (menu.riskReasons ?? []).map(code => Object.fromEntries((['ko', 'en', 'ar', 'zh-CN', 'ja', 'zh-TW', 'es'] as Language[]).map(locale => [locale, getHitTagLabel(code, locale)])) as LocalizedText) : []),
+    ...(userProfile?.hasAllergies ? userProfile.allergies : []).map(code => Object.fromEntries((['ko', 'en', 'ar', 'zh-CN', 'ja', 'zh-TW', 'es'] as Language[]).map(locale => [locale, getAllergyName(code, locale)])) as LocalizedText),
+  ].filter((item, index, items) => item.ko && !HIDDEN_OWNER_CONTENT_LABELS.has(item.en?.toLowerCase() ?? '') && items.findIndex(other => other.ko === item.ko) === index);
+  const removalReady = type !== 'request' || removalKeys.length > 0;
+  const removalPrompt = translateText(language, { ko: '제외를 요청할 재료를 선택해 주세요. 선택은 재료가 들어 있다는 뜻이 아니에요.', en: 'Choose ingredients to request without. Selecting them does not confirm they are present.', ar: 'اختر المكونات التي تطلب استبعادها. اختيارها لا يؤكد وجودها.', 'zh-CN': '请选择希望去除的食材。选择不表示已确认含有该食材。', 'zh-TW': '請選擇希望去除的食材。選擇不表示已確認含有該食材。', ja: '除いてほしい材料を選んでください。選択は含有の確認ではありません。', es: 'Elige los ingredientes que quieres excluir. Seleccionarlos no confirma que estén presentes.' });
   const getContent = (): OwnerContent => {
     const menuName = {
       ko: menu.menuName,
@@ -140,29 +148,8 @@ export function OwnerCommunicationSheet({
         });
       }
       case 'request': {
-        // 비건 제한은 알레르기 아님. 식단과 겹치는 달걀·생선을 알레르기로 표기하지 않음.
-        if (flaggedLabels.ko) return formatOwnerCommunicationContent('exclude', {
-          menuName, ingredient: flaggedLabels, allergen: emptyText,
-        });
-        // 표시할 재료가 없으면 사용자 알레르기 첫 항목.
-        const fallbackAllergy = userProfile?.allergies[0];
-        const allergen = flaggedLabels.ko
-          ? flaggedLabels
-            : {
-              ko: getAllergyName(fallbackAllergy, 'ko'),
-              en: getAllergyName(fallbackAllergy, 'en'),
-              ar: getAllergyName(fallbackAllergy, 'ar'),
-              'zh-CN': getAllergyName(fallbackAllergy, 'zh-CN'),
-              ja: getAllergyName(fallbackAllergy, 'ja'),
-              'zh-TW': getAllergyName(fallbackAllergy, 'zh-TW'),
-              es: getAllergyName(fallbackAllergy, 'es'),
-            };
-
-        return formatOwnerCommunicationContent(type, {
-          menuName,
-          ingredient: emptyText,
-          allergen,
-        });
+        const labels = Object.fromEntries((['ko', 'en', 'ar', 'zh-CN', 'ja', 'zh-TW', 'es'] as Language[]).map(locale => [locale, removalOptions.filter(item => removalKeys.includes(item.ko)).map(item => translate(locale, item)).join(listSeparator(locale))])) as LocalizedText;
+        return formatOwnerCommunicationContent('exclude', { menuName, ingredient: labels, allergen: emptyText });
       }
       case 'spicy':
       case 'lessSpicy':
@@ -221,6 +208,7 @@ export function OwnerCommunicationSheet({
   };
 
   const handleSave = async () => {
+    if (!removalReady) return;
     if (saving || saved) return;
     try {
       setSaving(true);
@@ -250,6 +238,7 @@ export function OwnerCommunicationSheet({
         <div className="pt-3 pb-2 flex justify-center">
           <div className="w-12 h-1 bg-border-warm rounded-full" />
         </div>
+        <div className="flex justify-end px-4"><button type="button" onClick={onClose} className="min-h-11 rounded-xl border border-border-warm px-4 text-sm font-bold">{translateText(language, { ko: '닫기', en: 'Close', ar: 'إغلاق', 'zh-CN': '关闭', 'zh-TW': '關閉', ja: '閉じる', es: 'Cerrar' })}</button></div>
 
         <div className="px-6 pb-8 pt-6 relative">
           {initialType !== 'ingredient' && <nav className="mb-4 flex flex-wrap gap-2" aria-label={t('주문 카드 선택', 'Order options', 'خيارات الطلب')}>
@@ -257,7 +246,9 @@ export function OwnerCommunicationSheet({
           </nav>}
           {type === 'request' && response === 'difficult' && <div role="status" className="mb-4 rounded-xl bg-brand-primary-soft p-4 text-lg font-bold">{t('이 재료를 빼기 어렵다면, 제 식단에 맞는 다른 음식을 추천해 주실 수 있나요?', 'If this ingredient cannot be removed, could you recommend another dish that meets my dietary needs?', 'إذا تعذرت إزالة هذا المكوّن، هل يمكن اقتراح طبق آخر يناسب احتياجاتي الغذائية؟')}{language !== 'ko' && <p className="mt-2 text-sm">이 재료를 빼기 어렵다면, 제 식단에 맞는 다른 음식을 추천해 주실 수 있나요?</p>}</div>}
 
-          <div className="mb-4 flex items-start gap-3">
+          {type === 'request' && <fieldset className="mb-4"><legend className="mb-2 text-sm">{removalPrompt}</legend><div className="flex flex-wrap gap-2">{removalOptions.map(item => <button key={item.ko} type="button" aria-pressed={removalKeys.includes(item.ko)} onClick={() => { setRemovalKeys(keys => keys.includes(item.ko) ? keys.filter(key => key !== item.ko) : [...keys, item.ko]); setResponse(null); setSaved(false); }} className="min-h-11 rounded-xl border border-border-warm px-3 text-sm aria-pressed:bg-brand-primary aria-pressed:text-white">{translate(language, item)}</button>)}</div></fieldset>}
+          {type === 'request' && removalOptions.length === 0 && <button type="button" onClick={() => setType('ingredient')} className="mb-4 min-h-11 rounded-xl border border-border-warm px-3 text-sm">{translateText(language, { ko: '선택할 재료 정보가 없어요. 직원에게 먼저 확인하기', en: 'No ingredient details to select. Ask staff first', ar: 'لا توجد تفاصيل مكونات للاختيار. اسأل الموظف أولاً', 'zh-CN': '没有可选的食材信息。请先询问店员', 'zh-TW': '沒有可選的食材資訊。請先詢問店員', ja: '選べる材料情報がありません。まず店員に確認', es: 'No hay ingredientes para seleccionar. Consulta primero al personal' })}</button>}
+          {removalReady && <div className="mb-4 flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-2 break-words text-2xl font-extrabold leading-tight text-text-primary">
                 {translate(language, content.localized)}
@@ -275,7 +266,7 @@ export function OwnerCommunicationSheet({
                 <Volume2 className="w-5 h-5" />
               </button>
             )}
-          </div>
+          </div>}
 
           <div className="mb-6 rounded-xl border border-border-warm bg-surface-subtle p-4">
             <div className="mb-1 text-xs font-semibold text-action-primary">{translate(language, ownerCommunicationI18n.labels.selectedMenu)}</div>
@@ -306,6 +297,7 @@ export function OwnerCommunicationSheet({
               return (
                 <button
                   key={btn.id}
+                  disabled={!removalReady}
                   aria-pressed={selected}
                   onClick={() => handleResponseSelect(btn)}
                   className={`flex min-h-14 w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors ${
@@ -345,7 +337,7 @@ export function OwnerCommunicationSheet({
           {saveError && <p className="mb-2 text-center text-xs text-status-danger-text">{saveError}</p>}
           <button
             onClick={handleSave}
-            disabled={saved || saving}
+            disabled={saved || saving || !removalReady}
             className={`min-h-12 w-full rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed ${
               saved
                 ? 'bg-action-primary text-action-primary-foreground'

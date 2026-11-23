@@ -81,7 +81,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
   // 기록 열기: 서버 상세 조회 → 결과 화면.
   const openHistory = async (item: HistoryItem) => {
     clearPhoto();
-    const local = scanHistory.localRecords.find(record => record.id === item.id);
+    const local = demoMode ? scanHistory.localRecords.find(record => record.id === item.id) : undefined;
     if (local) {
       showResult({
         menus: local.menus,
@@ -166,7 +166,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
       />
       <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
       <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
-      <Route path="/restaurants/:id/menu" element={<PartnerMenuScreen language={language} userProfile={userProfile} />} />
+      <Route path="/restaurants/:id/menu" element={demoMode ? <PartnerMenuScreen language={language} userProfile={userProfile} /> : <Navigate to="/map" replace />} />
       <Route path="/history" element={<ScanHistoryScreen footer={historyFooter} language={language} history={scanHistory.history} loadFailed={scanHistory.loadFailed} onRetryLoad={() => void scanHistory.loadHistory()} onOpen={openHistory} onDelete={scanHistory.deleteHistory} onRename={scanHistory.renameHistory} />} />
       <Route
         path="/scan"
