@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapPin } from 'lucide-react';
 import { createTranslator, type Language } from '../../locales';
 import { loadNaverMaps, onNaverMapsAuthFailure } from '../../../lib/naverMap';
 import { useMapLanguage } from '../../../lib/mapLanguage';
@@ -22,6 +21,7 @@ export function StoreMap({
   fitStores = true,
   demoMode = false,
   demoInsets,
+  focusOffsetY = 0,
   className = 'h-56 w-full overflow-hidden rounded-2xl',
 }: {
   language: Language;
@@ -38,6 +38,8 @@ export function StoreMap({
   demoMode?: boolean;
   /** 시연 개요에서 위(검색창)·아래(카드)가 가리는 높이(px). 안내 칩·핀은 그 사이에만. */
   demoInsets?: { top: number; bottom: number };
+  /** 중심 좌표를 지도 가운데보다 이만큼(px) 위에 보이게(아래 시트에 가리지 않게) */
+  focusOffsetY?: number;
   className?: string;
 }) {
   const t = createTranslator(language);
@@ -56,6 +58,8 @@ export function StoreMap({
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const onCenterChangeRef = useRef(onCenterChange);
+  // 사용자가 끌어 놓은 중심. 호출부가 이 좌표를 그대로 돌려주면 다시 옮기지 않는다.
+  const draggedCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   onCenterChangeRef.current = onCenterChange;
 
   const clearMarkers = () => {
@@ -109,7 +113,8 @@ export function StoreMap({
         mapListenersRef.current.push(
           naver.maps.Event.addListener(map, 'dragend', () => {
             const nextCenter = map.getCenter();
-            onCenterChangeRef.current?.({ lat: nextCenter.lat(), lng: nextCenter.lng() });
+            draggedCenterRef.current = { lat: nextCenter.lat(), lng: nextCenter.lng() };
+            onCenterChangeRef.current?.(draggedCenterRef.current);
           }),
           naver.maps.Event.addListener(map, 'idle', () => layoutLabelsRef.current()),
         );
@@ -131,14 +136,18 @@ export function StoreMap({
   useEffect(() => {
     const map = mapRef.current;
     if (status !== 'ready' || !map || !center) return;
+    const dragged = draggedCenterRef.current;
+    if (dragged && dragged.lat === center.lat && dragged.lng === center.lng) return;
     const current = map.getCenter();
     if (
+      focusOffsetY !== 0 ||
       Math.abs(current.lat() - center.lat) > 0.000001 ||
       Math.abs(current.lng() - center.lng) > 0.000001
     ) {
       map.setCenter(new naver.maps.LatLng(center.lat, center.lng));
+      if (focusOffsetY) map.panBy(new naver.maps.Point(0, focusOffsetY));
     }
-  }, [center?.lat, center?.lng, status]);
+  }, [center?.lat, center?.lng, status, focusOffsetY]);
 
   // 이름표 배치. 지도 이동·확대가 끝난(idle) 뒤에만 다시 계산.
   const layoutLabels = () => {
@@ -286,12 +295,32 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, insets, classNam
     }));
   }, [stores]);
 
-  return <div className={`${className} relative isolate overflow-hidden bg-[#dce9df]`} role="group" aria-label={t('시연용 식당 위치 개요', 'Demo restaurant location overview', 'نظرة عامة على مواقع المطاعم التجريبية')}>
-    <div className="absolute inset-0" aria-hidden="true" style={{ backgroundImage: 'linear-gradient(26deg, transparent 46%, #f9f7ed 46%, #f9f7ed 50%, transparent 50%), linear-gradient(111deg, transparent 44%, #f9f7ed 44%, #f9f7ed 49%, transparent 49%), linear-gradient(90deg, transparent 68%, #c8dece 68%, #c8dece 71%, transparent 71%)', backgroundSize: '140px 120px, 170px 130px, 100% 100%' }} />
-    <span style={{ top: insets?.top ?? 12 }} className="absolute start-3 z-10 rounded-full bg-rice-white/90 px-3 py-1.5 text-[10px] font-bold text-brand-green-900 shadow-sm">{t('시연용 위치 개요', 'Demo location overview', 'خريطة مواقع تجريبية')}</span>
-    {coordinates.map(({ store, x, y }) => <button key={store.id} type="button" disabled={!onSelect} onClick={() => onSelect?.(store)} aria-pressed={store.id === selectedId} aria-label={store.name} className={`absolute z-10 flex max-w-[120px] -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-extrabold shadow-md ${store.id === selectedId ? 'bg-brand-primary text-white' : 'bg-rice-white text-soy-ink'}`} style={{ left: `${Math.min(85, Math.max(15, x))}%`, top: demoPinTop(y, insets) }}>
-      <MapPin className="size-3 shrink-0" aria-hidden="true" /><span className="truncate">{store.name}</span>
-    </button>)}
+  return <div className={`${className} relative isolate overflow-hidden bg-[#EEF3F0]`} role="group" aria-label={t('시연용 식당 위치 개요', 'Demo restaurant location overview', 'نظرة عامة على مواقع المطاعم التجريبية')}>
+    {/* 강 · 공원 · 길(디자인 보드의 지도 그림) */}
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div className="absolute -inset-x-10 top-[30%] h-[70px] -rotate-12 bg-[#DCEBF5]" />
+      <div className="absolute end-[3%] top-[15%] h-[110px] w-[150px] rounded-[40px] bg-[#D4ECDF]" />
+      <div className="absolute start-[5%] top-[52%] h-[90px] w-[120px] rounded-[36px] bg-[#D4ECDF]" />
+      <div className="absolute -inset-x-10 top-[20%] h-3.5 -rotate-12 bg-white" />
+      <div className="absolute -inset-x-10 top-[47%] h-3 rotate-6 bg-white" />
+      <div className="absolute -inset-x-10 top-[68%] h-2.5 -rotate-3 bg-white" />
+      <div className="absolute -inset-y-10 start-[31%] w-3 rotate-[10deg] bg-white" />
+      <div className="absolute -inset-y-10 start-[72%] w-2.5 -rotate-6 bg-white" />
+    </div>
+    <span style={{ top: (insets?.top ?? 0) + 8 }} className="absolute end-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-hs-ink-500 shadow-sm">{t('시연용 위치 개요', 'Demo location overview', 'خريطة مواقع تجريبية')}</span>
+    {coordinates.map(({ store, x, y }) => {
+      const selected = store.id === selectedId;
+      // 버튼 = 핀 자리(22px, 좌표가 가운데). 이름표 · 선택 말풍선은 그 위아래로.
+      return <button key={store.id} type="button" disabled={!onSelect} onClick={() => onSelect?.(store)} aria-pressed={selected} aria-label={store.name} className={`absolute size-[22px] -translate-x-1/2 -translate-y-1/2 ${selected ? 'z-20' : 'z-10'}`} style={{ left: `${Math.min(85, Math.max(15, x))}%`, top: demoPinTop(y, insets) }}>
+        {selected ? <>
+          <span dir="auto" className="absolute bottom-[calc(50%+8px)] left-1/2 flex h-8 -translate-x-1/2 items-center whitespace-nowrap rounded-full bg-hs-pin-selected px-3.5 text-[14px] font-extrabold text-white shadow-[0_4px_12px_rgba(0,0,0,.25)]">{store.name}</span>
+          <span className="absolute bottom-1/2 left-1/2 -ms-[7px] border-x-[7px] border-t-[9px] border-x-transparent border-t-hs-pin-selected" />
+        </> : <>
+          <span className="flex size-[22px] items-center justify-center rounded-full border-2 border-white bg-hs-pin-default shadow-[0_1px_4px_rgba(0,0,0,.3)]"><span className="size-[7px] rounded-full bg-white" /></span>
+          <span dir="auto" className="absolute left-1/2 top-[24px] line-clamp-2 w-max max-w-[112px] -translate-x-1/2 text-center text-[12px] leading-[15px] font-bold text-[#20231F] [text-shadow:0_0_2px_#fff,0_0_2px_#fff,0_0_3px_#fff,0_0_3px_#fff]">{store.name}</span>
+        </>}
+      </button>;
+    })}
   </div>;
 }
 
