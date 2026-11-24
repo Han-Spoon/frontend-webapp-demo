@@ -144,4 +144,3 @@ export function DevHsGallery({ fallbackLanguage }: { fallbackLanguage: Language 
     </div>
   );
 }
-
