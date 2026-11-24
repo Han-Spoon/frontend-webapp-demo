@@ -8,6 +8,7 @@ import { HOME_STORES, type HomeAreaId } from '../demo/homeStores';
 import { SEOUL_AREAS } from './discovery/seoulAreas';
 import { FOOD_CATEGORY_LABELS, type FoodCategoryId } from './discovery/foodCategories';
 import { DietPromptCard } from './DietPromptCard';
+import { useFixtureStoreSaves } from '../hooks/useFixtureStoreSaves';
 import { BottomNav, FilterChip, HsIcon, HsIconButton, HsLinkButton, LanguageButton, Logo, OfflineBanner, StoreCard, tx, type AllText, type HsIconName } from './hs';
 
 const H = {
@@ -41,15 +42,6 @@ const CRAVINGS: Array<{ id: FoodCategoryId; icon: HsIconName; tone: string }> = 
 const AUTO_ADVANCE_MS = 5000;
 
 const HOME_AREAS: HomeAreaId[] = ['nearby', 'seongsu', 'myeongdong', 'hongdae'];
-const SAVED_KEY = 'han-spoon-home-saved';
-
-function readSaved(): string[] {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(SAVED_KEY) ?? '[]');
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
-  } catch { return []; }
-}
-
 /** 홈(캔버스 '홈 디벨롭 ② 한국어'). 가게 탐색 · 스포트라이트는 하드코딩(2026-11-24 결정). */
 export function HomeScreen({
   language,
@@ -65,7 +57,7 @@ export function HomeScreen({
 }) {
   const navigate = useNavigate();
   const [area, setArea] = useState<HomeAreaId>('nearby');
-  const [saved, setSaved] = useState<string[]>(readSaved);
+  const { isSaved, toggleSave } = useFixtureStoreSaves();
   const [slide, setSlide] = useState(0);
   const rail = useRef<HTMLDivElement>(null);
   const stories = CURATION_ARTICLES.slice(0, 4);
@@ -74,12 +66,6 @@ export function HomeScreen({
     if (id === 'nearby') return tx(language, H.nearby);
     const found = areaCenter(id);
     return found ? translateText(language, found.label) : id;
-  };
-
-  const toggleSave = (id: string) => {
-    const next = saved.includes(id) ? saved.filter((item) => item !== id) : [...saved, id];
-    setSaved(next);
-    try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* 저장이 막혀 있으면 이번 화면에서만 */ }
   };
 
   const openMap = (options: { area?: HomeAreaId; category?: FoodCategoryId } = {}) => {
@@ -218,7 +204,7 @@ export function HomeScreen({
                 district={translateText(language, store.district)}
                 category={translateText(language, FOOD_CATEGORY_LABELS[store.category])}
                 distanceMeters={store.distanceMeters}
-                saved={saved.includes(store.id)}
+                saved={isSaved(store.id)}
                 onToggleSave={() => toggleSave(store.id)}
                 onClick={() => openMap({ area })}
               />
