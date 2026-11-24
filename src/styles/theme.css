@@ -1,168 +1,251 @@
-@custom-variant dark (&:is(.dark *));
-
+/*
+ * 한스푼 새 테마 (2026-11 「한스푼 디자인 시스템」)
+ * - 값의 원본: 디자인 시스템 tokens.json · web.md
+ * - 1층 `--hs-*`: 새 원시 토큰. 새 컴포넌트는 이 값만 쓴다.
+ * - 2층 기존 의미 변수: 값만 새 토큰으로 바꿔, 아직 다시 짜지 않은 화면도 새 색으로 보이게 한다.
+ * - 다크 테마는 새 디자인에 없어 지웠다.
+ */
 :root {
   --font-size: 16px;
-  /* Primitive palette. Components should prefer the semantic aliases below. */
-  --brand-green-900: #104c37;
-  --brand-green-700: #176449;
-  --brand-green-500: #337e62;
-  --brand-green-100: #dceae3;
-  --brand-green-50: #f1f6f3;
-  --brand-orange-500: #d86632;
-  --brand-orange-100: #f8e7dd;
-  --rice-cream: #f8f5ee;
-  --rice-white: #fffdf9;
-  --soy-ink: #20231f;
-  --sesame-gray: #626862;
-  --border-warm: #dedbd3;
-  --shell-background: #ebe8e1;
 
-  /* Semantic color roles: neutral 80–85%, brand green 10–15%, accent 3–5%. */
-  --surface-base: var(--rice-cream);
-  --surface-raised: var(--rice-white);
-  --surface-subtle: #f1efe9;
-  --surface-interactive: #ebece7;
-  --text-primary: var(--soy-ink);
-  --text-secondary: var(--sesame-gray);
-  --text-tertiary: #7c817b;
-  --brand-primary: var(--brand-green-700);
-  --brand-primary-hover: var(--brand-green-900);
-  --brand-primary-soft: var(--brand-green-50);
-  --brand-accent: var(--brand-orange-500);
-  --brand-accent-soft: var(--brand-orange-100);
-  /* 판정이 보이는 화면(결과·재료 확인 시트)의 행동색. 초록은 '안전' 판정과 혼동되므로 무채색을 쓴다. (UX-06) */
-  --action-primary: var(--soy-ink);
-  --action-primary-hover: #3a3d37;
-  --action-primary-soft: #efece4;
-  --action-primary-foreground: var(--rice-white);
-  --status-safe: #176b4d;
-  --status-safe-text: #115039;
-  --status-safe-surface: #edf7f1;
-  --status-safe-border: #b9ddca;
-  --status-caution: #a76408;
-  --status-caution-text: #704307;
-  --status-caution-surface: #fff7e6;
-  --status-caution-border: #e8c77f;
-  --status-danger: #b93832;
-  --status-danger-text: #842923;
-  --status-danger-surface: #fff0ee;
-  --status-danger-border: #e8b3ae;
-  --status-unknown: #4d6177;
-  --status-unknown-text: #33465b;
-  --status-unknown-surface: #eef2f6;
-  --status-unknown-border: #c1ccd8;
-  --focus-ring: #337e62;
-  --shadow-card: 0 8px 24px rgba(44, 48, 44, 0.07);
-  --shadow-float: 0 16px 44px rgba(35, 42, 37, 0.12);
-  --radius-card: 1.25rem;
-  --radius-control: 0.875rem;
-  --control-height: 2.75rem;
+  /* ── 1층: 새 원시 토큰 ─────────────────────────────── */
+  /* 브랜드 */
+  --hs-brand-700: #176b4d;
+  --hs-brand-800: #0f5038;
+  --hs-mint-100: #e2f6ec;
+  --hs-mint-200: #bfebd5;
+  --hs-mint-400: #3ccb8e;
+  --hs-orange-500: #f4773b;
+  --hs-coral-100: #ffede5;
+  --hs-coral-700: #a8401a;
+  /* 무채색 */
+  --hs-ink-900: #17201c;
+  --hs-ink-700: #3f4b46;
+  --hs-ink-500: #5b6762;
+  --hs-ink-400: #8a948f;
+  --hs-line-200: #e8eeeb;
+  --hs-line-300: #d5dfda;
+  --hs-line-dash: #c9d6cf;
+  --hs-surface-0: #ffffff;
+  --hs-surface-100: #f3f7f5;
+  --hs-surface-skeleton: #e6ece9;
+  --hs-scrim: rgba(23, 32, 28, 0.45);
+  /* 판정: -500 점·테두리·막대 / -700 글자 / -100 바탕 */
+  --hs-safe-500: #18a058;
+  --hs-safe-700: #0b7344;
+  --hs-safe-100: #e4f7ec;
+  --hs-caution-500: #f0a000;
+  --hs-caution-700: #8a5300;
+  --hs-caution-100: #fff3d6;
+  --hs-danger-500: #f0473c;
+  --hs-danger-700: #c0322b;
+  --hs-danger-100: #ffe9e7;
+  --hs-unknown-500: #8a948f;
+  --hs-unknown-700: #4f5b56;
+  --hs-unknown-100: #eef1ef;
+  /* 지도 핀(StoreMap.tsx 스타일 그대로) */
+  --hs-pin-default: #176449;
+  --hs-pin-selected: #d86632;
+  /* 간격 */
+  --hs-space-4: 4px;
+  --hs-space-6: 6px;
+  --hs-space-8: 8px;
+  --hs-space-10: 10px;
+  --hs-space-12: 12px;
+  --hs-space-14: 14px;
+  --hs-space-16: 16px;
+  --hs-space-20: 20px;
+  --hs-space-24: 24px;
+  --hs-space-32: 32px;
+  /* 모서리 */
+  --hs-radius-sm: 12px;
+  --hs-radius-md: 14px;
+  --hs-radius-lg: 18px;
+  --hs-radius-xl: 22px;
+  --hs-radius-2xl: 26px;
+  --hs-radius-sheet: 32px;
+  --hs-radius-top-area: 44px;
+  --hs-radius-bowl-top: 16px;
+  --hs-radius-bowl-bottom: 26px;
+  --hs-radius-pill: 999px;
+  /* 그림자 */
+  --hs-shadow-card: 0 2px 10px rgba(23, 32, 28, 0.05);
+  --hs-shadow-sticky: 0 6px 14px rgba(23, 32, 28, 0.06);
+  --hs-shadow-float: 0 16px 40px rgba(23, 107, 77, 0.12);
+  --hs-shadow-pin: 0 4px 12px rgba(0, 0, 0, 0.25);
+  /* 크기 */
+  --hs-size-touch: 44px;
+  --hs-size-heart: 40px;
+  --hs-size-btn-sm: 40px;
+  --hs-size-btn-md: 46px;
+  --hs-size-btn-lg: 50px;
+  --hs-size-btn-bar: 54px;
+  --hs-size-btn-cta: 56px;
+  --hs-size-tile: 52px;
+  --hs-size-icon: 20px;
+  /* 글자(font 단축 속성). 글꼴은 fonts.css의 언어별 --font-sans를 따른다. */
+  --hs-staff-xl: 900 30px/1.35 var(--font-sans);
+  --hs-staff-lg: 900 26px/1.35 var(--font-sans);
+  --hs-title-xl: 900 25px/1.3 var(--font-sans);
+  --hs-title-lg: 900 22px/1.3 var(--font-sans);
+  --hs-title-md: 900 19px/1.35 var(--font-sans);
+  --hs-title-card: 900 18px/1.35 var(--font-sans);
+  --hs-title-sm: 900 17px/1.4 var(--font-sans);
+  --hs-body-strong: 800 15px/1.5 var(--font-sans);
+  --hs-body: 600 14px/1.55 var(--font-sans);
+  --hs-label: 800 13px/1.45 var(--font-sans);
+  --hs-caption: 700 12px/1.5 var(--font-sans);
+  --hs-micro: 900 11px/1.3 var(--font-sans);
 
-  --background: var(--surface-base);
-  --foreground: var(--text-primary);
-  --card: var(--surface-raised);
-  --card-foreground: var(--text-primary);
-  --popover: var(--rice-white);
-  --popover-foreground: var(--soy-ink);
-  --primary: var(--brand-green-700);
+  /* ── 2층: 기존 이름 → 새 값 (web.md 대응표) ───────────── */
+  /* 예전 원시 이름(화면 코드에서 직접 쓰는 곳이 있어 값만 바꿈) */
+  --brand-green-900: var(--hs-brand-800);
+  --brand-green-700: var(--hs-brand-700);
+  --brand-green-500: var(--hs-brand-700);
+  --brand-green-100: var(--hs-mint-200);
+  --brand-green-50: var(--hs-mint-100);
+  --brand-orange-500: var(--hs-orange-500);
+  --brand-orange-100: var(--hs-coral-100);
+  --rice-cream: var(--hs-surface-0);
+  --rice-white: var(--hs-surface-0);
+  --soy-ink: var(--hs-ink-900);
+  --sesame-gray: var(--hs-ink-500);
+  --border-warm: var(--hs-line-200);
+  --shell-background: var(--hs-surface-100);
+
+  /* 의미 변수 */
+  --surface-base: var(--hs-surface-0);
+  --surface-raised: var(--hs-surface-0);
+  --surface-subtle: var(--hs-surface-100);
+  --surface-interactive: var(--hs-surface-100);
+  --text-primary: var(--hs-ink-900);
+  --text-secondary: var(--hs-ink-500);
+  --text-tertiary: var(--hs-ink-400);
+  --brand-primary: var(--hs-brand-700);
+  --brand-primary-hover: var(--hs-brand-800);
+  --brand-primary-soft: var(--hs-mint-100);
+  --brand-accent: var(--hs-orange-500);
+  --brand-accent-soft: var(--hs-coral-100);
+  /* 판정 화면의 행동색은 무채색 */
+  --action-primary: var(--hs-ink-900);
+  --action-primary-hover: var(--hs-ink-700);
+  --action-primary-soft: var(--hs-surface-100);
+  --action-primary-foreground: var(--hs-surface-0);
+  --status-safe: var(--hs-safe-500);
+  --status-safe-text: var(--hs-safe-700);
+  --status-safe-surface: var(--hs-safe-100);
+  --status-safe-border: var(--hs-safe-500);
+  --status-caution: var(--hs-caution-500);
+  --status-caution-text: var(--hs-caution-700);
+  --status-caution-surface: var(--hs-caution-100);
+  --status-caution-border: var(--hs-caution-500);
+  --status-danger: var(--hs-danger-500);
+  --status-danger-text: var(--hs-danger-700);
+  --status-danger-surface: var(--hs-danger-100);
+  --status-danger-border: var(--hs-danger-500);
+  --status-unknown: var(--hs-unknown-500);
+  --status-unknown-text: var(--hs-unknown-700);
+  --status-unknown-surface: var(--hs-unknown-100);
+  --status-unknown-border: var(--hs-unknown-500);
+  --focus-ring: var(--hs-brand-700);
+  --shadow-card: var(--hs-shadow-card);
+  --shadow-float: var(--hs-shadow-float);
+  --radius-card: var(--hs-radius-2xl);
+  --radius-control: var(--hs-radius-md);
+  --control-height: var(--hs-size-touch);
+
+  /* shadcn 호환 이름 */
+  --background: var(--hs-surface-0);
+  --foreground: var(--hs-ink-900);
+  --card: var(--hs-surface-0);
+  --card-foreground: var(--hs-ink-900);
+  --popover: var(--hs-surface-0);
+  --popover-foreground: var(--hs-ink-900);
+  --primary: var(--hs-brand-700);
   --primary-foreground: #ffffff;
-  --secondary: var(--brand-green-50);
-  --secondary-foreground: var(--brand-green-900);
-  --muted: #f1eee6;
-  --muted-foreground: var(--sesame-gray);
-  --accent: var(--brand-orange-100);
-  --accent-foreground: #743111;
-  --destructive: #c83c35;
+  --secondary: var(--hs-mint-100);
+  --secondary-foreground: var(--hs-brand-800);
+  --muted: var(--hs-surface-100);
+  --muted-foreground: var(--hs-ink-500);
+  --accent: var(--hs-coral-100);
+  --accent-foreground: var(--hs-coral-700);
+  --destructive: var(--hs-danger-700);
   --destructive-foreground: #ffffff;
-  --border: var(--border-warm);
+  --border: var(--hs-line-200);
   --input: transparent;
-  --input-background: #f6f2e9;
-  --switch-background: #c9d8d0;
+  --input-background: var(--hs-surface-100);
+  --switch-background: var(--hs-line-300);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: var(--focus-ring);
-  --chart-1: #176b4d;
-  --chart-2: #f4773b;
+  --ring: var(--hs-brand-700);
+  --chart-1: var(--hs-brand-700);
+  --chart-2: var(--hs-orange-500);
   --chart-3: #3478b8;
-  --chart-4: #b56a00;
+  --chart-4: var(--hs-caution-700);
   --chart-5: #7c68a8;
   --radius: 0.875rem;
-  --sidebar: var(--rice-white);
-  --sidebar-foreground: var(--soy-ink);
-  --sidebar-primary: var(--brand-green-700);
+  --sidebar: var(--hs-surface-0);
+  --sidebar-foreground: var(--hs-ink-900);
+  --sidebar-primary: var(--hs-brand-700);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--brand-green-50);
-  --sidebar-accent-foreground: var(--brand-green-900);
-  --sidebar-border: var(--border-warm);
-  --sidebar-ring: var(--brand-green-500);
-}
-
-.dark {
-  --surface-base: #111713;
-  --surface-raised: #18201b;
-  --surface-subtle: #232b25;
-  --surface-interactive: #2b342e;
-  --text-primary: #f7f5ef;
-  --text-secondary: #c1c6c0;
-  --text-tertiary: #9ca49d;
-  --brand-primary: #72c6a0;
-  --brand-primary-hover: #91d5b7;
-  --brand-primary-soft: #20392c;
-  --brand-accent: #f3a078;
-  --brand-accent-soft: #4a3024;
-  --action-primary: #f1eee6;
-  --action-primary-hover: #ffffff;
-  --action-primary-soft: #2e302b;
-  --action-primary-foreground: #20231f;
-  --status-safe: #75cba3;
-  --status-safe-text: #d8f6e7;
-  --status-safe-surface: #183628;
-  --status-safe-border: #35664e;
-  --status-caution: #edbd62;
-  --status-caution-text: #ffe8b7;
-  --status-caution-surface: #3c2e16;
-  --status-caution-border: #725627;
-  --status-danger: #ef8178;
-  --status-danger-text: #ffd9d5;
-  --status-danger-surface: #3d211f;
-  --status-danger-border: #75413d;
-  --status-unknown: #9db1c7;
-  --status-unknown-text: #dce6f1;
-  --status-unknown-surface: #1f2833;
-  --status-unknown-border: #45566a;
-  --focus-ring: #72c6a0;
-  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.18);
-  --shadow-float: 0 16px 44px rgba(0, 0, 0, 0.32);
-  --background: #101b15;
-  --foreground: #f8f6ef;
-  --card: #17261e;
-  --card-foreground: #f8f6ef;
-  --popover: #17261e;
-  --popover-foreground: #f8f6ef;
-  --primary: #72c6a0;
-  --primary-foreground: #0c261a;
-  --secondary: #20392c;
-  --secondary-foreground: #e9f6ef;
-  --muted: #27352e;
-  --muted-foreground: #b8c1bb;
-  --accent: #65351f;
-  --accent-foreground: #ffe4d4;
-  --destructive: #e66a61;
-  --destructive-foreground: #220706;
-  --border: #35463d;
-  --input: #27352e;
-  --ring: #72c6a0;
-  --sidebar: #17261e;
-  --sidebar-foreground: #f8f6ef;
-  --sidebar-primary: #72c6a0;
-  --sidebar-primary-foreground: #0c261a;
-  --sidebar-accent: #20392c;
-  --sidebar-accent-foreground: #e9f6ef;
-  --sidebar-border: #35463d;
-  --sidebar-ring: #72c6a0;
+  --sidebar-accent: var(--hs-mint-100);
+  --sidebar-accent-foreground: var(--hs-brand-800);
+  --sidebar-border: var(--hs-line-200);
+  --sidebar-ring: var(--hs-brand-700);
 }
 
 @theme inline {
+  /* 새 토큰 클래스: bg-hs-mint-100, text-hs-caution-700, rounded-hs-2xl, shadow-hs-card … */
+  --color-hs-brand-700: var(--hs-brand-700);
+  --color-hs-brand-800: var(--hs-brand-800);
+  --color-hs-mint-100: var(--hs-mint-100);
+  --color-hs-mint-200: var(--hs-mint-200);
+  --color-hs-mint-400: var(--hs-mint-400);
+  --color-hs-orange-500: var(--hs-orange-500);
+  --color-hs-coral-100: var(--hs-coral-100);
+  --color-hs-coral-700: var(--hs-coral-700);
+  --color-hs-ink-900: var(--hs-ink-900);
+  --color-hs-ink-700: var(--hs-ink-700);
+  --color-hs-ink-500: var(--hs-ink-500);
+  --color-hs-ink-400: var(--hs-ink-400);
+  --color-hs-line-200: var(--hs-line-200);
+  --color-hs-line-300: var(--hs-line-300);
+  --color-hs-line-dash: var(--hs-line-dash);
+  --color-hs-surface-0: var(--hs-surface-0);
+  --color-hs-surface-100: var(--hs-surface-100);
+  --color-hs-surface-skeleton: var(--hs-surface-skeleton);
+  --color-hs-scrim: var(--hs-scrim);
+  --color-hs-safe-500: var(--hs-safe-500);
+  --color-hs-safe-700: var(--hs-safe-700);
+  --color-hs-safe-100: var(--hs-safe-100);
+  --color-hs-caution-500: var(--hs-caution-500);
+  --color-hs-caution-700: var(--hs-caution-700);
+  --color-hs-caution-100: var(--hs-caution-100);
+  --color-hs-danger-500: var(--hs-danger-500);
+  --color-hs-danger-700: var(--hs-danger-700);
+  --color-hs-danger-100: var(--hs-danger-100);
+  --color-hs-unknown-500: var(--hs-unknown-500);
+  --color-hs-unknown-700: var(--hs-unknown-700);
+  --color-hs-unknown-100: var(--hs-unknown-100);
+  --color-hs-pin-default: var(--hs-pin-default);
+  --color-hs-pin-selected: var(--hs-pin-selected);
+  /* 기존 rounded-sm…xl과 겹치지 않게 hs- 접두사 */
+  --radius-hs-sm: var(--hs-radius-sm);
+  --radius-hs-md: var(--hs-radius-md);
+  --radius-hs-lg: var(--hs-radius-lg);
+  --radius-hs-xl: var(--hs-radius-xl);
+  --radius-hs-2xl: var(--hs-radius-2xl);
+  --radius-hs-sheet: var(--hs-radius-sheet);
+  --radius-hs-top-area: var(--hs-radius-top-area);
+  --radius-hs-bowl-top: var(--hs-radius-bowl-top);
+  --radius-hs-bowl-bottom: var(--hs-radius-bowl-bottom);
+  --radius-hs-pill: var(--hs-radius-pill);
+  --shadow-hs-card: var(--hs-shadow-card);
+  --shadow-hs-sticky: var(--hs-shadow-sticky);
+  --shadow-hs-float: var(--hs-shadow-float);
+  --shadow-hs-pin: var(--hs-shadow-pin);
+
+  /* 기존 이름 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -245,6 +328,45 @@
   --color-status-unknown-text: var(--status-unknown-text);
   --color-status-unknown-surface: var(--status-unknown-surface);
   --color-status-unknown-border: var(--status-unknown-border);
+}
+
+/* 글자 토큰 클래스: hs-title-xl, hs-body … (굵기·크기·줄 높이를 한 번에) */
+@utility hs-staff-xl {
+  font: var(--hs-staff-xl);
+}
+@utility hs-staff-lg {
+  font: var(--hs-staff-lg);
+}
+@utility hs-title-xl {
+  font: var(--hs-title-xl);
+  letter-spacing: -0.02em;
+}
+@utility hs-title-lg {
+  font: var(--hs-title-lg);
+}
+@utility hs-title-md {
+  font: var(--hs-title-md);
+}
+@utility hs-title-card {
+  font: var(--hs-title-card);
+}
+@utility hs-title-sm {
+  font: var(--hs-title-sm);
+}
+@utility hs-body-strong {
+  font: var(--hs-body-strong);
+}
+@utility hs-body {
+  font: var(--hs-body);
+}
+@utility hs-label {
+  font: var(--hs-label);
+}
+@utility hs-caption {
+  font: var(--hs-caption);
+}
+@utility hs-micro {
+  font: var(--hs-micro);
 }
 
 @layer base {

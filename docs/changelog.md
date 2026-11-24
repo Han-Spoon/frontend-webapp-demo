@@ -1,5 +1,14 @@
 # 변경 기록
 
+## 2026-11-24 — 한스푼 새 테마 1단계: 토큰
+
+- 「한스푼 디자인 시스템」 `tokens.json` · `web.md` 기준으로 `theme.css`에 새 원시 토큰 `--hs-*`(색 · 간격 · 모서리 · 그림자 · 크기 · 글자)를 추가.
+- 기존 의미 변수(`--surface-*`, `--text-*`, `--brand-*`, `--status-*`, `--rice-*` 등)는 값만 새 토큰으로 교체. 아직 다시 짜지 않은 화면도 흰 바탕 · 새 판정색으로 보임. 확인 필요 색은 회청색 → 회색.
+- Tailwind 클래스 추가: `*-hs-<색>`, `rounded-hs-*`, `shadow-hs-*`, 글자 유틸리티 `hs-title-xl` 등.
+- 다크 테마(`.dark`, `dark` 변형) 제거 — 새 디자인에 없고 코드 사용처도 없었음.
+- 새 심볼(`src/assets/brand/han-spoon-symbol.svg`)로 파비콘 · 앱 아이콘(180 · 192 · 512, 흰 바탕) 교체, `theme-color` 흰색.
+- `docs/design-system.md` · `BRAND_GUIDE.md`를 새 테마 기준으로 갱신.
+
 ## 2026-11-23 — 큐레이션 Commons 사진 저장소 보관
 
 - 큐레이션 22편 중 13편의 사진이 "Image unavailable"로 표시되던 문제 수정. 원인: Wikimedia Commons 직링크(사진당 캐시 없는 리다이렉트 2번)가 요청 제한(HTTP 429)에 걸림.
