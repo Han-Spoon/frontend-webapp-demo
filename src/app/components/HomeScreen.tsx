@@ -6,6 +6,7 @@ import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import type { StoreCandidate } from '../../api/store';
 import { HOME_STORES, type HomeAreaId } from '../demo/homeStores';
 import { SEOUL_AREAS } from './discovery/seoulAreas';
+import { MAP_AREAS } from './map/mapAreas';
 import { FOOD_CATEGORY_LABELS, type FoodCategoryId } from './discovery/foodCategories';
 import { DietPromptCard } from './DietPromptCard';
 import { useFixtureStoreSaves } from '../hooks/useFixtureStoreSaves';
@@ -68,8 +69,12 @@ export function HomeScreen({
     return found ? translateText(language, found.label) : id;
   };
 
-  const openMap = (options: { area?: HomeAreaId; category?: FoodCategoryId } = {}) => {
-    const center = options.area && options.area !== 'nearby' ? areaCenter(options.area) : undefined;
+  // 내 주변 가게는 용산구로 고정이라, 그 가게를 누르면 용산·삼각지 중심으로 지도를 연다.
+  const YONGSAN_CENTER = MAP_AREAS.find((item) => item.id === 'yongsan-samgakji')?.center;
+  const openMap = (options: { area?: HomeAreaId; category?: FoodCategoryId; fromStore?: boolean } = {}) => {
+    const center = options.area === 'nearby'
+      ? (options.fromStore ? YONGSAN_CENTER : undefined)
+      : options.area ? areaCenter(options.area) : undefined;
     navigate('/map', {
       state: {
         ...(center ? { searchCenter: { latitude: center.latitude, longitude: center.longitude } } : {}),
@@ -90,13 +95,20 @@ export function HomeScreen({
     const delta = rtl ? cardBox.right - (railBox.right - padding) : cardBox.left - (railBox.left + padding);
     el.scrollBy({ left: delta, behavior: smooth ? 'smooth' : 'auto' });
   };
+  // 마지막 카드 뒤에 첫 카드 복사본을 하나 둔다. 복사본까지 앞으로 넘긴 뒤 소리 없이 진짜 첫 카드로 옮겨, 늘 한 방향으로만 넘어가 보이게 한다.
+  const loops = stories.length > 1;
+  const settleTimer = useRef<number | undefined>(undefined);
   const onRailScroll = () => {
     const el = rail.current;
     if (!el) return;
     const card = el.firstElementChild as HTMLElement | null;
     const step = (card?.offsetWidth ?? 310) + 12;
-    setSlide(Math.min(stories.length - 1, Math.max(0, Math.round(Math.abs(el.scrollLeft) / step))));
+    const raw = Math.max(0, Math.round(Math.abs(el.scrollLeft) / step));
+    setSlide(raw >= stories.length ? 0 : raw);
+    window.clearTimeout(settleTimer.current);
+    if (loops && raw >= stories.length) settleTimer.current = window.setTimeout(() => scrollToSlide(0, false), 150);
   };
+  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
   // 사용자가 직접 넘기거나 누르면 자동 넘김을 잠시 쉰다.
   const lastTouch = useRef(0);
   const touched = () => { lastTouch.current = Date.now(); };
@@ -107,7 +119,8 @@ export function HomeScreen({
     if (stories.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = window.setInterval(() => {
       if (document.hidden || Date.now() - lastTouch.current < AUTO_ADVANCE_MS) return;
-      scrollToSlide((slideRef.current + 1) % stories.length);
+      // 마지막 다음은 복사본(앞으로 한 칸) → 닿으면 첫 카드로 조용히 옮김
+      scrollToSlide(slideRef.current + 1);
     }, AUTO_ADVANCE_MS);
     return () => window.clearInterval(timer);
   }, [stories.length]);
@@ -147,6 +160,17 @@ export function HomeScreen({
                 </span>
               </button>
             ))}
+            {loops && (
+              // 첫 카드 복사본(한 방향 순환용). 스크린리더 · 키보드에서는 숨긴다.
+              <div aria-hidden="true" className="relative me-[calc(min(100vw,430px)_-_40px_-_min(310px,100vw_-_56px))] h-[172px] w-[310px] max-w-[calc(100vw-56px)] flex-none snap-start overflow-hidden rounded-[30px] bg-hs-brand-700 p-5 text-start text-hs-surface-0 shadow-[0_12px_28px_rgba(23,107,77,0.22)]">
+                <img src={stories[0].image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" style={{ objectPosition: stories[0].imagePosition ?? '50% 50%' }} />
+                <span className="absolute inset-0 bg-gradient-to-t from-[#0B2A1F]/90 via-[#0B2A1F]/45 to-[#0B2A1F]/10" />
+                <span className="absolute inset-x-5 bottom-[18px] block">
+                  <span className="block text-[11px] font-black tracking-[0.06em] text-[#BFEBD5]">{tx(language, H.stories)}</span>
+                  <span className="mt-1.5 line-clamp-2 block text-[19px] leading-[1.28] font-black whitespace-pre-line">{translateText(language, stories[0].title)}</span>
+                </span>
+              </div>
+            )}
           </div>
           <div className="mt-2 flex justify-center gap-0.5">
             {stories.map((article, index) => (
@@ -206,7 +230,7 @@ export function HomeScreen({
                 distanceMeters={store.distanceMeters}
                 saved={isSaved(store.id)}
                 onToggleSave={() => toggleSave(store.id)}
-                onClick={() => openMap({ area })}
+                onClick={() => openMap({ area, fromStore: true })}
               />
             ))}
           </div>

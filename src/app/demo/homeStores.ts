@@ -18,6 +18,7 @@ export type HomeAreaId = 'nearby' | 'seongsu' | 'myeongdong' | 'hongdae';
 
 const SEONGDONG: LocalizedText = { ko: '성동구', en: 'Seongdong-gu', ar: 'سونغدونغ', 'zh-CN': '城东区', ja: '城東区', 'zh-TW': '城東區', es: 'Seongdong-gu' };
 const JUNG: LocalizedText = { ko: '중구', en: 'Jung-gu', ar: 'جونغ', 'zh-CN': '中区', ja: '中区', 'zh-TW': '中區', es: 'Jung-gu' };
+const YONGSAN: LocalizedText = { ko: '용산구', en: 'Yongsan-gu', ar: 'يونغسان', 'zh-CN': '龙山区', ja: '龍山区', 'zh-TW': '龍山區', es: 'Yongsan-gu' };
 const MAPO: LocalizedText = { ko: '마포구', en: 'Mapo-gu', ar: 'مابو', 'zh-CN': '麻浦区', ja: '麻浦区', 'zh-TW': '麻浦區', es: 'Mapo-gu' };
 
 const store = (id: string, ko: string, en: string, reviewCount: number, district: LocalizedText, category: FoodCategoryId, distanceMeters: number): HomeStore => ({
@@ -25,10 +26,11 @@ const store = (id: string, ko: string, en: string, reviewCount: number, district
 });
 
 export const HOME_STORES: Record<HomeAreaId, HomeStore[]> = {
+  // 내 주변(2026-11-25 결정: 용산구 가게로 고정)
   nearby: [
-    store('home-green-table', '초록식탁', 'Green Table', 12, SEONGDONG, 'korean', 350),
-    store('home-sodam', '소담키친', 'Sodam Kitchen', 8, SEONGDONG, 'noodle', 600),
-    store('home-hangreut', '한그릇 정원', 'Hangreut Garden', 5, SEONGDONG, 'korean', 800),
+    store('home-samgakji-gukbap', '삼각지 국밥', 'Samgakji Gukbap', 15, YONGSAN, 'soup', 320),
+    store('home-yongsan-baekban', '용산 백반집', 'Yongsan Baekban', 11, YONGSAN, 'korean', 540),
+    store('home-itaewon-galbi', '이태원 숯불갈비', 'Itaewon Charcoal Galbi', 7, YONGSAN, 'meat', 880),
   ],
   seongsu: [
     store('home-seongsu-gukbap', '성수 국밥집', 'Seongsu Gukbap', 21, SEONGDONG, 'soup', 420),
