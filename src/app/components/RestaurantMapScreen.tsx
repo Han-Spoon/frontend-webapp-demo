@@ -261,6 +261,8 @@ export function StoreMapView({
   const [mode, setMode] = useState<'map' | 'list'>('map');
   const [listTab, setListTab] = useState<'nearby' | 'saved'>('nearby');
   const [areaSheet, setAreaSheet] = useState(false);
+  // 목록 모드: 손잡이를 끌어 내리거나 누르면 지도로
+  const listDrag = useSheetDrag('down', () => setMode('map'));
 
   // 지도 중심: 끌면 따라감(다시 찾지 않음), 가게를 고르면 그 가게, 새로 찾으면 찾은 위치.
   const [viewCenter, setViewCenter] = useState<StoreCoordinates | null>(null);
@@ -543,8 +545,14 @@ export function StoreMapView({
 
         {/* 목록 모드(F2-06) */}
         {mode === 'list' && (
-          <div className="absolute inset-0 z-50 flex flex-col bg-hs-surface-0">
-            <div className="flex-none px-4 pt-[max(18px,env(safe-area-inset-top))]">{searchRow(true)}</div>
+          <div
+            className={`absolute inset-0 z-50 flex flex-col bg-hs-surface-0 ${listDrag.offset ? 'rounded-t-hs-sheet shadow-[0_-10px_30px_rgba(23,32,28,0.12)]' : 'transition-transform duration-200'}`}
+            style={listDrag.offset ? { transform: `translateY(${listDrag.offset}px)` } : undefined}
+          >
+            <div className="pt-[env(safe-area-inset-top)]">
+              <SheetHandle label={tx(language, T.showMap)} onActivate={() => setMode('map')} drag={listDrag.handlers} />
+            </div>
+            <div className="flex-none px-4 pt-1.5">{searchRow(true)}</div>
             <PillTabs
               label={tx(language, T.listTabs)}
               value={listTab}
@@ -599,20 +607,56 @@ export function StoreMapView({
   );
 }
 
-/** 끌어 올리거나 손잡이를 누르면 목록 모드로 */
-function useDragUp(onUp: () => void) {
-  const start = useRef<number | null>(null);
-  return {
-    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => { start.current = event.clientY; },
-    onPointerUp: (event: ReactPointerEvent<HTMLElement>) => {
-      if (start.current !== null && start.current - event.clientY > 30) onUp();
-      start.current = null;
-    },
-    onPointerCancel: () => { start.current = null; },
+/** 이만큼(px) 끌면 전환, 못 미치면 제자리 */
+const SHEET_DRAG_COMMIT = 60;
+
+/**
+ * 시트 끌기: 손가락을 따라 offset(끈 거리, px), 놓을 때 기준을 넘으면 onCommit. 탭은 손잡이 버튼 click.
+ * 이동 · 놓기는 window에서 받음(시트 밖으로 나가도 끝까지).
+ */
+function useSheetDrag(direction: 'up' | 'down', onCommit: () => void) {
+  const [offset, setOffset] = useState(0);
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
+  const stopRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopRef.current?.(), []);
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    stopRef.current?.();
+    const { pointerId, clientY: startY } = event;
+    let moved = 0;
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return;
+      moved = Math.max(0, direction === 'up' ? startY - e.clientY : e.clientY - startY);
+      setOffset(moved);
+    };
+    const onEnd = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return;
+      stop();
+      // 끈 뒤 손잡이 위에서 놓여도 탭(click)으로 치지 않음
+      if (moved > 5) {
+        const swallow = (click: MouseEvent) => { click.stopPropagation(); click.preventDefault(); };
+        window.addEventListener('click', swallow, { capture: true, once: true });
+        window.setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0);
+      }
+      if (e.type === 'pointerup' && moved > SHEET_DRAG_COMMIT) onCommitRef.current();
+    };
+    const stop = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+      stopRef.current = null;
+      setOffset(0);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+    stopRef.current = stop;
   };
+  return { offset, handlers: { onPointerDown } };
 }
 
-function SheetHandle({ label, onActivate, drag }: { label: string; onActivate: () => void; drag?: ReturnType<typeof useDragUp> }) {
+function SheetHandle({ label, onActivate, drag }: { label: string; onActivate: () => void; drag?: ReturnType<typeof useSheetDrag>['handlers'] }) {
   return (
     <div className="flex flex-none touch-none justify-center pt-1" {...drag}>
       <button type="button" aria-label={label} onClick={onActivate} className="flex h-6 w-16 items-center justify-center">
@@ -623,11 +667,15 @@ function SheetHandle({ label, onActivate, drag }: { label: string; onActivate: (
 }
 
 function ListSheet({ language, title, sortMenu, onExpand, children }: { language: Language; title: ReactNode; sortMenu: ReactNode; onExpand: () => void; children: ReactNode }) {
-  const drag = useDragUp(onExpand);
+  // 끌어 올리면 따라 커지고, 기준을 넘겨 놓으면 목록 모드
+  const { offset, handlers } = useSheetDrag('up', onExpand);
   return (
-    <section className="absolute inset-x-0 bottom-0 z-40 flex max-h-[55%] flex-col rounded-t-hs-sheet bg-hs-surface-0 shadow-[0_-10px_30px_rgba(23,32,28,0.12)]" style={{ height: LIST_SHEET_HEIGHT }}>
-      <SheetHandle label={tx(language, T.showList)} onActivate={onExpand} drag={drag} />
-      <div className="flex flex-none items-center justify-between gap-2 px-5 pt-1.5" {...drag}>{title}{sortMenu}</div>
+    <section
+      className={`absolute inset-x-0 bottom-0 z-40 flex max-h-[55%] flex-col rounded-t-hs-sheet bg-hs-surface-0 shadow-[0_-10px_30px_rgba(23,32,28,0.12)] ${offset ? '' : 'transition-[height] duration-200'}`}
+      style={{ height: LIST_SHEET_HEIGHT + offset, maxHeight: offset ? '100%' : undefined }}
+    >
+      <SheetHandle label={tx(language, T.showList)} onActivate={onExpand} drag={handlers} />
+      <div className="flex flex-none touch-none items-center justify-between gap-2 px-5 pt-1.5" {...handlers}>{title}{sortMenu}</div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4">{children}</div>
     </section>
   );
