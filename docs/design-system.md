@@ -55,7 +55,7 @@ Tailwind 클래스(`@theme inline`):
 | --- | --- | --- | --- |
 | Button · IconButton · HeartButton | `HsButton` · `HsLinkButton` · `HsIconButton` · `HsTextIconButton` · `HsHeart` | 화면별 버튼 | 만듦 |
 | RiskBadge · RiskTile | `RiskBadge` · `RiskCountBadge` · `EvidenceBadge` · `RiskTile` · `BowlTile`, 판정 매핑 `riskOf` · `orderByRisk` (`hs/risk.ts`) | `results/ResultEvidence.tsx` | 만듦 |
-| IngredientTag · IngredientRow · MenuCard | `IngredientTag`(만듦), `IngredientRow` · `MenuCard`(흐름 4에서) | `ResultsScreen` 안 카드, `AnalysisInsights` | 일부 |
+| IngredientTag · IngredientRow · MenuCard | `IngredientTag`, 결과 카드 `results/ResultMenuCard.tsx`(재료 줄 `IngredientList` · 전체 시트 `AllIngredientsSheet`) | `ResultsScreen` 안 카드, `AnalysisInsights` | 만듦 |
 | InfoBox · StaffCard · AnswerButtons | `VerdictBox` · `NoticeBox` · `HsNote` · `StaffCard` · `AnswerButtons` | 직원 소통 시트들, `CardsScreen` 안 카드 | 만듦 |
 | StoreCard · ScanHistoryCard · ReviewCard · CurationCard | 같은 이름(`hs/cards.tsx`), 지역명 `districtOf` | 지도 · 식당 선택 · 기록 · 후기 · 큐레이션 안 카드 | 만듦 |
 | Chip · OptionRow · Stepper · SearchField | `ChoiceChip` · `AddChip` · `FilterChip` · `DietTag` · `PlainTag` · `CategoryTag` · `OptionRow` · `Stepper` · `SearchField` · `TextField` | 온보딩 · 필터 안 코드 | 만듦 |
@@ -98,5 +98,6 @@ Tailwind 클래스(`@theme inline`):
 ## 진행 기록
 
 - 2026-11-24 흐름 1: 랜딩 · 로그인 · 약관 · 온보딩을 새 컴포넌트로 다시 구현(`LanguageButton` 추가).
+- 2026-11-24 흐름 4: 판정 결과를 다시 구현. `results/` 아래 결과 카드 · 직원 소통 카드 시트(`StaffCardsSheet`) · 내 식단 보여주기(`ShowDietSheet`) · 기록 수정(`EditRecordSheet`) · 메뉴판 사진(`MenuPhotoViewer`), 직원 문장 7개 언어(`staffText.ts`). 식사 후기 시트(`reviews/MealReviewSheet`)도 새 컴포넌트로. 토스트는 body 포털(앱 틀이 `isolation: isolate`라 시트 위에 보이게). 옛 `OwnerCommunicationSheet` · `ProfileCommunicationSheet` · `SaveScanSheet` · `results/AnalysisInsights` · `CommunicationActions`는 이제 쓰지 않음(마지막 정리 단계에서 삭제). `ResultEvidence`는 저장한 메뉴 화면이 바뀔 때까지 남김.
 - 2026-11-24 2단계: 공통 컴포넌트(`src/app/components/hs/`)와 개발 전용 확인 화면 `/dev/hs-gallery`.
 - 2026-11-24 1단계: 새 테마 토큰(`--hs-*`), 기존 의미 변수 값 교체, `hs-` 클래스, 다크 테마 제거, 새 심볼 파비콘 · 앱 아이콘, `.eyebrow` 11 · 900.

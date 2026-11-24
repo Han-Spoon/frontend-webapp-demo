@@ -29,6 +29,21 @@ export interface OwnerCard {
   question?: unknown;
 }
 
+/** 직원 질문(명세 V2 No 16). target=ingredient만 재료 확인 카드와 이어 붙인다(flag 질문은 쓰지 않음). */
+export interface StaffQuestion {
+  questionId: string;
+  cardId: string;
+  target?: 'ingredient' | 'flag' | null;
+  /** target=ingredient일 때 riskIngredients[].name.ko와 같은 재료 이름 */
+  ingredientName?: string | null;
+  ambiguityFlag?: string | null;
+  askedTags?: string[] | null;
+  questionText: Record<string, string>;
+  status: 'pending' | 'answered' | 'expired';
+  answer: 'present' | 'absent' | 'unknown' | null;
+  answeredAt?: string | null;
+}
+
 /** 스캔 결과 메뉴 1건 */
 export interface MenuResult {
   scanMenuId?: string;
@@ -54,7 +69,7 @@ export interface MenuResult {
   staffAnswerStatus?: 'none' | 'partial' | 'complete';
   matchedTags?: string[];
   riskIngredients?: Array<{ name: Record<string, string>; status: 'present' | 'absent' | 'unknown'; posteriorMean: number | null; matchedTags: string[]; confidence?: number | null; role?: string | null; priorSource?: string | null }>;
-  staffQuestions?: Array<{ questionId: string; cardId: string; questionText: Record<string, string>; status: 'pending' | 'answered' | 'expired'; answer: 'present' | 'absent' | 'unknown' | null; answeredAt?: string | null }>;
+  staffQuestions?: StaffQuestion[];
   hits?: string[] | null;
   message?: FinalMessage | { verdict: string; reason?: string | null; notes?: Array<{ code: string; text: string }> } | null;
   ownerCard?: OwnerCard | null;
@@ -268,6 +283,7 @@ export function mapMenuResult(menu: MenuResult, index: number, locale: Language 
       priorSource: ingredient.priorSource,
       name: { ko: ingredient.name.ko ?? '', ...(ingredient.name as Record<string, string>) },
       profileIds: matchedProfileIds,
+      role: ingredient.role === 'identity' || ingredient.role === 'component' || ingredient.role === 'hidden' ? (ingredient.role as 'identity' | 'component' | 'hidden') : null,
       inclusionProbability: typeof probability === 'number' && Number.isFinite(probability) && probability >= 0 && probability <= 1 ? probability * 100 : undefined,
     };
   });
@@ -275,6 +291,8 @@ export function mapMenuResult(menu: MenuResult, index: number, locale: Language 
 
   return {
     id: menu.scanMenuId ?? String(menu.displayOrder ?? index),
+    displayOrder: typeof menu.displayOrder === 'number' ? menu.displayOrder : index,
+    staffAnswerStatus: menu.staffAnswerStatus,
     image: menu.imageUrl ?? undefined,
     imageAttribution: menu.imageUrl ? menu.imageAttribution ?? undefined : undefined,
     menuName: name,

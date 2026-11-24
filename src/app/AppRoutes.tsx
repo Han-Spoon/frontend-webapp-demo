@@ -84,6 +84,8 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         recordId: local.id,
         store: null,
         record: null,
+        title: local.title,
+        scannedAt: local.date,
         profile: local.profileSnapshot,
         profileUnknown: false,
         photoUrl: null,
@@ -102,6 +104,8 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         scanId: item.id,
         store: scan.record?.store ?? scan.store ?? null,
         record: scan.record ?? null,
+        title: scan.title ?? item.title,
+        scannedAt: scan.scannedAt ?? item.date,
         profile: snapshot ?? undefined,
         profileUnknown: snapshot === null,
         photoUrl: null,
@@ -199,12 +203,14 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
             image={analysisImage}
             userProfile={userProfile}
             fixedResults={demoMode}
-            onComplete={(_scanId, menus, store, appliedProfile) => {
+            onComplete={(_scanId, menus, store, appliedProfile, meta) => {
               showResult({
                 menus,
                 scanId: _scanId ?? undefined,
                 store,
-                record: null,
+                record: meta?.record ?? null,
+                title: meta?.title ?? null,
+                scannedAt: meta?.scannedAt ?? new Date().toISOString(),
                 // 새 스캔의 판정 기준: 스캔 당시 식단(없으면 지금 식단).
                 profile: _scanId === null ? { ...(userProfile ?? RESULT_PREVIEW_PROFILE), languageCode: language } : appliedProfile ?? undefined,
                 profileUnknown: false,
@@ -243,6 +249,8 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
             savedRecordId={result.recordId}
             demoMode={demoMode}
             menuPhotoUrl={result.photoUrl}
+            title={result.title}
+            scannedAt={result.scannedAt}
             scanProfileUnknown={result.profileUnknown}
             onBack={() => { clearPhoto(); navigate('/home'); }}
             onRescan={() => { clearPhoto(); navigate('/scan'); }}

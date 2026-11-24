@@ -37,6 +37,7 @@ const PATHS = {
   lock: <><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></>,
   person: <><circle cx="12" cy="8.5" r="3.5" /><path d="M5 20c1-3.5 3.8-5.5 7-5.5s6 2 7 5.5" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
+  minus: <path d="M6 12h12" />,
   user: <><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></>,
 } satisfies Record<string, ReactNode>;
 

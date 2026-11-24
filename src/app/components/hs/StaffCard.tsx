@@ -7,7 +7,7 @@ interface StaffCardProps {
   language: Language;
   /** 직원이 읽는 한국어 문장(큰 글씨, 항상 한국어) */
   korean: string;
-  /** 앱 언어 번역. 앱 언어가 한국어면 표시하지 않는다. */
+  /** 사용자가 읽는 번역(앱 언어, 한국어 앱이면 영어). 한국어 문장과 같으면 표시하지 않는다. */
   translated?: string;
   /** 위 작은 줄(기본: 직원에게 보여주세요) */
   kicker?: string;
@@ -27,7 +27,7 @@ export function StaffCard({ language, korean, translated, kicker, size = 'lg', v
     <div className={`rounded-[28px] bg-hs-mint-100 px-5 pt-5 pb-[18px] ${className}`}>
       <p className="text-[12px] font-extrabold text-hs-brand-700">{kicker ?? tx(language, HS_TEXT.showStaff)}</p>
       <p lang="ko" className={`mt-2 break-keep text-hs-ink-900 ${sentence}`}>{korean}</p>
-      {language !== 'ko' && translated && <p className="mt-2 text-[14px] font-semibold text-hs-ink-700">{translated}</p>}
+      {translated && translated !== korean && <p className="mt-2 text-[14px] font-semibold text-hs-ink-700">{translated}</p>}
       {voice && ttsSupported && (
         <button
           type="button"

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { HsIcon } from './icons';
 
 type ToastTone = 'success' | 'error' | 'info';
@@ -30,9 +31,10 @@ export function ToastProvider({ children, bottomOffset = 96 }: { children: React
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      <div aria-live="polite" role="status" className="pointer-events-none fixed inset-x-0 z-[60] mx-auto flex w-full max-w-[430px] justify-center px-5" style={{ bottom: `calc(${bottomOffset}px + env(safe-area-inset-bottom))` }}>
+      {/* 앱 틀(.mobile-container)은 isolation: isolate라 시트(body 포털) 위에 보이도록 body로 뺀다. */}
+      {createPortal(<div aria-live="polite" role="status" className="pointer-events-none fixed inset-x-0 z-[60] mx-auto flex w-full max-w-[430px] justify-center px-5" style={{ bottom: `calc(${bottomOffset}px + env(safe-area-inset-bottom))` }}>
         {toast && <ToastPill key={toast.id} item={toast} onDone={() => setToast(null)} />}
-      </div>
+      </div>, document.body)}
     </ToastContext.Provider>
   );
 }

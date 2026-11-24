@@ -9,6 +9,7 @@ import { useResultSession } from './hooks/useResultSession';
 import { useScanHistory } from './hooks/useScanHistory';
 import { useShownLanguage } from './hooks/useShownLanguage';
 import { retryFailedScreens } from './lazyScreen';
+import { ToastProvider } from './components/hs/Toast';
 
 // 로그인·동의 없이 열리는 화면
 const PUBLIC_PATHS = ['/', '/login', '/terms'];
@@ -37,6 +38,7 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-[var(--shell-background)] flex items-center justify-center sm:px-6">
       <div className="mobile-container w-full max-w-[430px] min-h-dvh bg-rice-cream shadow-[0_24px_80px_rgba(41,54,46,0.16)] relative overflow-hidden sm:border-x sm:border-border-warm">
+        <ToastProvider>
         <ScreenErrorBoundary
           resetKey={location.pathname}
           onReset={retryFailedScreens}
@@ -53,6 +55,7 @@ export default function App() {
             <AppRoutes account={account} language={language} scanHistory={scanHistory} session={session} />
           </Suspense>
         </ScreenErrorBoundary>
+        </ToastProvider>
       </div>
     </div>
   );

@@ -26,6 +26,8 @@ export interface HsButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** 글자 왼쪽 아이콘(18px, 글자와 같은 색) */
   icon?: HsIconName;
   iconNode?: ReactNode;
+  /** 글자 오른쪽 아이콘(16px, RTL에서 뒤집힘: 관련 재료 모두 보기 ›) */
+  trailingIcon?: HsIconName;
   /** 버튼 폭을 부모에 맞춤 */
   block?: boolean;
   /** 처리 중: 누를 수 없지만 모양은 유지(흐리게) */
@@ -37,7 +39,7 @@ export interface HsButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * disabled는 line-dash 바탕 + 흰 글자(필수 조건이 남았을 때. 위에 이유 한 줄을 둔다).
  */
 export const HsButton = forwardRef<HTMLButtonElement, HsButtonProps>(function HsButton(
-  { variant = 'primary', size = 'lg', icon, iconNode, block = false, busy = false, className = '', children, type = 'button', disabled, ...rest },
+  { variant = 'primary', size = 'lg', icon, iconNode, trailingIcon, block = false, busy = false, className = '', children, type = 'button', disabled, ...rest },
   ref,
 ) {
   const disabledLook = busy ? 'disabled:opacity-60' : 'disabled:border-0 disabled:bg-hs-line-dash disabled:text-hs-surface-0';
@@ -52,6 +54,7 @@ export const HsButton = forwardRef<HTMLButtonElement, HsButtonProps>(function Hs
     >
       {iconNode ?? (icon && <HsIcon name={icon} size={18} />)}
       {children}
+      {trailingIcon && <HsIcon name={trailingIcon} size={16} strokeWidth={2.4} className="rtl:-scale-x-100" />}
     </button>
   );
 });

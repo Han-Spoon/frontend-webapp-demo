@@ -57,6 +57,8 @@ export interface MenuIngredientEvidence {
   /** 0–100. 주의 판정 + 해당 프로필일 때만 표시. */
   inclusionProbability?: number;
   profileIds?: string[];
+  /** 재료 역할(명세 V2): identity 주재료 · component 구성 재료 · hidden 숨은 재료 */
+  role?: 'identity' | 'component' | 'hidden' | null;
   /** 서버 제공 시에만 표시(프론트 계산 없음) */
   inclusionLikelihood?: 'high' | 'medium' | 'low';
   confidence?: EvidenceConfidence;
@@ -99,6 +101,9 @@ export interface MenuAnalysis {
   evidenceBasis?: 'confirmed' | 'estimated' | 'unknown';
   informationStatus?: 'complete' | 'partial' | 'none';
   notes?: Array<{ code: string; text: string }>;
+  /** 서버 표시 순서(같은 판정 묶음 안 정렬) */
+  displayOrder?: number;
+  staffAnswerStatus?: 'none' | 'partial' | 'complete';
   id: string;
   image?: string;
   imagePosition?: string;
