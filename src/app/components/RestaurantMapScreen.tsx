@@ -28,6 +28,8 @@ const MAP_SEARCH_LIMIT = 100;
 /** 지도 위에 겹치는 높이(px): 위 검색 · 칩 줄, 아래 가게 목록 시트 */
 const TOP_OVERLAY = 128;
 const LIST_SHEET_HEIGHT = 280;
+/** 목록 시트를 접었을 때 높이: 손잡이 + '주변 가게 N' · 정렬 줄 */
+const LIST_SHEET_PEEK = 84;
 /** 가게를 고르면 상세 시트에 가리지 않게 핀을 이만큼 위로 */
 const DETAIL_FOCUS_OFFSET = 150;
 
@@ -261,8 +263,12 @@ export function StoreMapView({
   const [mode, setMode] = useState<'map' | 'list'>('map');
   const [listTab, setListTab] = useState<'nearby' | 'saved'>('nearby');
   const [areaSheet, setAreaSheet] = useState(false);
+  // 지도 모드 목록 시트 접힘(제목 줄만)
+  const [sheetCollapsed, setSheetCollapsed] = useState(false);
+  const sheetHeight = sheetCollapsed ? LIST_SHEET_PEEK : LIST_SHEET_HEIGHT;
   // 목록 모드: 손잡이를 끌어 내리거나 누르면 지도로
-  const listDrag = useSheetDrag('down', () => setMode('map'));
+  const listDrag = useSheetDrag((dy) => { if (dy > SHEET_DRAG_COMMIT) setMode('map'); });
+  const listDragOffset = Math.max(0, listDrag.dy);
 
   // 지도 중심: 끌면 따라감(다시 찾지 않음), 가게를 고르면 그 가게, 새로 찾으면 찾은 위치.
   const [viewCenter, setViewCenter] = useState<StoreCoordinates | null>(null);
@@ -383,6 +389,8 @@ export function StoreMapView({
       value={activeSort}
       onChange={setSort}
       align="end"
+      // 접힌 시트에서는 아래 공간이 없어 위로
+      openUpward={sheetCollapsed && mode === 'map'}
       options={(distanceSortable ? (['distance', 'reviews', 'default'] as StoreSort[]) : (['default', 'reviews'] as StoreSort[])).map((value) => ({ value, label: tx(language, SORT_LABELS[value]) }))}
       className="inline-flex h-9 items-center gap-1 rounded-hs-pill bg-hs-surface-100 px-3 text-[13px] font-extrabold text-hs-ink-700"
     >
@@ -448,7 +456,7 @@ export function StoreMapView({
               onCenterChange={(center) => { setViewCenter({ latitude: center.lat, longitude: center.lng }); setMovedByUser(true); }}
               fitStores={false}
               demoMode={demoMode}
-              demoInsets={{ top: TOP_OVERLAY, bottom: selected ? 420 : LIST_SHEET_HEIGHT + 20 }}
+              demoInsets={{ top: TOP_OVERLAY, bottom: selected ? 420 : sheetHeight + 20 }}
               focusOffsetY={selected ? DETAIL_FOCUS_OFFSET : 0}
               className="h-full w-full bg-[#EEF3F0]"
             />
@@ -500,7 +508,7 @@ export function StoreMapView({
 
         {/* 지도 버튼: 이 지역에서 검색 · 내 위치 */}
         {mapCenter && !selected && (
-          <div className="pointer-events-none absolute inset-x-0 z-30 grid grid-cols-[1fr_auto_1fr] items-center px-4" style={{ bottom: noResult ? 'calc(min(60%, 360px) + 14px)' : LIST_SHEET_HEIGHT + 14 }}>
+          <div className="pointer-events-none absolute inset-x-0 z-30 grid grid-cols-[1fr_auto_1fr] items-center px-4 transition-[bottom] duration-200" style={{ bottom: noResult ? 'calc(min(60%, 360px) + 14px)' : sheetHeight + 14 }}>
             <span />
             <div className="pointer-events-auto">
               {movedByUser && !query.trim() && (
@@ -524,7 +532,7 @@ export function StoreMapView({
         {mapCenter && !selected && (noResult ? (
           <NoResultSheet language={language} searched={Boolean(query.trim())} onGoToArea={() => setAreaSheet(true)} />
         ) : (
-          <ListSheet language={language} title={listTitle} sortMenu={sortMenu} onExpand={() => setMode('list')}>
+          <ListSheet language={language} title={listTitle} sortMenu={sortMenu} collapsed={sheetCollapsed} onCollapsedChange={setSheetCollapsed} onExpand={() => setMode('list')}>
             {listFallback ?? <div className="space-y-2.5">{visible.map((store) => cardFor(store, () => openDetail(store)))}</div>}
           </ListSheet>
         ))}
@@ -546,8 +554,8 @@ export function StoreMapView({
         {/* 목록 모드(F2-06) */}
         {mode === 'list' && (
           <div
-            className={`absolute inset-0 z-50 flex flex-col bg-hs-surface-0 ${listDrag.offset ? 'rounded-t-hs-sheet shadow-[0_-10px_30px_rgba(23,32,28,0.12)]' : 'transition-transform duration-200'}`}
-            style={listDrag.offset ? { transform: `translateY(${listDrag.offset}px)` } : undefined}
+            className={`absolute inset-0 z-50 flex flex-col bg-hs-surface-0 ${listDragOffset ? 'rounded-t-hs-sheet shadow-[0_-10px_30px_rgba(23,32,28,0.12)]' : 'transition-transform duration-200'}`}
+            style={listDragOffset ? { transform: `translateY(${listDragOffset}px)` } : undefined}
           >
             <div className="pt-[env(safe-area-inset-top)]">
               <SheetHandle label={tx(language, T.showMap)} onActivate={() => setMode('map')} drag={listDrag.handlers} />
@@ -611,13 +619,13 @@ export function StoreMapView({
 const SHEET_DRAG_COMMIT = 60;
 
 /**
- * 시트 끌기: 손가락을 따라 offset(끈 거리, px), 놓을 때 기준을 넘으면 onCommit. 탭은 손잡이 버튼 click.
+ * 시트 끌기: 끄는 동안 dy(아래 +, 위 −, px), 놓으면 onRelease(dy). 탭은 손잡이 버튼 click.
  * 이동 · 놓기는 window에서 받음(시트 밖으로 나가도 끝까지).
  */
-function useSheetDrag(direction: 'up' | 'down', onCommit: () => void) {
-  const [offset, setOffset] = useState(0);
-  const onCommitRef = useRef(onCommit);
-  onCommitRef.current = onCommit;
+function useSheetDrag(onRelease: (dy: number) => void) {
+  const [dy, setDy] = useState(0);
+  const onReleaseRef = useRef(onRelease);
+  onReleaseRef.current = onRelease;
   const stopRef = useRef<(() => void) | null>(null);
   useEffect(() => () => stopRef.current?.(), []);
 
@@ -627,33 +635,33 @@ function useSheetDrag(direction: 'up' | 'down', onCommit: () => void) {
     let moved = 0;
     const onMove = (e: PointerEvent) => {
       if (e.pointerId !== pointerId) return;
-      moved = Math.max(0, direction === 'up' ? startY - e.clientY : e.clientY - startY);
-      setOffset(moved);
+      moved = e.clientY - startY;
+      setDy(moved);
     };
     const onEnd = (e: PointerEvent) => {
       if (e.pointerId !== pointerId) return;
       stop();
       // 끈 뒤 손잡이 위에서 놓여도 탭(click)으로 치지 않음
-      if (moved > 5) {
+      if (Math.abs(moved) > 5) {
         const swallow = (click: MouseEvent) => { click.stopPropagation(); click.preventDefault(); };
         window.addEventListener('click', swallow, { capture: true, once: true });
         window.setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0);
       }
-      if (e.type === 'pointerup' && moved > SHEET_DRAG_COMMIT) onCommitRef.current();
+      if (e.type === 'pointerup') onReleaseRef.current(moved);
     };
     const stop = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onEnd);
       window.removeEventListener('pointercancel', onEnd);
       stopRef.current = null;
-      setOffset(0);
+      setDy(0);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onEnd);
     window.addEventListener('pointercancel', onEnd);
     stopRef.current = stop;
   };
-  return { offset, handlers: { onPointerDown } };
+  return { dy, handlers: { onPointerDown } };
 }
 
 function SheetHandle({ label, onActivate, drag }: { label: string; onActivate: () => void; drag?: ReturnType<typeof useSheetDrag>['handlers'] }) {
@@ -666,17 +674,35 @@ function SheetHandle({ label, onActivate, drag }: { label: string; onActivate: (
   );
 }
 
-function ListSheet({ language, title, sortMenu, onExpand, children }: { language: Language; title: ReactNode; sortMenu: ReactNode; onExpand: () => void; children: ReactNode }) {
-  // 끌어 올리면 따라 커지고, 기준을 넘겨 놓으면 목록 모드
-  const { offset, handlers } = useSheetDrag('up', onExpand);
+/**
+ * 지도 모드 가게 목록 시트. 손가락을 따라 높이가 바뀌고, 놓으면
+ * 기본 높이보다 기준 이상 커졌으면 목록 모드, 아니면 기준 이상 내렸으면 접기(제목 줄만) · 올렸으면 펴기.
+ */
+function ListSheet({ language, title, sortMenu, collapsed, onCollapsedChange, onExpand, children }: {
+  language: Language;
+  title: ReactNode;
+  sortMenu: ReactNode;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+  onExpand: () => void;
+  children: ReactNode;
+}) {
+  const base = collapsed ? LIST_SHEET_PEEK : LIST_SHEET_HEIGHT;
+  const { dy, handlers } = useSheetDrag((moved) => {
+    if (base - moved > LIST_SHEET_HEIGHT + SHEET_DRAG_COMMIT) onExpand();
+    else if (collapsed ? moved < -SHEET_DRAG_COMMIT : moved > SHEET_DRAG_COMMIT) onCollapsedChange(!collapsed);
+  });
+  const height = Math.max(LIST_SHEET_PEEK, base - dy);
   return (
     <section
-      className={`absolute inset-x-0 bottom-0 z-40 flex max-h-[55%] flex-col rounded-t-hs-sheet bg-hs-surface-0 shadow-[0_-10px_30px_rgba(23,32,28,0.12)] ${offset ? '' : 'transition-[height] duration-200'}`}
-      style={{ height: LIST_SHEET_HEIGHT + offset, maxHeight: offset ? '100%' : undefined }}
+      className={`absolute inset-x-0 bottom-0 z-40 flex max-h-[55%] flex-col rounded-t-hs-sheet bg-hs-surface-0 shadow-[0_-10px_30px_rgba(23,32,28,0.12)] ${dy ? '' : 'transition-[height] duration-200'}`}
+      style={{ height, maxHeight: height > LIST_SHEET_HEIGHT ? '100%' : undefined }}
     >
-      <SheetHandle label={tx(language, T.showList)} onActivate={onExpand} drag={handlers} />
+      {/* 접혀 있으면 손잡이를 눌러 펴기 */}
+      <SheetHandle label={tx(language, T.showList)} onActivate={collapsed ? () => onCollapsedChange(false) : onExpand} drag={handlers} />
       <div className="flex flex-none touch-none items-center justify-between gap-2 px-5 pt-1.5" {...handlers}>{title}{sortMenu}</div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4">{children}</div>
+      {/* 접힌 동안 목록은 숨김(키보드 포커스도 안 가게) */}
+      <div className={`min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4 ${collapsed && !dy ? 'invisible' : ''}`}>{children}</div>
     </section>
   );
 }
