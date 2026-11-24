@@ -3,8 +3,8 @@ import React, { Suspense, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { ResultsScreen } from '../../src/app/components/ResultsScreen';
-import { SavedMenusScreen } from '../../src/app/components/SavedMenusScreen';
-import { MyReviewsScreen } from '../../src/app/components/reviews/MyReviewsScreen';
+import { MyReviews, SavedMenus } from '../../src/app/components/mypage/RecordsTab';
+import { ToastProvider } from '../../src/app/components/hs/Toast';
 import { OwnerCommunicationSheet } from '../../src/app/components/OwnerCommunicationSheet';
 import { StoreMapView } from '../../src/app/components/RestaurantMapScreen';
 import { ScreenErrorBoundary, ScreenErrorFallback } from '../../src/app/components/ScreenErrorBoundary';
@@ -23,8 +23,8 @@ function QA() {
  const language=ar?'ar':'ko';
  return <><aside style={{position:'fixed',left:0,top:0,zIndex:100,padding:8,background:'white',maxWidth:180}}><b>LOCAL QA ONLY</b>{['saved','reviews','owner','map','chunk','result'].map(s=><button style={{display:'block',padding:8}} key={s} onClick={()=>{setScreen(s);setClosed(false);}}>{s}</button>)}<button onClick={()=>setAr(!ar)}>Arabic</button><p id="requests">Unexpected requests: 0</p></aside><main dir={ar?'rtl':'ltr'} style={{position:'relative',margin:'auto',width:430,height:'100dvh'}} key={screen+ar}>
  {screen==='result'&&<ResultsScreen language={language} menus={[{...menu, explainability:{...menu.explainability,verdict:{ko:'Fixture verdict summary',en:'Fixture verdict summary',ar:'ملخص الحكم'},decisionReason:{ko:'Fixture detailed reason',en:'Fixture detailed reason',ar:'سبب مفصل'}}}]} userProfile={null} scanProfileUnknown demoMode onBack={()=>setScreen('saved')} onRescan={()=>{}}/>}
- {screen==='saved' &&<SavedMenusScreen language={language}/>}
- {screen==='reviews'&&<MyReviewsScreen language={language} profile={null}/>}
+ {screen==='saved' &&<ToastProvider><SavedMenus language={language} demoMode={false} /></ToastProvider>}
+ {screen==='reviews'&&<ToastProvider><MyReviews language={language} profile={null} demoMode={false} /></ToastProvider>}
  {screen==='owner'&&(closed?<p>Sheet closed</p>:<OwnerCommunicationSheet language={language} menu={menu} userProfile={null} type="request" demoMode onClose={()=>setClosed(true)}/>)}
  {screen==='map'&&<StoreMapView language={language} userProfile={null} query="" onQueryChange={()=>{}} demoMode initialSelectedId={-20261123} discovery={{candidates:stores,error:false,isLoading:false,locationStatus:'ready',retryLocation:()=>{},retrySearch:()=>{},searchAt:()=>{},searchAtCurrentLocation:()=>{},searchLocation:{latitude:37.5,longitude:127},searchOrigin:'map-center'}} reviews={{enabled:true,load:async()=>[],report:async()=>{},storeKey:(store)=>store.storeId}} onScan={()=>{}} onScanWithoutStore={()=>{}}/>}
  {screen==='chunk'&&<ScreenErrorBoundary onReset={retryFailedScreens} fallback={reset=><ScreenErrorFallback language={language} pathname="/map" onRetry={reset}/>}><Suspense fallback={<p>Loading</p>}><Failed/></Suspense></ScreenErrorBoundary>}

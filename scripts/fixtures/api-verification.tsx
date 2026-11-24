@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { SavedMenusScreen } from '../../src/app/components/SavedMenusScreen';
-import { MyReviewsScreen } from '../../src/app/components/reviews/MyReviewsScreen';
+import { MyReviews, SavedMenus } from '../../src/app/components/mypage/RecordsTab';
+import { ToastProvider } from '../../src/app/components/hs/Toast';
 import '../../src/styles/index.css';
 import { liveFeatures } from '../../src/app/featureAvailability';
 // This explicit contract fixture tests future enabled responses, not production availability.
@@ -27,6 +27,6 @@ function Verification() {
   const [screen, setScreen] = useState<'saved' | 'reviews'>('saved');
   const [selected, setSelected] = useState<Scenario>('success');
   const [arabic, setArabic] = useState(false);
-  return <><aside className="fixed left-0 top-0 z-50 max-w-52 space-y-2 bg-white p-3 text-sm text-black"><strong>LOCAL FIXTURE — no server</strong><div>{(['saved', 'reviews'] as const).map(value => <button key={value} onClick={() => setScreen(value)} className="m-1 rounded border p-2">{value}</button>)}</div><div>{(['success', 'empty', 'unavailable', 'invalid'] as const).map(value => <button key={value} onClick={() => { scenario = value; setSelected(value); }} className="m-1 rounded border p-2">{value}</button>)}</div><button onClick={() => setArabic(value => !value)} className="rounded border p-2">Toggle Arabic</button><p>{screen} / {selected}</p></aside><div className="mx-auto max-w-[430px]" dir={arabic ? 'rtl' : 'ltr'} key={`${screen}-${selected}-${arabic}`}>{screen === 'saved' ? <SavedMenusScreen language={arabic ? 'ar' : 'ko'} demoMode={false}/> : <MyReviewsScreen language={arabic ? 'ar' : 'ko'} profile={null} demoMode={false}/>}</div></>;
+  return <><aside className="fixed left-0 top-0 z-50 max-w-52 space-y-2 bg-white p-3 text-sm text-black"><strong>LOCAL FIXTURE — no server</strong><div>{(['saved', 'reviews'] as const).map(value => <button key={value} onClick={() => setScreen(value)} className="m-1 rounded border p-2">{value}</button>)}</div><div>{(['success', 'empty', 'unavailable', 'invalid'] as const).map(value => <button key={value} onClick={() => { scenario = value; setSelected(value); }} className="m-1 rounded border p-2">{value}</button>)}</div><button onClick={() => setArabic(value => !value)} className="rounded border p-2">Toggle Arabic</button><p>{screen} / {selected}</p></aside><div className="mx-auto max-w-[430px]" dir={arabic ? 'rtl' : 'ltr'} key={`${screen}-${selected}-${arabic}`}>{screen === 'saved' ? <ToastProvider><SavedMenus language={arabic ? 'ar' : 'ko'} demoMode={false}/></ToastProvider> : <ToastProvider><MyReviews language={arabic ? 'ar' : 'ko'} profile={null} demoMode={false}/></ToastProvider>}</div></>;
 }
 createRoot(document.getElementById('root')!).render(<BrowserRouter><Verification/></BrowserRouter>);
