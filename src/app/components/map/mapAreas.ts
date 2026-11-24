@@ -13,6 +13,7 @@ export interface MapArea {
 }
 
 const LABELS: Array<[DiscoverAreaId, AllText]> = [
+  ['yongsan-samgakji', { ko: '용산·삼각지', en: 'Yongsan · Samgakji', ar: 'يونغسان · سامغاكجي', 'zh-CN': '龙山·三角地', ja: '龍山・三角地', 'zh-TW': '龍山·三角地', es: 'Yongsan · Samgakji' }],
   ['seongsu', { ko: '성수', en: 'Seongsu', ar: 'سونغسو', 'zh-CN': '圣水', ja: '聖水', 'zh-TW': '聖水', es: 'Seongsu' }],
   ['myeongdong-euljiro', { ko: '명동·을지로', en: 'Myeongdong · Euljiro', ar: 'ميونغدونغ · أولجيرو', 'zh-CN': '明洞·乙支路', ja: '明洞・乙支路', 'zh-TW': '明洞·乙支路', es: 'Myeongdong · Euljiro' }],
   ['hongdae-sinchon', { ko: '홍대·신촌', en: 'Hongdae · Sinchon', ar: 'هونغداي · سينتشون', 'zh-CN': '弘大·新村', ja: '弘大・新村', 'zh-TW': '弘大·新村', es: 'Hongdae · Sinchon' }],
@@ -25,7 +26,6 @@ const LABELS: Array<[DiscoverAreaId, AllText]> = [
   ['yeouido', { ko: '여의도', en: 'Yeouido', ar: 'يويدو', 'zh-CN': '汝矣岛', ja: '汝矣島', 'zh-TW': '汝矣島', es: 'Yeouido' }],
   ['yeonnam', { ko: '연남', en: 'Yeonnam', ar: 'يوننام', 'zh-CN': '延南', ja: '延南', 'zh-TW': '延南', es: 'Yeonnam' }],
   ['hapjeong-mangwon', { ko: '합정·망원', en: 'Hapjeong · Mangwon', ar: 'هابجونغ · مانغوون', 'zh-CN': '合井·望远', ja: '合井・望遠', 'zh-TW': '合井·望遠', es: 'Hapjeong · Mangwon' }],
-  ['yongsan-samgakji', { ko: '용산·삼각지', en: 'Yongsan · Samgakji', ar: 'يونغسان · سامغاكجي', 'zh-CN': '龙山·三角地', ja: '龍山・三角地', 'zh-TW': '龍山·三角地', es: 'Yongsan · Samgakji' }],
   ['geumho-oksu', { ko: '금호·옥수', en: 'Geumho · Oksu', ar: 'غومهو · أوكسو', 'zh-CN': '金湖·玉水', ja: '金湖・玉水', 'zh-TW': '金湖·玉水', es: 'Geumho · Oksu' }],
   ['cheongdam', { ko: '청담', en: 'Cheongdam', ar: 'تشونغدام', 'zh-CN': '清潭', ja: '清潭', 'zh-TW': '清潭', es: 'Cheongdam' }],
   ['busan', { ko: '부산', en: 'Busan', ar: 'بوسان', 'zh-CN': '釜山', ja: '釜山', 'zh-TW': '釜山', es: 'Busan' }],

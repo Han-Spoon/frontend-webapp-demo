@@ -112,7 +112,7 @@ function DemoRestaurantMapScreen({ language }: { language: Language }) {
   const routeState = useLocation().state as { searchCenter?: StoreCoordinates } | null;
   const requestedArea = searchParams.get('area');
   const requestedRestaurant = RESTAURANTS.find((restaurant) => restaurant.id === searchParams.get('restaurant')) ?? null;
-  // 첫 위치: 식당 지정 → 그 식당, 홈에서 고른 지역 → 그 중심, 지역 지정 → 그 중심, 없으면 성수. '내 주변'은 위치를 한 번 요청.
+  // 첫 위치: 식당 지정 → 그 식당, 홈에서 고른 지역 → 그 중심, 지역 지정 → 그 중심, 없으면 용산·삼각지. '내 주변'은 위치를 한 번 요청.
   const [initial] = useState(() => {
     if (requestedRestaurant) return { location: { latitude: requestedRestaurant.lat, longitude: requestedRestaurant.lng }, selectedId: demoStoreId(requestedRestaurant) };
     if (routeState?.searchCenter) return { location: routeState.searchCenter, selectedId: null };
