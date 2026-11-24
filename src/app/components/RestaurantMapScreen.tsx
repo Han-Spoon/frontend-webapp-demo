@@ -504,6 +504,7 @@ export function StoreMapView({
 }) {
   const t = createTranslator(language);
   const navigate = useNavigate();
+  const routeState = useLocation().state as { category?: FoodCategoryId } | null;
   const {
     candidates,
     error,
@@ -532,7 +533,8 @@ export function StoreMapView({
   }, [query]);
   // 정렬(기본: 서버 순서)·음식 종류. 음식 종류는 핀·카드에도 적용.
   const [sort, setSort] = useState<StoreSort>('default');
-  const [category, setCategory] = useState<FoodCategoryId | 'all'>('all');
+  // 홈 '오늘은 뭐가 당기세요?'에서 고른 음식 종류로 시작
+  const [category, setCategory] = useState<FoodCategoryId | 'all'>(() => (routeState?.category ?? 'all'));
   const categories = useMemo(() => {
     const present = new Set(candidates.map((store) => foodCategoryOf(store)));
     return FOOD_CATEGORY_ORDER.filter((id) => present.has(id));

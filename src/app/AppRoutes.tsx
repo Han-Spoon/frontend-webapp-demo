@@ -156,7 +156,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
       />
       <Route
         path="/home"
-        element={<HomeScreen language={language} userProfile={userProfile} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
+        element={<HomeScreen language={language} userProfile={userProfile} onChangeLanguage={account.changeLanguage} />}
       />
       <Route
         path="/map"

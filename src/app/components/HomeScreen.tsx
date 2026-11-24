@@ -1,281 +1,147 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Camera,
-  ChevronRight,
-  Map,
-  User,
-} from 'lucide-react';
 import type { Language, UserProfile } from '../types';
-import logo from '../../assets/brand/han-spoon-logo.svg';
-import { createTranslator, translateText } from '../locales';
-import {
-  AREAS,
-  RESTAURANTS,
-  restaurantsInArea,
-  type AreaId,
-  type Restaurant,
-} from '../demo/restaurants';
-import { useDemoValue } from '../demo/storage';
-import { localizeMenuText } from '../results/resultViewModel';
-import { CURATION_ARTICLES } from '../constants/curation';
-import { StoreMap } from './discovery/StoreMap';
-import { PartnershipBadge } from './discovery/PartnershipBadge';
-import { lazyScreen } from '../lazyScreen';
-import { BottomNav } from './BottomNav';
-import { DietPromptCard } from './DietPromptCard';
-import { RestaurantRecommendations } from './discovery/RestaurantRecommendations';
-import { restaurantRecommendationPhotos } from './discovery/restaurantPhotos';
-import { menuPrice } from '../demo/currency';
+import { translateText } from '../locales';
+import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import type { StoreCandidate } from '../../api/store';
-import { LiveHomeDiscovery } from './discovery/LiveHomeDiscovery';
-import { OfflineBanner } from './OfflineBanner';
+import { HOME_STORES, type HomeAreaId } from '../demo/homeStores';
+import { SEOUL_AREAS } from './discovery/seoulAreas';
+import { FOOD_CATEGORY_LABELS, type FoodCategoryId } from './discovery/foodCategories';
+import { DietPromptCard } from './DietPromptCard';
+import { BottomNav, FilterChip, HsIcon, HsIconButton, HsLinkButton, LanguageButton, Logo, OfflineBanner, StoreCard, tx, type AllText, type HsIconName } from './hs';
 
-// 식당 고르기 시트는 열 때 로드(촬영·결과 화면과 공유 묶음).
-const RestaurantPicker = lazyScreen(() => import('./discovery/RestaurantPicker').then((module) => module.RestaurantPicker));
+const H = {
+  eyebrow: { ko: '한 숟가락씩, 나에게 맞게', en: 'ONE SPOONFUL AT A TIME', ar: 'ملعقة تلو الأخرى، كما يناسبك', 'zh-CN': '一勺一勺，适合我的', ja: 'ひとさじずつ、わたしに合わせて', 'zh-TW': '一勺一勺，適合我的', es: 'CUCHARADA A CUCHARADA' },
+  title: { ko: '나에게 맞는\n한국 음식 찾기', en: 'Find Korean food\nthat suits you', ar: 'اعثر على طعام كوري\nيناسبك', 'zh-CN': '寻找\n适合我的韩国美食', ja: 'わたしに合う\n韓国料理を見つけよう', 'zh-TW': '尋找\n適合我的韓國美食', es: 'Encuentra comida coreana\na tu medida' },
+  myPage: { ko: '마이페이지', en: 'My page', ar: 'صفحتي', 'zh-CN': '我的页面', ja: 'マイページ', 'zh-TW': '我的頁面', es: 'Mi página' },
+  stories: { ko: '한스푼 저널', en: 'Han Spoon Journal', ar: 'مجلة هان سبون', 'zh-CN': '韩勺专栏', ja: 'ハンスプーン・ジャーナル', 'zh-TW': '韓勺專欄', es: 'Diario Han Spoon' },
+  read: { ko: '읽어보기', en: 'Read', ar: 'اقرأ', 'zh-CN': '阅读', ja: '読む', 'zh-TW': '閱讀', es: 'Leer' },
+  story: { ko: '이야기', en: 'Story', ar: 'قصة', 'zh-CN': '故事', ja: 'ストーリー', 'zh-TW': '故事', es: 'Historia' },
+  craving: { ko: '오늘은 뭐가 당기세요?', en: 'What are you craving today?', ar: 'ماذا تشتهي اليوم؟', 'zh-CN': '今天想吃什么？', ja: '今日は何が食べたい？', 'zh-TW': '今天想吃什麼？', es: '¿Qué te apetece hoy?' },
+  noodle: { ko: '국수', en: 'Noodles', ar: 'نودلز', 'zh-CN': '面条', ja: '麺', 'zh-TW': '麵食', es: 'Fideos' },
+  spotlightEyebrow: { ko: '스포트라이트', en: 'SPOTLIGHT', ar: 'تحت الضوء', 'zh-CN': '焦点', ja: 'スポットライト', 'zh-TW': '焦點', es: 'EN FOCO' },
+  spotlightTitle: { ko: '최근 주목 받고 있는\n식당 모음', en: 'Restaurants getting\nattention lately', ar: 'مطاعم تحظى\nباهتمام مؤخرًا', 'zh-CN': '最近备受关注的\n餐厅合集', ja: '最近注目されている\nお店まとめ', 'zh-TW': '最近備受關注的\n餐廳合集', es: 'Restaurantes que\ndan que hablar' },
+  explore: { ko: '가게 탐색', en: 'Explore restaurants', ar: 'استكشف المطاعم', 'zh-CN': '探索餐厅', ja: 'お店を探す', 'zh-TW': '探索餐廳', es: 'Explorar restaurantes' },
+  fullMap: { ko: '전체 지도', en: 'Full map', ar: 'الخريطة كاملة', 'zh-CN': '完整地图', ja: '地図全体', 'zh-TW': '完整地圖', es: 'Mapa completo' },
+  nearby: { ko: '내 주변', en: 'Near me', ar: 'بالقرب مني', 'zh-CN': '我附近', ja: '近く', 'zh-TW': '我附近', es: 'Cerca de mí' },
+  areas: { ko: '지역', en: 'Areas', ar: 'المناطق', 'zh-CN': '地区', ja: 'エリア', 'zh-TW': '地區', es: 'Zonas' },
+} satisfies Record<string, AllText>;
 
+const CRAVINGS: Array<{ id: FoodCategoryId; icon: HsIconName; tone: string; label?: AllText }> = [
+  { id: 'korean', icon: 'bowl', tone: 'bg-hs-mint-100 text-hs-brand-700' },
+  { id: 'noodle', icon: 'noodle', tone: 'bg-hs-coral-100 text-hs-coral-700', label: H.noodle },
+  { id: 'meat', icon: 'meat', tone: 'bg-hs-surface-100 text-hs-ink-700' },
+  { id: 'snack', icon: 'skewer', tone: 'bg-hs-mint-100 text-hs-brand-700' },
+];
+
+const HOME_AREAS: HomeAreaId[] = ['nearby', 'seongsu', 'myeongdong', 'hongdae'];
+const SAVED_KEY = 'han-spoon-home-saved';
+
+function readSaved(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(SAVED_KEY) ?? '[]');
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch { return []; }
+}
+
+/** 홈(캔버스 '홈 디벨롭 ② 한국어'). 가게 탐색 · 스포트라이트는 하드코딩(2026-11-24 결정). */
 export function HomeScreen({
   language,
   userProfile,
-  demoMode,
-  selectedStore,
-  onSelectStore,
+  onChangeLanguage,
 }: {
   language: Language;
   userProfile: UserProfile | null;
-  demoMode: boolean;
-  selectedStore: StoreCandidate | null;
-  onSelectStore: (store: StoreCandidate | null) => void;
+  demoMode?: boolean;
+  selectedStore?: StoreCandidate | null;
+  onSelectStore?: (store: StoreCandidate | null) => void;
+  onChangeLanguage: (language: Language) => void;
 }) {
-  const t = createTranslator(language);
   const navigate = useNavigate();
-  const [area, setArea] = useState<AreaId>('cheongdam');
-  const [selectedId, setSelectedId] = useState(
-    restaurantsInArea('nearby')[0].id,
-  );
-  const [picker, setPicker] = useState(false);
-  const [carouselPosition, setCarouselPosition] = useState(0);
-  const [animateCarousel, setAnimateCarousel] = useState(true);
-  const carouselPositionRef = useRef(0);
-  const [, setSelectedRestaurant] = useDemoValue<string | null>(
-    'selected-restaurant',
-    null,
-  );
-  const restaurants = useMemo(() => restaurantsInArea(area), [area]);
-  const recommendationPhotos = restaurantRecommendationPhotos(restaurants.map(restaurant => restaurant.category.ko));
-  const mapStores = useMemo(
-    () =>
-      restaurants.map((restaurant) => ({
-        id: restaurant.id,
-        name: localizeMenuText(restaurant.name, language),
-        lat: restaurant.lat,
-        lng: restaurant.lng,
-      })),
-    [language, restaurants],
-  );
-  const selected =
-    restaurants.find((restaurant) => restaurant.id === selectedId) ??
-    restaurants[0];
-
-  const heroArticles = [...(demoMode ? [{
-      id: 'restaurant-spotlight',
-      image: RESTAURANTS.find(r => r.area === 'seongsu')!.image,
-      title: {
-        ko: '성수에서 만난\n초록빛 한 끼',
-        en: 'A greener kind of lunch\nin Seongsu',
-        ar: 'وجبة خضراء\nفي سونغسو',
-      },
-      excerpt: {
-        ko: '초록식탁 · 레시피를 투명하게 확인한 파트너',
-        en: 'Green Table · a recipe-verified partner',
-        ar: 'غرين تيبل · شريك بوصفات موثقة',
-      },
-    }] : []), ...CURATION_ARTICLES.slice(0, demoMode ? 4 : 5)];
-  const heroCount = heroArticles.length;
-
-  const resetCarousel = useCallback(() => {
-    carouselPositionRef.current = 0;
-    setAnimateCarousel(false);
-    setCarouselPosition(0);
-    window.requestAnimationFrame(() =>
-      window.requestAnimationFrame(() => setAnimateCarousel(true)),
-    );
-  }, []);
-
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const timer = window.setInterval(() => {
-      if (document.hidden) return;
-      setCarouselPosition((current) => {
-        const next = Math.min(current + 1, heroCount);
-        carouselPositionRef.current = next;
-        return next;
-      });
-    }, 5000);
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && carouselPositionRef.current >= heroCount) {
-        resetCarousel();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [heroCount, resetCarousel]);
-
-  const visibleSlide = carouselPosition % heroCount;
-  const carouselItems = [...heroArticles, heroArticles[0]];
-
-  const openMap = (restaurant?: Restaurant) => {
-    const params = new URLSearchParams({ area: restaurant?.area ?? area });
-    if (restaurant) params.set('restaurant', restaurant.id);
-    navigate(`/map?${params.toString()}`);
+  const [area, setArea] = useState<HomeAreaId>('nearby');
+  const [saved, setSaved] = useState<string[]>(readSaved);
+  const [slide, setSlide] = useState(0);
+  const rail = useRef<HTMLDivElement>(null);
+  const stories = CURATION_ARTICLES.slice(0, 4);
+  const areaCenter = (id: HomeAreaId) => SEOUL_AREAS.find((item) => item.id === id);
+  const areaLabel = (id: HomeAreaId) => {
+    if (id === 'nearby') return tx(language, H.nearby);
+    const found = areaCenter(id);
+    return found ? translateText(language, found.label) : id;
   };
 
-  const chooseForScan = (restaurant: Restaurant | null) => {
-    setSelectedRestaurant(restaurant?.id ?? null);
-    setPicker(false);
-    navigate(restaurant?.partnership === 'recipe-verified' ? `/restaurants/${restaurant.id}/menu` : '/scan');
+  const toggleSave = (id: string) => {
+    const next = saved.includes(id) ? saved.filter((item) => item !== id) : [...saved, id];
+    setSaved(next);
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* 저장이 막혀 있으면 이번 화면에서만 */ }
   };
 
-  const selectArea = (nextArea: AreaId) => {
-    setArea(nextArea);
-    setSelectedId(restaurantsInArea(nextArea)[0].id);
+  const openMap = (options: { area?: HomeAreaId; category?: FoodCategoryId } = {}) => {
+    const center = options.area && options.area !== 'nearby' ? areaCenter(options.area) : undefined;
+    navigate('/map', {
+      state: {
+        ...(center ? { searchCenter: { latitude: center.latitude, longitude: center.longitude } } : {}),
+        ...(options.category ? { category: options.category } : {}),
+      },
+    });
+  };
+
+  const onRailScroll = () => {
+    const el = rail.current;
+    if (!el) return;
+    const card = el.firstElementChild as HTMLElement | null;
+    const step = (card?.offsetWidth ?? 310) + 12;
+    setSlide(Math.min(stories.length - 1, Math.max(0, Math.round(Math.abs(el.scrollLeft) / step))));
+  };
+  const goToSlide = (index: number) => {
+    const el = rail.current;
+    const card = el?.children[index] as HTMLElement | undefined;
+    card?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-rice-cream text-soy-ink">
-      <header className="flex h-16 shrink-0 items-center justify-between bg-rice-cream px-5">
-        <img src={logo} alt="Han Spoon" className="w-[108px]" />
-        <button
-          onClick={() => navigate('/mypage')}
-          aria-label={t('마이페이지', 'My page', 'صفحتي')}
-          className="flex size-11 items-center justify-center rounded-full border border-border-warm bg-rice-white text-brand-primary shadow-sm"
-        >
-          <User className="size-5" />
-        </button>
-      </header>
-
+    <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
       <OfflineBanner language={language} />
-
-      <main className="flex-1 overflow-y-auto pb-9">
-        <section className="px-5 pb-5 pt-4">
-          <p className="eyebrow">{t('YOUR TASTE, YOUR KOREA', 'YOUR TASTE, YOUR KOREA', 'ذوقك، كوريا الخاصة بك')}</p>
-          <h1 className="mt-2 text-[30px] font-extrabold leading-[1.22] tracking-[-0.035em]">
-            {t(
-              '나에게 맞는 한 끼,\n새로운 한국의 발견.',
-              'Your kind of food.\nYour side of Korea.',
-              'طعام يناسبك.\nاكتشف كوريا بطريقتك.',
-            )
-              .split('\n')
-              .map((line) => (
-                <span key={line} className="block">
-                  {line}
-                </span>
-              ))}
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-text-secondary">
-            {t(
-              '동네를 고르고, 내 식단을 이해하는 식당을 만나보세요.',
-              'Pick a neighborhood and find places that understand your needs.',
-              'اختر حياً واعثر على مطاعم تفهم احتياجاتك.',
-            )}
-          </p>
-        </section>
-
-        <section
-          aria-label={t('추천 이야기', 'Featured stories', 'قصص مختارة')}
-          className="relative mb-7"
-        >
-          <div className="overflow-hidden" dir="ltr">
-            <div
-              className={`flex ${animateCarousel ? 'transition-transform duration-500 ease-out' : ''}`}
-              style={{ transform: `translateX(-${carouselPosition * 100}%)` }}
-              onTransitionEnd={(event) => {
-                if (event.currentTarget !== event.target || carouselPosition < heroCount) return;
-                resetCarousel();
-              }}
-            >
-            {carouselItems.map((article, index) => {
-              const contentIndex = index % heroArticles.length;
-              const spotlight =
-                RESTAURANTS.find(
-                  (restaurant) =>
-                    restaurant.area === 'seongsu' &&
-                    restaurant.partnership === 'recipe-verified',
-                ) ?? RESTAURANTS[0];
-              return (
-                <div
-                  key={`${article.id}-${index}`}
-                  className="w-full shrink-0 px-5"
-                  dir={language === 'ar' ? 'rtl' : 'ltr'}
-                >
-                  <button
-                    onClick={() =>
-                      article.id === 'restaurant-spotlight'
-                        ? openMap(spotlight)
-                        : navigate(`/curation/${article.id}`)
-                    }
-                    className="group relative h-[244px] w-full overflow-hidden rounded-[30px] bg-brand-green-900 text-start text-white shadow-[0_18px_44px_rgba(24,61,45,.18)]"
-                  >
-                    {/* 첫 슬라이드 사진 우선. React 18은 fetchPriority 미지원 → 소문자 속성. */}
-                    <img
-                      src={article.image}
-                      alt=""
-                      {...(index === 0 ? { fetchpriority: 'high' } : {})}
-                      className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
-                    <span className="absolute inset-0 bg-gradient-to-t from-[#082b1f]/95 via-[#0b3828]/30 to-transparent" />
-                    <span className="relative flex h-full flex-col justify-end p-5">
-                      <span className="mb-2 text-[10px] font-extrabold tracking-[.17em] text-white/80">
-                        {contentIndex === 0
-                          ? t('NEIGHBORHOOD SPOTLIGHT', 'NEIGHBORHOOD SPOTLIGHT', 'أضواء الحي')
-                          : t('HAN SPOON JOURNAL', 'HAN SPOON JOURNAL', 'مجلة HAN SPOON')}{' '}
-                        · 0{contentIndex + 1}
-                      </span>
-                      <span className="max-w-[86%] whitespace-pre-line text-[24px] font-extrabold leading-[1.15] tracking-[-0.02em]">
-                        {translateText(language, article.title)}
-                      </span>
-                      <span className="mt-2 max-w-[84%] text-xs leading-5 text-white/85">
-                        {translateText(language, article.excerpt)}
-                      </span>
-                      <span className="absolute bottom-5 end-5 flex size-11 items-center justify-center rounded-full bg-white text-brand-primary">
-                        <ArrowUpRight className="size-5 rtl:-rotate-90" />
-                      </span>
-                    </span>
-                  </button>
-                </div>
-              );
-            })}
+      <main className="min-h-0 flex-1 overflow-y-auto pb-8">
+        <header className="relative overflow-hidden rounded-b-[56px] bg-hs-mint-100 px-5 pt-[18px] pb-[60px]">
+          <div className="flex items-center justify-between">
+            <Logo height={30} />
+            <div className="flex gap-2">
+              <LanguageButton language={language} setLanguage={onChangeLanguage} short />
+              <HsIconButton icon="person" tone="white" label={tx(language, H.myPage)} onClick={() => navigate('/mypage')} />
             </div>
           </div>
-          <div className="mt-3 flex justify-center gap-1">
-            {heroArticles.map((article, index) => (
-              <button
-                key={article.id}
-                aria-label={t('이야기', 'Story', 'قصة') + ' ' + (index + 1)}
-                aria-pressed={visibleSlide === index}
-                onClick={() => {
-                  carouselPositionRef.current = index;
-                  setAnimateCarousel(true);
-                  setCarouselPosition(index);
-                }}
-                className="flex h-7 items-center px-1"
-              >
-                <span
-                  className={
-                    'h-1.5 rounded-full transition-all ' +
-                    (visibleSlide === index
-                      ? 'w-7 bg-brand-primary'
-                      : 'w-1.5 bg-border-warm')
-                  }
-                />
+          <p className="mt-5 text-[11px] font-black tracking-[0.06em] text-hs-brand-700">{tx(language, H.eyebrow)}</p>
+          <h1 className="mt-1.5 text-[28px] leading-[1.22] font-black tracking-[-0.01em] whitespace-pre-line">{tx(language, H.title)}</h1>
+        </header>
+
+        {/* 한스푼 저널: 가로로 넘기는 이야기 카드 */}
+        <section aria-label={tx(language, H.stories)} className="relative -mt-10">
+          <div ref={rail} onScroll={onRailScroll} className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-ps-5 px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {stories.map((article, index) => {
+              const green = index % 2 === 0;
+              return (
+                <button
+                  key={article.id}
+                  type="button"
+                  onClick={() => navigate(`/curation/${article.id}`)}
+                  aria-label={`${translateText(language, article.title).replace(/\n/g, ' ')} · ${tx(language, H.read)}`}
+                  className={`relative h-[172px] w-[310px] max-w-[calc(100vw-56px)] flex-none snap-start overflow-hidden rounded-[30px] p-5 text-start ${green ? 'bg-hs-brand-700 text-hs-surface-0 shadow-[0_12px_28px_rgba(23,107,77,0.22)]' : 'bg-hs-coral-100 text-hs-ink-900'}`}
+                >
+                  <span aria-hidden="true" className={`absolute -end-6 -bottom-8 flex size-[150px] items-start justify-start rounded-hs-pill ps-7 pt-6 ${green ? 'bg-[#2A7D5E] text-hs-surface-0' : 'bg-[#FFD8C7] text-hs-coral-700'}`}>
+                    <HsIcon name="bowl" size={56} strokeWidth={1.8} />
+                  </span>
+                  <span className={`relative block text-[11px] font-black tracking-[0.06em] ${green ? 'text-[#BFEBD5]' : 'text-hs-coral-700'}`}>{index === 0 ? tx(language, H.stories) : tagLabel(article.tag, language)}</span>
+                  <span className="relative mt-1.5 line-clamp-3 block max-w-[180px] text-[19px] leading-[1.28] font-black whitespace-pre-line">{translateText(language, article.title)}</span>
+                  <span aria-hidden="true" className="absolute start-5 bottom-4 inline-flex h-[34px] items-center rounded-hs-pill bg-hs-surface-0 px-3.5 text-[13px] font-extrabold text-hs-ink-900">{tx(language, H.read)}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex justify-center gap-0.5">
+            {stories.map((article, index) => (
+              <button key={article.id} type="button" onClick={() => goToSlide(index)} aria-label={`${tx(language, H.story)} ${index + 1}`} aria-current={slide === index || undefined} className="flex h-6 items-center px-0.5">
+                <span className={`h-1.5 rounded-hs-pill transition-all ${slide === index ? 'w-[18px] bg-hs-brand-700' : 'w-1.5 bg-hs-line-200'}`} />
               </button>
             ))}
           </div>
@@ -283,147 +149,60 @@ export function HomeScreen({
 
         <div className="px-5">
           <DietPromptCard language={language} userProfile={userProfile} />
-          <button
-            onClick={() => setPicker(true)}
-            className="mb-9 flex w-full items-center gap-3 rounded-[22px] bg-brand-primary px-4 py-4 text-start text-white shadow-[0_10px_26px_rgba(23,100,73,.18)]"
-          >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <Camera className="size-6" />
-            </span>
-            <span className="flex-1">
-              <span className="block font-extrabold">
-                {t(
-                  '이미 식당에 도착했나요?',
-                  'Already at the table?',
-                  'هل وصلت إلى المطعم؟',
-                )}
-              </span>
-              <span className="mt-1 block text-xs text-white/80">
-                {t(
-                  '메뉴판 한 장으로 내 식단 확인하기',
-                  'Scan the menu for your dietary needs',
-                  'امسح القائمة حسب احتياجاتك الغذائية',
-                )}
-              </span>
-            </span>
-            <ChevronRight className="size-5 rtl:rotate-180" />
-          </button>
-
-          {demoMode ? <section>
-            <div className="mb-4 flex items-end justify-between gap-3">
-              <div>
-                <p className="eyebrow">{t('EXPLORE THE MAP', 'EXPLORE THE MAP', 'استكشف الخريطة')}</p>
-                <h2 className="mt-1 text-[22px] font-extrabold tracking-tight">
-                  {t('오늘은 어느 동네를 살펴볼까요?', 'Choose a neighborhood', 'اختر حياً')}
-                </h2>
-              </div>
-            </div>
-
-            <div className="-mx-5 mb-4 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none]">
-              {AREAS.filter(item => item.id !== 'nearby').map((item) => (
-                <button
-                  key={item.id}
-                  aria-pressed={area === item.id}
-                  onClick={() => selectArea(item.id)}
-                  className={
-                    'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-xs font-bold ' +
-                    (item.id === area
-                      ? 'border-brand-primary bg-brand-primary text-white'
-                      : 'border-border-warm bg-rice-white text-text-secondary')
-                  }
-                >
-                  {localizeMenuText(item, language)}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative overflow-hidden rounded-[30px] border border-border-warm bg-rice-white shadow-[var(--shadow-card)]">
-              <StoreMap
-                language={language}
-                stores={mapStores}
-                demoMode={demoMode}
-                selectedId={selected.id}
-                onSelect={(store) => setSelectedId(store.id)}
-                className="h-[270px] w-full bg-[#e9eee5]"
-              />
-              <button
-                onClick={() => openMap()}
-                className="absolute end-3 top-3 flex min-h-10 items-center gap-1.5 rounded-full bg-soy-ink px-3.5 text-xs font-bold text-white shadow-md"
-              >
-                <Map className="size-4" />
-                {t('전체 지도', 'Full map', 'الخريطة كاملة')}
-              </button>
-              <button
-                onClick={() => openMap(selected)}
-                className="absolute inset-x-3 bottom-3 flex min-h-[86px] items-center gap-3 rounded-[22px] border border-white/70 bg-rice-white/95 p-3 text-start shadow-[0_14px_38px_rgba(35,42,37,.16)] backdrop-blur"
-              >
-                <img
-                  src={selected.image}
-                  alt=""
-                  loading="lazy"
-                  className="size-16 shrink-0 rounded-2xl object-cover"
-                />
-                <span className="min-w-0 flex-1">
-                  <PartnershipBadge
-                    restaurant={selected}
-                    language={language}
-                    compact
-                  />
-                  <span className="mt-1.5 block truncate text-sm font-extrabold">
-                    {localizeMenuText(selected.name, language)}
-                  </span>
-                  <span className="mt-0.5 block truncate text-[11px] text-text-secondary">
-                    {localizeMenuText(selected.category, language)} ·{' '}
-                    {menuPrice(String(selected.price), language)?.original}
-                  </span>
-                </span>
-                <ArrowRight className="size-5 shrink-0 rtl:rotate-180" />
-              </button>
-            </div>
-          </section> : (
-            <LiveHomeDiscovery
-              language={language}
-              selectedStore={selectedStore}
-              onSelectStore={onSelectStore}
-            />
-          )}
-
-          {demoMode && <RestaurantRecommendations
-            language={language}
-            areaName={localizeMenuText(AREAS.find(item => item.id === area)!, language)}
-            demo
-            items={restaurants.map((restaurant, index) => ({
-              id: restaurant.id,
-              name: localizeMenuText(restaurant.name, language),
-              category: localizeMenuText(restaurant.category, language),
-              address: '',
-              image: recommendationPhotos[index],
-            }))}
-            onSelect={id => {
-              const restaurant = restaurants.find(item => item.id === id);
-              if (restaurant) openMap(restaurant);
-            }}
-          />}
         </div>
-      </main>
 
+        <section className="px-5 pt-4" aria-labelledby="home-craving">
+          <h2 id="home-craving" className="text-[19px] font-black">{tx(language, H.craving)}</h2>
+          <div className="mt-3.5 grid grid-cols-4 gap-2">
+            {CRAVINGS.map((item) => (
+              <button key={item.id} type="button" onClick={() => openMap({ category: item.id })} className="flex flex-col items-center gap-1.5 text-[13px] font-extrabold">
+                <span aria-hidden="true" className={`flex h-[62px] w-[70px] max-w-full items-center justify-center rounded-t-[18px] rounded-b-[34px] ${item.tone}`}>
+                  <HsIcon name={item.icon} size={28} />
+                </span>
+                {translateText(language, item.label ?? FOOD_CATEGORY_LABELS[item.id])}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="px-5 pt-6">
+          <button type="button" onClick={() => openMap()} className="relative block h-[120px] w-full overflow-hidden rounded-[28px] bg-hs-coral-100 px-5 py-[18px] text-start">
+            <span aria-hidden="true" className="absolute -end-4 -top-6 size-[120px] rounded-hs-pill bg-[#FFD8C7]" />
+            <span aria-hidden="true" className="absolute end-6 bottom-4 text-hs-orange-500"><HsIcon name="bowl" size={52} strokeWidth={1.8} /></span>
+            <span className="relative block text-[11px] font-black tracking-[0.06em] text-hs-coral-700">{tx(language, H.spotlightEyebrow)}</span>
+            <span className="relative mt-1.5 block max-w-[210px] text-[18px] leading-[1.3] font-black whitespace-pre-line">{tx(language, H.spotlightTitle)}</span>
+          </button>
+        </section>
+
+        <section className="pt-7" aria-labelledby="home-explore">
+          <div className="flex items-center justify-between px-5">
+            <h2 id="home-explore" className="text-[19px] font-black">{tx(language, H.explore)}</h2>
+            <HsLinkButton tone="brand" onClick={() => openMap({ area })}>{tx(language, H.fullMap)}</HsLinkButton>
+          </div>
+          <div role="group" aria-label={tx(language, H.areas)} className="mt-2 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {HOME_AREAS.map((id) => (
+              <FilterChip key={id} selected={area === id} onClick={() => setArea(id)} className="px-4">{areaLabel(id)}</FilterChip>
+            ))}
+          </div>
+          <div className="mt-3.5 space-y-2 px-5">
+            {HOME_STORES[area].map((store) => (
+              <StoreCard
+                key={store.id}
+                language={language}
+                name={translateText(language, store.name)}
+                reviewCount={store.reviewCount}
+                district={translateText(language, store.district)}
+                category={translateText(language, FOOD_CATEGORY_LABELS[store.category])}
+                distanceMeters={store.distanceMeters}
+                saved={saved.includes(store.id)}
+                onToggleSave={() => toggleSave(store.id)}
+                onClick={() => openMap({ area })}
+              />
+            ))}
+          </div>
+        </section>
+      </main>
       <BottomNav language={language} />
-      {picker && (
-        <Suspense fallback={null}>
-        <RestaurantPicker
-          language={language}
-          demoMode={demoMode}
-          selectedStore={selectedStore}
-          onSelectDemo={chooseForScan}
-          onSelectStore={(store) => {
-            onSelectStore(store);
-            setPicker(false);
-            navigate('/scan');
-          }}
-          onClose={() => setPicker(false)}
-        />
-        </Suspense>
-      )}
     </div>
   );
 }
