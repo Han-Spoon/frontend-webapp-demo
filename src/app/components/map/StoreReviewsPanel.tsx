@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReportReason, RestaurantReview } from '../../../api/reviews';
 import type { Language, UserProfile } from '../../types';
 import { HsButton } from '../hs/Button';
 import { DietTag } from '../hs/Chip';
 import { HsIconButton } from '../hs/IconButton';
-import { FLIP_RTL, HsIcon } from '../hs/icons';
+import { HsIcon } from '../hs/icons';
 import { EmptyState, ErrorState, InlineError, SkeletonCard } from '../hs/StateBlocks';
-import { HS_TEXT, tx, type AllText } from '../hs/text';
+import { tx, type AllText } from '../hs/text';
 import { ChipMenu } from './ChipMenu';
 import { REVIEW_TEXT, answerLabel, profileIds, profileTagText, toAnswerValue } from './reviewText';
 
@@ -42,33 +42,24 @@ const ANSWER_COLOR = { present: 'text-hs-danger-700', absent: 'text-hs-safe-700'
 
 type DietFilter = 'mine' | string;
 
-/** F2-05 가게 후기 전체 화면: 전체 · 내 식단 · 메뉴로 거르기, 주의 안내, 방문자 후기, 신고, [후기 작성] */
-export function StoreReviewsScreen({ language, storeName, profile, reviews, loading, error, canWrite, onRetry, onBack, onReport, onWrite }: {
+/**
+ * F2-05 가게 상세 · 후기 탭 내용(2026-11-25: 독립 화면 → 가게 상세의 후기 탭).
+ * '나와 같은 프로필의 경험' + 전체 · 내 식단 · 메뉴로 거르기 + 주의 안내 + 방문자 후기 + 신고. [후기 작성]은 가게 상세 하단 버튼.
+ */
+export function StoreReviewsPanel({ language, profile, reviews, loading, error, preparing = false, onRetry, onReport }: {
   language: Language;
-  storeName: string;
   profile: UserProfile | null;
   reviews: RestaurantReview[];
   loading: boolean;
   error: boolean;
-  /** 후기 기능 준비 중이면 false */
-  canWrite: boolean;
+  /** 후기 기능 준비 중 */
+  preparing?: boolean;
   onRetry: () => void;
-  onBack: () => void;
   onReport: (review: RestaurantReview, reason: ReportReason) => Promise<void>;
-  onWrite: () => void;
 }) {
   const myIds = useMemo(() => profileIds(profile), [profile]);
   const [diet, setDiet] = useState<DietFilter | null>(null);
   const [menu, setMenu] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  // 열리면 뒤로 버튼에 초점. Esc로 닫기.
-  useEffect(() => {
-    rootRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !event.defaultPrevented) onBack(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onBack]);
 
   const visible = reviews.filter((review) => !review.hidden || review.mine);
   const menuNames = [...new Set(visible.flatMap((review) => review.menus.map((item) => item.name)))];
@@ -83,74 +74,69 @@ export function StoreReviewsScreen({ language, storeName, profile, reviews, load
   const dietLabel = diet === null || diet === 'mine' ? tx(language, T.myDiet) : profileTagText(diet, language);
 
   return (
-    <div ref={rootRef} role="dialog" aria-modal="true" aria-labelledby="store-reviews-title" className="absolute inset-0 z-[60] flex flex-col bg-hs-surface-0">
-      <header className="flex flex-none items-center gap-2 px-5 pt-[max(18px,env(safe-area-inset-top))]">
-        <HsIconButton icon="back" tone="soft" label={tx(language, HS_TEXT.back)} iconClassName={FLIP_RTL} onClick={onBack} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-extrabold text-hs-ink-500">{storeName}</p>
-          <h1 id="store-reviews-title" className="truncate text-[17px] font-black text-hs-ink-900">{tx(language, REVIEW_TEXT.title)}</h1>
-        </div>
-      </header>
+    <section aria-labelledby="store-reviews-title" className="px-5 pt-[18px] pb-6">
+      <h2 id="store-reviews-title" className="flex items-center gap-1.5 text-[17px] font-black text-hs-ink-900">
+        <HsIcon name="person" size={18} className="flex-none text-hs-brand-700" />
+        {tx(language, REVIEW_TEXT.title)}
+      </h2>
+      {preparing ? (
+        <p className="mt-3 text-[13px] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.preparing)}</p>
+      ) : (
+        <>
+          {visible.length > 0 && !loading && !error && (
+            <div role="group" aria-label={tx(language, T.filters)} className="flex flex-wrap gap-1.5 pt-3">
+              <button type="button" aria-pressed={diet === null && menu === null} onClick={clear} className={chipClass(diet === null && menu === null)}>{tx(language, T.all)}</button>
+              {myIds.length > 0 && (
+                <ChipMenu
+                  menuLabel={tx(language, T.myDiet)}
+                  value={diet}
+                  onChange={(value) => setDiet(value)}
+                  options={[{ value: 'mine', label: tx(language, T.myDietAll) }, ...myIds.map((id) => ({ value: id, label: profileTagText(id, language) }))]}
+                  className={chipClass(diet !== null)}
+                >
+                  <span className="truncate">{dietLabel}</span>
+                  <HsIcon name="chevronDown" size={14} strokeWidth={2.6} className="flex-none" />
+                </ChipMenu>
+              )}
+              {menuNames.length > 0 && (
+                <ChipMenu
+                  menuLabel={tx(language, T.menu)}
+                  value={menu}
+                  onChange={(value) => setMenu(value)}
+                  options={menuNames.map((name) => ({ value: name, label: name }))}
+                  className={chipClass(menu !== null)}
+                >
+                  <span className="truncate">{menu ?? tx(language, T.menu)}</span>
+                  <HsIcon name="chevronDown" size={14} strokeWidth={2.6} className="flex-none" />
+                </ChipMenu>
+              )}
+            </div>
+          )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
-        {visible.length > 0 && !loading && !error && (
-          <div role="group" aria-label={tx(language, T.filters)} className="flex flex-wrap gap-1.5 pt-4">
-            <button type="button" aria-pressed={diet === null && menu === null} onClick={clear} className={chipClass(diet === null && menu === null)}>{tx(language, T.all)}</button>
-            {myIds.length > 0 && (
-              <ChipMenu
-                menuLabel={tx(language, T.myDiet)}
-                value={diet}
-                onChange={(value) => setDiet(value)}
-                options={[{ value: 'mine', label: tx(language, T.myDietAll) }, ...myIds.map((id) => ({ value: id, label: profileTagText(id, language) }))]}
-                className={chipClass(diet !== null)}
-              >
-                <span className="truncate">{dietLabel}</span>
-                <HsIcon name="chevronDown" size={14} strokeWidth={2.6} className="flex-none" />
-              </ChipMenu>
-            )}
-            {menuNames.length > 0 && (
-              <ChipMenu
-                menuLabel={tx(language, T.menu)}
-                value={menu}
-                onChange={(value) => setMenu(value)}
-                options={menuNames.map((name) => ({ value: name, label: name }))}
-                className={chipClass(menu !== null)}
-              >
-                <span className="truncate">{menu ?? tx(language, T.menu)}</span>
-                <HsIcon name="chevronDown" size={14} strokeWidth={2.6} className="flex-none" />
-              </ChipMenu>
+          <p className="mt-3.5 flex items-start gap-2 rounded-[18px] bg-hs-coral-100 px-3.5 py-3 text-[13px] leading-[1.5] font-bold text-hs-coral-700">
+            <HsIcon name="alert" size={16} strokeWidth={2.4} className="mt-0.5 flex-none" />
+            <span>{tx(language, REVIEW_TEXT.caution)}</span>
+          </p>
+
+          <div className="mt-3.5 space-y-3">
+            {loading ? (
+              <>
+                <SkeletonCard language={language} lines={['40%', '70%', '55%']} className="border-[1.5px] border-hs-line-200" />
+                <SkeletonCard language={language} lines={['40%', '60%']} className="border-[1.5px] border-hs-line-200" />
+              </>
+            ) : error ? (
+              <ErrorState language={language} title={tx(language, REVIEW_TEXT.loadFailed)} onRetry={onRetry} />
+            ) : visible.length === 0 ? (
+              <EmptyState icon="message" title={tx(language, T.empty)} description={tx(language, T.emptyBody)} />
+            ) : filtered.length === 0 ? (
+              <EmptyState icon="search" title={tx(language, T.noFiltered)} action={<HsButton variant="outline" size="md" onClick={clear}>{tx(language, T.clear)}</HsButton>} />
+            ) : (
+              filtered.map((review) => <VisitorReviewCard key={review.id} language={language} review={review} myIds={myIds} onReport={onReport} />)
             )}
           </div>
-        )}
-
-        <p className="mt-3.5 flex items-start gap-2 rounded-[18px] bg-hs-coral-100 px-3.5 py-3 text-[13px] leading-[1.5] font-bold text-hs-coral-700">
-          <HsIcon name="alert" size={16} strokeWidth={2.4} className="mt-0.5 flex-none" />
-          <span>{tx(language, REVIEW_TEXT.caution)}</span>
-        </p>
-
-        <div className="mt-3.5 space-y-3">
-          {loading ? (
-            <>
-              <SkeletonCard language={language} lines={['40%', '70%', '55%']} className="border-[1.5px] border-hs-line-200" />
-              <SkeletonCard language={language} lines={['40%', '60%']} className="border-[1.5px] border-hs-line-200" />
-            </>
-          ) : error ? (
-            <ErrorState language={language} title={tx(language, REVIEW_TEXT.loadFailed)} onRetry={onRetry} />
-          ) : visible.length === 0 ? (
-            <EmptyState icon="message" title={tx(language, T.empty)} description={tx(language, T.emptyBody)} />
-          ) : filtered.length === 0 ? (
-            <EmptyState icon="search" title={tx(language, T.noFiltered)} action={<HsButton variant="outline" size="md" onClick={clear}>{tx(language, T.clear)}</HsButton>} />
-          ) : (
-            filtered.map((review) => <VisitorReviewCard key={review.id} language={language} review={review} myIds={myIds} onReport={onReport} />)
-          )}
-        </div>
-      </div>
-
-      <div className="flex-none bg-hs-surface-0 px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))]">
-        <HsButton size="cta" disabled={!canWrite} onClick={onWrite}>{tx(language, REVIEW_TEXT.writeReview)}</HsButton>
-        {!canWrite && <p className="mt-2 text-center text-[12px] font-bold text-hs-ink-500">{tx(language, REVIEW_TEXT.preparing)}</p>}
-      </div>
-    </div>
+        </>
+      )}
+    </section>
   );
 }
 

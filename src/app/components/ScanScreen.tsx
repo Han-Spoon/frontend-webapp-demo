@@ -49,7 +49,9 @@ const S = {
   screen: { ko: '메뉴판 스캔', en: 'Menu scan', ar: 'مسح القائمة', 'zh-CN': '扫描菜单', ja: 'メニュースキャン', 'zh-TW': '掃描菜單', es: 'Escanear menú' },
   myPage: { ko: '마이페이지', en: 'My page', ar: 'صفحتي', 'zh-CN': '我的页面', ja: 'マイページ', 'zh-TW': '我的頁面', es: 'Mi página' },
   title: { ko: '오늘의 메뉴를\n주문 전에 살펴보세요', en: 'Check today’s menu\nbefore you order', ar: 'تعرّف على قائمة اليوم\nقبل أن تطلب', 'zh-CN': '点餐前\n先看看今天的菜单', ja: '注文の前に\n今日のメニューを確認しましょう', 'zh-TW': '點餐前\n先看看今天的菜單', es: 'Revisa el menú de hoy\nantes de pedir' },
-  pickStore: { ko: '식당 선택(선택) · 안 골라도 돼요', en: 'Pick a restaurant (optional)', ar: 'اختر مطعمًا (اختياري)', 'zh-CN': '选择餐厅（可选）· 不选也可以', ja: 'お店を選ぶ（任意）· 選ばなくてもOK', 'zh-TW': '選擇餐廳（可選）· 不選也可以', es: 'Elegir restaurante (opcional)' },
+  pickStore: { ko: '식당 선택(필수)', en: 'Choose a restaurant (required)', ar: 'اختر مطعمًا (مطلوب)', 'zh-CN': '选择餐厅（必选）', ja: 'お店を選ぶ（必須）', 'zh-TW': '選擇餐廳（必選）', es: 'Elige un restaurante (obligatorio)' },
+  needStore: { ko: '식당을 먼저 고르면 메뉴판을 찍을 수 있어요.', en: 'Choose a restaurant first to scan its menu.', ar: 'اختر مطعمًا أولًا لتتمكن من مسح قائمته.', 'zh-CN': '先选择餐厅，才能扫描菜单。', ja: '先にお店を選ぶと、メニュー表を撮影できます。', 'zh-TW': '先選擇餐廳，才能掃描菜單。', es: 'Elige primero un restaurante para escanear su carta.' },
+  pickFirst: { ko: '식당을 먼저 골라 주세요', en: 'Choose a restaurant first', ar: 'اختر مطعمًا أولًا', 'zh-CN': '请先选择餐厅', ja: '先にお店を選んでください', 'zh-TW': '請先選擇餐廳', es: 'Elige primero un restaurante' },
   change: { ko: '변경', en: 'Change', ar: 'تغيير', 'zh-CN': '更改', ja: '変更', 'zh-TW': '變更', es: 'Cambiar' },
   cameraOpens: { ko: '카메라가 바로 열려요', en: 'Your camera opens right away', ar: 'ستفتح الكاميرا مباشرة', 'zh-CN': '相机会马上打开', ja: 'カメラがすぐに開きます', 'zh-TW': '相機會馬上打開', es: 'La cámara se abre al instante' },
   frontTip: { ko: '메뉴판 전체가 보이도록 정면에서 찍으면 더 정확해요.', en: 'Shoot the whole menu straight on for better results.', ar: 'لنتائج أدق، التقط القائمة كاملة من الأمام.', 'zh-CN': '正对菜单、拍下整张菜单会更准确。', ja: 'メニュー全体が見えるよう正面から撮ると、より正確です。', 'zh-TW': '正對菜單、拍下整張菜單會更準確。', es: 'Fotografía el menú completo y de frente para más precisión.' },
@@ -149,6 +151,7 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
   };
 
   const startCamera = async () => {
+    if (!store) { setRestaurantPicker(true); return; }
     setErrorMessage(null);
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraNotice('unsupported');
@@ -206,6 +209,8 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
 
   const handleAnalyze = async () => {
     if (!selectedImage || isUploading) return;
+    // 스캔 전 식당 선택은 필수(2026-11-25).
+    if (!store) { setRestaurantPicker(true); return; }
     try {
       setIsUploading(true);
       setErrorMessage(null);
@@ -249,6 +254,7 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
 
   const picker = restaurantPicker && (
     <RestaurantPicker
+      required
       language={language}
       demoMode={demoMode}
       selectedId={restaurantId}
@@ -328,12 +334,13 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
           ) : (
             <StoreRow language={language} onClick={() => setRestaurantPicker(true)} disabled={isUploading} className="mt-4" />
           )}
+          {!store && <p role="note" className="mt-2 text-[13px] font-bold text-hs-ink-500">{tx(language, S.needStore)}</p>}
           <HsNote className="mt-3 rounded-hs-md bg-hs-surface-100 px-3.5 py-3 text-hs-ink-700!">{tx(language, S.blurTip)}</HsNote>
           {errorMessage && <InlineError className="mt-3">{errorMessage}</InlineError>}
         </main>
         <div className="flex flex-none gap-2 px-5 pt-2 pb-[max(20px,env(safe-area-inset-bottom))]">
           <HsButton variant="outline" size="cta" className="w-auto! flex-1" disabled={isUploading} onClick={retake}>{tx(language, selectedImage.source === 'upload' ? S.reselect : S.retake)}</HsButton>
-          <HsButton variant="primary" size="cta" className="w-auto! flex-[1.8]" busy={isUploading} onClick={() => void handleAnalyze()}>{tx(language, isUploading ? S.uploading : S.analyze)}</HsButton>
+          <HsButton variant="primary" size="cta" className="w-auto! flex-[1.8]" busy={isUploading} disabled={!store} onClick={() => void handleAnalyze()}>{tx(language, isUploading ? S.uploading : S.analyze)}</HsButton>
         </div>
         {picker}
       </div>
@@ -370,17 +377,19 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
         <section className="px-5 pt-5">
           <button
             type="button"
-            onClick={() => void startCamera()}
+            onClick={() => (store ? void startCamera() : setRestaurantPicker(true))}
             disabled={isStartingCamera}
             className="relative flex aspect-[350/240] w-full flex-col items-center justify-center rounded-[32px] bg-hs-ink-900 px-6 text-center text-hs-surface-0 disabled:opacity-80"
           >
             <Corners className="inset-4" tone="border-hs-surface-0" />
             <span className="flex size-16 items-center justify-center rounded-hs-pill bg-white/15"><HsIcon name="scan" size={26} /></span>
-            <span className="mt-4 text-[15px] font-black">{tx(language, isStartingCamera ? S.opening : S.cameraOpens)}</span>
+            <span className="mt-4 text-[15px] font-black">{tx(language, !store ? S.pickFirst : isStartingCamera ? S.opening : S.cameraOpens)}</span>
             <span className="mt-1.5 text-[12px] font-semibold text-white/80">{tx(language, S.frontTip)}</span>
           </button>
-          <HsButton variant="primary" size="cta" icon="scan" className="mt-3.5" busy={isStartingCamera} onClick={() => void startCamera()}>{tx(language, S.takePhoto)}</HsButton>
-          <HsButton variant="outline" size="lg" block icon="photo" className="mt-2" onClick={() => fileInputRef.current?.click()}>{tx(language, S.choosePhoto)}</HsButton>
+          {/* 식당을 고르기 전에는 막고, 위에 이유 한 줄(디자인 시스템: 필수 조건이 남은 비활성 버튼) */}
+          {!store && <p role="note" className="mt-3.5 text-center text-[13px] font-bold text-hs-ink-700">{tx(language, S.needStore)}</p>}
+          <HsButton variant="primary" size="cta" icon="scan" className={store ? 'mt-3.5' : 'mt-2'} busy={isStartingCamera} disabled={!store} onClick={() => void startCamera()}>{tx(language, S.takePhoto)}</HsButton>
+          <HsButton variant="outline" size="lg" block icon="photo" className="mt-2" disabled={!store} onClick={() => fileInputRef.current?.click()}>{tx(language, S.choosePhoto)}</HsButton>
           {cameraMessage && (
             <div role="alert" className="mt-3 rounded-hs-lg bg-hs-caution-100 px-4 py-3">
               <p className="flex items-start gap-1.5 text-[13px] leading-[1.5] font-bold text-hs-caution-700">
@@ -431,7 +440,7 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
   );
 }
 
-/** 식당 선택 행(점선). 고르지 않아도 된다. */
+/** 식당 선택 행(점선). 스캔하려면 골라야 한다(2026-11-25 필수). */
 function StoreRow({ language, onClick, disabled = false, className = '' }: { language: Language; onClick: () => void; disabled?: boolean; className?: string }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={`flex min-h-[52px] w-full items-center gap-2.5 rounded-hs-lg border-[1.5px] border-dashed border-hs-line-dash bg-hs-surface-0 ps-4 pe-3 text-start disabled:opacity-60 ${className}`}>

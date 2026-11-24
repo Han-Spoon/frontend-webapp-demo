@@ -9,6 +9,7 @@ export * from './IconButton';
 export * from './icons';
 export * from './InfoBox';
 export * from './LanguageButton';
+export * from './MenuTag';
 export * from './Logo';
 export * from './OptionRow';
 export * from './risk';

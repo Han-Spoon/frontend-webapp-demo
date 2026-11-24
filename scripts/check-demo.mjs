@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { createServer } from 'vite';
 
 // 4개 언어(zh-CN·ja·zh-TW·es) 번역 누락 문구 수. 바뀌면 번역을 채우거나 이 값과 docs/i18n-accessibility.md를 갱신.
-const I18N_MISSING_BASELINE = { 'zh-CN': 31, ja: 31, 'zh-TW': 40, es: 31 };
+const I18N_MISSING_BASELINE = { 'zh-CN': 28, ja: 28, 'zh-TW': 38, es: 28 };
 
 // Exercise actual source modules with Vite's existing TS loader; no test dependencies needed.
 const server = await createServer({
@@ -28,6 +28,23 @@ try {
     assert.equal(price.converted === null, language === 'ko');
   }
   assert.equal(menuPrice('13800', 'en').converted, '$10.00');
+  // 가게 상세: 층 문구 · 시연 상세(메뉴 있음 / 메뉴 · 사진 없음) · 고정 가게 storeId
+  const { formatFloor, distanceBetween } = await server.ssrLoadModule('/src/app/components/store/storeFormat.ts');
+  assert.equal(formatFloor('1', 'ko'), '1층');
+  assert.equal(formatFloor('B1', 'ko'), '지하 1층');
+  assert.equal(formatFloor('지', 'ko'), '지하');
+  assert.equal(formatFloor('반지층', 'ko'), '반지하');
+  for (const value of ['', '0', null, undefined, '2-3']) assert.equal(formatFloor(value, 'ko'), null);
+  assert.equal(formatFloor('B2', 'en'), 'B2');
+  assert.equal(Math.round(distanceBetween({ latitude: 37.5, longitude: 127 }, { latitude: 37.501, longitude: 127 })), 111);
+  const { demoStoreDetail } = await server.ssrLoadModule('/src/app/demo/storeDetails.ts');
+  const { HOME_STORES, CURATION_STORES } = await server.ssrLoadModule('/src/app/demo/homeStores.ts');
+  const fixedStores = [...Object.values(HOME_STORES).flat(), ...CURATION_STORES];
+  assert.equal(new Set(fixedStores.map((store) => store.storeId)).size, fixedStores.length, 'Fixed stores must have unique storeIds');
+  for (const store of fixedStores) assert.ok(demoStoreDetail(store.storeId), `Demo detail missing for ${store.storeId}`);
+  assert.ok(demoStoreDetail(800000).menus.length > 3 && demoStoreDetail(800000).thumbnailUrl);
+  assert.equal(demoStoreDetail(800002).menus, null);
+  assert.equal(demoStoreDetail(800002).thumbnailUrl, null);
   const { RESULT_PREVIEW_MENUS, RESULT_PREVIEW_PROFILE } =
     await server.ssrLoadModule('/src/app/results/resultFixtures.ts');
   const { getCautionProbabilities } = await server.ssrLoadModule(
@@ -254,7 +271,7 @@ try {
   assert.deepEqual(missing, I18N_MISSING_BASELINE, 'Missing translation counts changed: add translations or update I18N_MISSING_BASELINE');
 
   console.log(
-    `PASS: currency parsing / 7 currencies / caution-only profile matching / probability boundaries / ${EXTRA_CURATION_ARTICLES.length} original articles / region and feedback filtering / save upsert / unavailable storage fallback / ${translationKeys.size} translation keys`,
+    `PASS: currency parsing / 7 currencies / store floor · demo store details / caution-only profile matching / probability boundaries / ${EXTRA_CURATION_ARTICLES.length} original articles / region and feedback filtering / save upsert / unavailable storage fallback / ${translationKeys.size} translation keys`,
   );
 } finally {
   await server.close();

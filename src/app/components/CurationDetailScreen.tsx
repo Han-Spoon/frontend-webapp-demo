@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Language } from '../types';
+import { translateText } from '../locales';
 import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import { CURATION_BODIES } from '../constants/curationBodies';
 import { CURATION_BODY_DRAFTS } from '../constants/curationBodyDrafts';
-import { CURATION_STORES } from '../demo/curationStores';
-import { MAP_AREAS } from './map/mapAreas';
-import { FOOD_CATEGORY_LABELS } from './discovery/foodCategories';
-import { useFixtureStoreSaves } from '../hooks/useFixtureStoreSaves';
-import { translateText } from '../locales';
-import { CategoryTag, EmptyState, HsButton, HsIcon, HsIconButton, OfflineBanner, StoreCard, tx, useToast, type AllText } from './hs';
+import type { StoreCandidate } from '../../api/store';
+import { CURATION_STORES } from '../demo/homeStores';
+import { useGrantedPosition } from '../hooks/useGrantedPosition';
+import { CategoryTag, EmptyState, HsButton, HsIcon, HsIconButton, OfflineBanner, tx, useToast, type AllText } from './hs';
+import { useSavedStores } from './map/savedStores';
+import { FeaturedStoreCard } from './store/FeaturedStoreCard';
 import { FLIP_RTL } from './hs/icons';
 import { HS_TEXT } from './hs/text';
 import { ArticlePhoto, CATEGORY_BG, CURATION_TEXT, NextArticleRow, ReferenceBadge, articleSubtitle, dotDate } from './curation/curationView';
@@ -27,14 +28,20 @@ const T = {
 } satisfies Record<string, AllText>;
 
 /** 흐름 5 글 상세(F5-03 본문 · F5-04 다음 이야기 · 칼럼 속 식당). 하단 내비 없음. */
-export function CurationDetailScreen({ language }: { language: Language }) {
+export function CurationDetailScreen({ language, demoMode = false }: { language: Language; demoMode?: boolean }) {
   const navigate = useNavigate();
   const toast = useToast();
   const { id } = useParams();
   const scrollRef = useRef<HTMLDivElement>(null);
   const article = CURATION_ARTICLES.find((item) => item.id === id);
   const articleBody = article ? CURATION_BODIES[article.id] : undefined;
-  const { isSaved, toggleSave } = useFixtureStoreSaves();
+  const { isSaved, toggle } = useSavedStores();
+  const position = useGrantedPosition();
+  const toggleSave = (store: StoreCandidate) => {
+    const wasSaved = isSaved(store.storeId);
+    toggle(store);
+    if (!wasSaved) toast.show(tx(language, T.savedToast), { tone: 'success' });
+  };
 
   // 다른 글로 옮기면 맨 위로
   useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [id]);
@@ -124,24 +131,19 @@ export function CurationDetailScreen({ language }: { language: Language }) {
         <section aria-labelledby="curation-stores" className="mt-[30px] rounded-t-[36px] bg-hs-surface-100 px-5 pt-[26px] pb-[max(28px,env(safe-area-inset-bottom))]">
           <h2 id="curation-stores" className="mx-1 text-[18px] font-black">{tx(language, T.stores)}</h2>
           <div className="mt-3.5 space-y-2">
-            {CURATION_STORES.map((store) => {
-              const center = MAP_AREAS.find((area) => area.id === store.area)?.center;
-              return (
-                <StoreCard
-                  key={store.id}
-                  language={language}
-                  name={translateText(language, store.name)}
-                  reviewCount={store.reviewCount}
-                  district={translateText(language, store.district)}
-                  category={translateText(language, FOOD_CATEGORY_LABELS[store.category])}
-                  distanceMeters={store.distanceMeters}
-                  saved={isSaved(store.id)}
-                  onToggleSave={() => { if (toggleSave(store.id)) toast.show(tx(language, T.savedToast), { tone: 'success' }); }}
-                  onClick={() => navigate('/map', { state: center ? { searchCenter: center } : undefined })}
-                  className="border-transparent!"
-                />
-              );
-            })}
+            {CURATION_STORES.map((store) => (
+              <FeaturedStoreCard
+                key={store.storeId}
+                language={language}
+                store={store}
+                demoMode={demoMode}
+                position={position}
+                saved={isSaved(store.storeId)}
+                onToggleSave={toggleSave}
+                onOpen={() => navigate(`/stores/${store.storeId}`)}
+                className="border-transparent!"
+              />
+            ))}
           </div>
           <p className="mx-1 mt-3 flex items-start gap-1.5 text-[12px] leading-[1.5] font-semibold text-hs-ink-700">
             <HsIcon name="alert" size={14} strokeWidth={2.4} className="mt-0.5 flex-none" />

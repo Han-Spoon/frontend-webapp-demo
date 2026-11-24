@@ -6,7 +6,8 @@
 | `/login` | Google 전용 로그인·언어 선택 | 기존 사용자 home, 신규 onboarding, 뒤로 landing |
 | `/onboarding` | 식단 프로필 설정/수정 | home 또는 mypage |
 | `/home` | 동네 발견·지도 미리보기·사진 중심 식당 추천·자동 캐러셀 | map, scan, curation |
-| `/map` | 현재 위치 주변 지도·목록·검색 | 지역 선택, 식당 상세 시트 |
+| `/map` | 현재 위치 주변 지도·목록·검색 | 지역 선택, 핀 → 가게 미리보기 시트, 목록 · 저장한 가게 카드 → `/stores/:storeId` |
+| `/stores/:storeId?tab=menu\|reviews` | 가게 상세(사진 · 정보 · 메뉴 탭 · 후기 탭, 기본 메뉴 탭) | 미리보기 시트 [가게 상세] · 지도 목록 · 저장한 가게 · 홈 가게 카드 · 칼럼 속 식당에서 진입, [이 식당 메뉴 스캔] → scan(가게 연결), 뒤로 → 이전 화면(없으면 map) |
 | `/map?area=seongsu&restaurant=:id` | 지역 지도·식당 상세 시트 | 파트너 메뉴 또는 scan |
 | `/restaurants/map`, `/restaurant/map` | 이전 링크 호환 | 쿼리를 보존해 `/map`으로 replace 리다이렉트 |
 | `/restaurants/:id/menu` | 파트너 등록 레시피의 프로필별 메뉴 결과 | map, onboarding, 기록 저장 |

@@ -26,6 +26,7 @@ const MyPageScreen = lazyScreen(() => import('./components/MyPageScreen').then((
 const CurationScreen = lazyScreen(() => import('./components/CurationScreen').then((module) => module.CurationScreen));
 const CurationDetailScreen = lazyScreen(() => import('./components/CurationDetailScreen').then((module) => module.CurationDetailScreen));
 const CardsScreen = lazyScreen(() => import('./components/CardsScreen').then((module) => module.CardsScreen));
+const StoreDetailScreen = lazyScreen(() => import('./components/store/StoreDetailScreen').then((module) => module.StoreDetailScreen));
 // 홈 진입 뒤 미리 받는 스캔 흐름(식당 안 약한 통신 대비).
 const SCAN_FLOW_SCREENS = [ScanScreen, AnalyzingScreen, ResultsScreen];
 
@@ -152,11 +153,15 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
       />
       <Route
         path="/home"
-        element={<HomeScreen language={language} userProfile={userProfile} onChangeLanguage={account.changeLanguage} />}
+        element={<HomeScreen language={language} userProfile={userProfile} demoMode={demoMode} onChangeLanguage={account.changeLanguage} />}
       />
       <Route
         path="/map"
-        element={<RestaurantMapScreen language={language} userProfile={userProfile} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
+        element={<RestaurantMapScreen language={language} demoMode={demoMode} selectedStore={selectedStore} onSelectStore={setSelectedStore} />}
+      />
+      <Route
+        path="/stores/:storeId"
+        element={<StoreDetailScreen language={language} userProfile={userProfile} demoMode={demoMode} onSelectStore={setSelectedStore} />}
       />
       <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
       <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
@@ -186,7 +191,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         path="/curation"
         element={<CurationScreen language={language} onMyPage={() => navigate('/mypage')} />}
       />
-      <Route path="/curation/:id" element={<CurationDetailScreen language={language} />} />
+      <Route path="/curation/:id" element={<CurationDetailScreen language={language} demoMode={demoMode} />} />
       <Route
         path="/cards"
         element={<CardsScreen userProfile={userProfile} language={language} demoMode={demoMode} onMyPage={() => navigate('/mypage')} />}

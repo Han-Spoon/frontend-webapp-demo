@@ -9,7 +9,6 @@ const dictionary: Record<string, string> = {
   '위치 다시 확인': 'Reintentar ubicación',
   '이름 검색 결과': 'Resultados por nombre',
   '현재 위치 주변': 'Cerca de tu ubicación',
-  '식당 없이 스캔하기': 'Escanear sin restaurante',
   '이 식당 메뉴 스캔': 'Escanear este menú',
   '나와 같은 프로필의 경험': 'Experiencias de personas como tú',
   'Google ID Token을 받지 못했습니다.': 'No se pudo obtener el token de ID de Google.',
