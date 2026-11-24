@@ -20,6 +20,8 @@ interface RestaurantPickerProps {
   onClose: () => void;
   /** 예전 [식당 없이 계속하기] 버튼. 새 디자인은 닫기가 곧 식당 없이 계속이라 쓰지 않는다. */
   allowSkip?: boolean;
+  /** 스캔 전 식당 선택(2026-11-25 필수): '안 골라도 돼요' · '닫고 식당 없이 계속' 안내 대신 필수 안내 */
+  required?: boolean;
 }
 
 const P = {
@@ -38,6 +40,9 @@ const P = {
   noMatch: { ko: '검색된 식당이 없어요', en: 'No restaurant matched', ar: 'لم يتم العثور على مطعم', 'zh-CN': '没有找到餐厅', ja: '見つかったお店はありません', 'zh-TW': '沒有找到餐廳', es: 'Ningún restaurante coincide' },
   noMatchHint: { ko: '다른 이름으로 찾아보거나, 닫고 식당 없이 계속하세요.', en: 'Try another name, or close this to continue without a restaurant.', ar: 'جرّب اسمًا آخر، أو أغلق للمتابعة بدون مطعم.', 'zh-CN': '换个名称试试，或关闭后不选餐厅继续。', ja: '別の名前で探すか、閉じてお店なしで続けてください。', 'zh-TW': '換個名稱試試，或關閉後不選餐廳繼續。', es: 'Prueba otro nombre o cierra para seguir sin restaurante.' },
   noNearby: { ko: '주변에 등록된 식당이 아직 없어요', en: 'No registered restaurants nearby yet', ar: 'لا توجد مطاعم مسجلة بالقرب منك بعد', 'zh-CN': '附近还没有登记的餐厅', ja: '近くに登録されたお店はまだありません', 'zh-TW': '附近還沒有登記的餐廳', es: 'Aún no hay restaurantes registrados cerca' },
+  whyRequired: { ko: '메뉴판을 스캔하려면 지금 있는 식당을 골라 주세요. 오늘의 메뉴가 그 식당의 방문 기록으로 모여요.', en: 'Choose the restaurant you’re at to scan its menu. Today’s menu will be saved to that visit.', ar: 'اختر المطعم الذي أنت فيه لمسح قائمته. ستُحفظ قائمة اليوم في سجل تلك الزيارة.', 'zh-CN': '要扫描菜单，请先选择你所在的餐厅。今天的菜单会存入该餐厅的到访记录。', ja: 'メニュー表をスキャンするには、今いるお店を選んでください。今日のメニューはそのお店の訪問記録にまとまります。', 'zh-TW': '要掃描菜單，請先選擇你所在的餐廳。今天的菜單會存入該餐廳的造訪紀錄。', es: 'Elige el restaurante en el que estás para escanear su carta. El menú de hoy se guardará en esa visita.' },
+  needLocationHintRequired: { ko: '식당 이름으로 검색해 골라 주세요.', en: 'Search for the restaurant by name and choose it.', ar: 'ابحث عن المطعم بالاسم واختره.', 'zh-CN': '请按餐厅名称搜索并选择。', ja: 'お店の名前で検索して選んでください。', 'zh-TW': '請依餐廳名稱搜尋並選擇。', es: 'Busca el restaurante por su nombre y elígelo.' },
+  noMatchHintRequired: { ko: '다른 이름으로 찾아보세요.', en: 'Try another name.', ar: 'جرّب اسمًا آخر.', 'zh-CN': '换个名称试试。', ja: '別の名前で探してみてください。', 'zh-TW': '換個名稱試試。', es: 'Prueba con otro nombre.' },
   clear: { ko: '연결 해제', en: 'Unlink', ar: 'إلغاء الربط', 'zh-CN': '取消关联', ja: '連携を解除', 'zh-TW': '取消連結', es: 'Desvincular' },
 } satisfies Record<string, AllText>;
 
@@ -47,10 +52,10 @@ const categoryText = (store: { categoryCode?: string | null; categoryName?: stri
 };
 
 /** 머리 아래 안내 + 검색 + '현재 위치 주변' 줄(지도 전환) */
-function PickerHeader({ language, query, setQuery, searching, showMap, setShowMap, canMap }: { language: Language; query: string; setQuery: (value: string) => void; searching: boolean; showMap: boolean; setShowMap: (value: boolean) => void; canMap: boolean }) {
+function PickerHeader({ language, query, setQuery, searching, showMap, setShowMap, canMap, required = false }: { language: Language; query: string; setQuery: (value: string) => void; searching: boolean; showMap: boolean; setShowMap: (value: boolean) => void; canMap: boolean; required?: boolean }) {
   return (
     <>
-      <p className="-mt-1 text-[13px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, P.why)}</p>
+      <p className="-mt-1 text-[13px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, required ? P.whyRequired : P.why)}</p>
       <SearchField className="mt-4" language={language} label={tx(language, P.search)} placeholder={tx(language, P.search)} value={query} onChange={setQuery} autoComplete="off" />
       <div className="mt-4 mb-2 flex min-h-11 items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-[14px] font-black text-hs-ink-900">
@@ -73,7 +78,7 @@ export function RestaurantPicker(props: RestaurantPickerProps) {
 }
 
 /** 시연: 고정 식당 목록(가까운 지역) + 이름 · 주소 검색 */
-function DemoRestaurantPicker({ language, selectedId, onSelectDemo, onClose }: RestaurantPickerProps) {
+function DemoRestaurantPicker({ language, selectedId, onSelectDemo, onClose, required = false }: RestaurantPickerProps) {
   const [query, setQuery] = useState('');
   const [showMap, setShowMap] = useState(false);
   const q = query.trim().toLocaleLowerCase();
@@ -83,7 +88,7 @@ function DemoRestaurantPicker({ language, selectedId, onSelectDemo, onClose }: R
   const select = (restaurant: Restaurant) => onSelectDemo?.(selectedId === restaurant.id ? null : restaurant);
   return (
     <HsSheet language={language} onClose={onClose} title={tx(language, P.title)}>
-      <PickerHeader language={language} query={query} setQuery={setQuery} searching={Boolean(q)} showMap={showMap} setShowMap={setShowMap} canMap={candidates.length > 0} />
+      <PickerHeader required={required} language={language} query={query} setQuery={setQuery} searching={Boolean(q)} showMap={showMap} setShowMap={setShowMap} canMap={candidates.length > 0} />
       {showMap && candidates.length > 0 && (
         <StoreMap
           language={language}
@@ -94,7 +99,7 @@ function DemoRestaurantPicker({ language, selectedId, onSelectDemo, onClose }: R
         />
       )}
       {candidates.length === 0 ? (
-        <EmptyState icon="search" title={tx(language, P.noMatch)} description={tx(language, P.noMatchHint)} />
+        <EmptyState icon="search" title={tx(language, P.noMatch)} description={tx(language, required ? P.noMatchHintRequired : P.noMatchHint)} />
       ) : (
         <div className="space-y-2">
           {candidates.map((r) => (
@@ -107,7 +112,7 @@ function DemoRestaurantPicker({ language, selectedId, onSelectDemo, onClose }: R
 }
 
 /** 운영: 가게 후보 API(현재 위치 주변 · 이름 검색) */
-function LiveRestaurantPicker({ language, selectedStore, selectedStoreId, onSelectStore, onClose }: RestaurantPickerProps) {
+function LiveRestaurantPicker({ language, selectedStore, selectedStoreId, onSelectStore, onClose, required = false }: RestaurantPickerProps) {
   const selectedId = selectedStore?.storeId ?? selectedStoreId ?? null;
   const [query, setQuery] = useState('');
   const [showMap, setShowMap] = useState(false);
@@ -119,7 +124,7 @@ function LiveRestaurantPicker({ language, selectedStore, selectedStoreId, onSele
 
   return (
     <HsSheet language={language} onClose={onClose} title={tx(language, P.title)}>
-      <PickerHeader language={language} query={query} setQuery={setQuery} searching={searching} showMap={showMap} setShowMap={setShowMap} canMap={ready && candidates.length > 0} />
+      <PickerHeader required={required} language={language} query={query} setQuery={setQuery} searching={searching} showMap={showMap} setShowMap={setShowMap} canMap={ready && candidates.length > 0} />
 
       {!searching && locationStatus === 'loading' && (
         <div role="status" className="space-y-2">
@@ -133,7 +138,7 @@ function LiveRestaurantPicker({ language, selectedStore, selectedStoreId, onSele
         <div role="alert" className="rounded-3xl border-[1.5px] border-dashed border-hs-line-dash px-5 py-6 text-center">
           <HsIcon name="pin" size={24} className="mx-auto text-hs-brand-700" />
           <p className="mt-2 text-[15px] font-black text-hs-ink-900">{tx(language, P.needLocation)}</p>
-          <p className="mt-1 text-[13px] font-semibold text-hs-ink-500">{tx(language, P.needLocationHint)}</p>
+          <p className="mt-1 text-[13px] font-semibold text-hs-ink-500">{tx(language, required ? P.needLocationHintRequired : P.needLocationHint)}</p>
           {locationStatus === 'denied' && <HsButton variant="outline" size="md" className="mt-4" icon="pin" onClick={retryLocation}>{tx(language, P.retryLocation)}</HsButton>}
         </div>
       )}
@@ -155,7 +160,7 @@ function LiveRestaurantPicker({ language, selectedStore, selectedStoreId, onSele
           ) : error ? (
             <ErrorState language={language} title={tx(language, P.loadFailed)} onRetry={searching ? undefined : retryLocation} />
           ) : candidates.length === 0 ? (
-            <EmptyState icon="search" title={tx(language, searching ? P.noMatch : P.noNearby)} description={tx(language, P.noMatchHint)} />
+            <EmptyState icon="search" title={tx(language, searching ? P.noMatch : P.noNearby)} description={tx(language, required ? P.noMatchHintRequired : P.noMatchHint)} />
           ) : (
             <div className="space-y-2">
               {candidates.map((store) => (

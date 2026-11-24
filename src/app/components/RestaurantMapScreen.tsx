@@ -1,27 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { StoreCandidate } from '../../api/store';
-import { getStoreReviews, reportReview, type ReportReason, type RestaurantReview } from '../../api/reviews';
-import { liveFeatures } from '../featureAvailability';
-import type { Language, UserProfile } from '../types';
+import type { Language } from '../types';
 import { AREAS, RESTAURANTS, type AreaId } from '../demo/restaurants';
 import { demoAreaName, demoRestaurantOf, demoStoreId, searchDemoStores } from '../demo/mapDemoStores';
-import { listDemoStoreReviews, reportDemoReview } from '../demo/reviews';
 import { useDemoValue } from '../demo/storage';
 import { useStoreCandidates, type StoreCoordinates, type StoreLocationStatus, type StoreSearchOrigin } from '../hooks/useStoreCandidates';
 import { StoreMap } from './discovery/StoreMap';
 import { FOOD_CATEGORY_LABELS, FOOD_CATEGORY_ORDER, foodCategoryOf, type FoodCategoryId } from './discovery/foodCategories';
-import { MealReviewSheet } from './reviews/MealReviewSheet';
 import { BottomNav, EmptyState, ErrorState, OfflineBanner, HsButton, HsIcon, HsIconButton, PillTabs, SearchField, SkeletonCard, StoreCard, tx, useToast, type AllText } from './hs';
 import { BowlTile } from './hs/RiskBadge';
-import { FLIP_RTL } from './hs/icons';
-import { txn, type CountText } from './hs/text';
 import { translateText } from '../locales';
 import { ChipMenu } from './map/ChipMenu';
 import { MapAreaSheet } from './map/MapAreaSheet';
 import { DEFAULT_MAP_AREA, MAP_AREAS, mapAreaAt } from './map/mapAreas';
-import { REVIEW_TEXT, profileIds, profileTagText, matchesProfile, reviewPreviews, toAnswerValue, answerLabel } from './map/reviewText';
-import { StoreReviewsScreen } from './map/StoreReviewsScreen';
+import { useStoreDetail } from '../hooks/useStoreDetail';
+import { ContainPhoto } from './store/StoreMenuRow';
+import { storeMetaLine } from './store/storeFormat';
+import { STORE_TEXT } from './store/storeText';
+import { MenuTags } from './hs/MenuTag';
+import type { StoreDetailRouteState } from './store/StoreDetailScreen';
 import { storeCategoryText, storeDisplayName, storeDistrict, useSavedStores } from './map/savedStores';
 
 /** 지도 검색 반경 · 핀 수. 서버 최대값. */
@@ -54,8 +52,7 @@ const T = {
   noSavedBody: { ko: '가게 카드의 책갈피를 누르면 여기에 모여요.', en: 'Tap the bookmark on a restaurant card to keep it here.', ar: 'اضغط على علامة الحفظ في بطاقة المطعم ليظهر هنا.', 'zh-CN': '点击店铺卡片上的书签，即可收藏到这里。', ja: 'お店カードのしおりを押すとここに集まります。', 'zh-TW': '點擊店家卡片上的書籤，即可收藏到這裡。', es: 'Toca el marcador de una tarjeta para guardarlo aquí.' },
   noResult: { ko: '검색된 식당이 없어요', en: 'No restaurants found', ar: 'لم يتم العثور على مطاعم', 'zh-CN': '没有找到餐厅', ja: 'お店が見つかりません', 'zh-TW': '沒有找到餐廳', es: 'No se encontraron restaurantes' },
   noNearby: { ko: '주변에 등록된 식당이 아직 없어요', en: 'No registered restaurants nearby yet', ar: 'لا توجد مطاعم مسجلة بالقرب بعد', 'zh-CN': '附近还没有登记的餐厅', ja: '近くに登録されたお店はまだありません', 'zh-TW': '附近還沒有登記的餐廳', es: 'Aún no hay restaurantes registrados cerca' },
-  noResultBody: { ko: '식당을 찾지 못해도 괜찮아요.\n메뉴판만 찍으면 바로 확인할 수 있어요.', en: "It's fine if you can't find the restaurant.\nJust scan the menu to check it right away.", ar: 'لا بأس إن لم تجد المطعم.\nصوّر القائمة فقط لتتحقق فورًا.', 'zh-CN': '找不到餐厅也没关系。\n只要拍下菜单就能马上确认。', ja: 'お店が見つからなくても大丈夫です。\nメニューを撮るだけですぐ確認できます。', 'zh-TW': '找不到餐廳也沒關係。\n只要拍下菜單就能馬上確認。', es: 'No pasa nada si no encuentras el restaurante.\nEscanea la carta y compruébalo al instante.' },
-  scanWithout: { ko: '식당 없이 스캔하기', en: 'Scan without a restaurant', ar: 'المسح بدون مطعم', 'zh-CN': '不选餐厅直接扫描', ja: 'お店なしでスキャン', 'zh-TW': '不選餐廳直接掃描', es: 'Escanear sin restaurante' },
+  noResultBody: { ko: '다른 이름으로 찾거나\n다른 지역을 둘러보세요.', en: 'Try another name\nor look around another area.', ar: 'جرّب اسمًا آخر\nأو تصفح منطقة أخرى.', 'zh-CN': '换个名称搜索，\n或看看其他地区。', ja: '別の名前で探すか、\n別のエリアを見てみましょう。', 'zh-TW': '換個名稱搜尋，\n或看看其他地區。', es: 'Prueba con otro nombre\no explora otra zona.' },
   noCategory: { ko: '이 음식 종류의 가게가 없어요', en: 'No restaurants of this type here', ar: 'لا توجد مطاعم من هذا النوع هنا', 'zh-CN': '这里没有这类店铺', ja: 'この種類のお店はありません', 'zh-TW': '這裡沒有這類店家', es: 'No hay restaurantes de este tipo aquí' },
   loadFailed: { ko: '식당 목록을 불러오지 못했어요', en: 'Could not load restaurants', ar: 'تعذر تحميل المطاعم', 'zh-CN': '无法加载餐厅列表', ja: 'お店の一覧を読み込めませんでした', 'zh-TW': '無法載入餐廳列表', es: 'No se pudieron cargar los restaurantes' },
   checkConnection: { ko: '연결 상태를 확인하고 다시 시도해 주세요.', en: 'Check your connection and try again.', ar: 'تحقق من الاتصال وحاول مرة أخرى.', 'zh-CN': '请检查网络连接后重试。', ja: '接続を確認してもう一度お試しください。', 'zh-TW': '請檢查網路連線後重試。', es: 'Revisa tu conexión e inténtalo de nuevo.' },
@@ -70,14 +67,7 @@ const T = {
   save: { ko: '가게 저장', en: 'Save restaurant', ar: 'حفظ المطعم', 'zh-CN': '收藏店铺', ja: 'お店を保存', 'zh-TW': '收藏店家', es: 'Guardar restaurante' },
   unsave: { ko: '가게 저장 해제', en: 'Remove saved restaurant', ar: 'إزالة المطعم المحفوظ', 'zh-CN': '取消收藏店铺', ja: 'お店の保存を解除', 'zh-TW': '取消收藏店家', es: 'Quitar restaurante guardado' },
   savedToast: { ko: '가게를 저장했어요', en: 'Restaurant saved', ar: 'تم حفظ المطعم', 'zh-CN': '已收藏店铺', ja: 'お店を保存しました', 'zh-TW': '已收藏店家', es: 'Restaurante guardado' },
-  present: { ko: '있었어요', en: 'It had it', ar: 'كان موجودًا', 'zh-CN': '含有', ja: '入っていた', 'zh-TW': '含有', es: 'Lo tenía' },
-  absent: { ko: '없었어요', en: "It didn't", ar: 'لم يكن موجودًا', 'zh-CN': '不含', ja: '入っていなかった', 'zh-TW': '不含', es: 'No lo tenía' },
-  unknown: { ko: '잘 모르겠어요', en: 'Not sure', ar: 'لست متأكدًا', 'zh-CN': '不确定', ja: 'よくわからない', 'zh-TW': '不確定', es: 'No estoy seguro' },
 } satisfies Record<string, AllText>;
-
-const REVIEW_COUNT: CountText = {
-  ko: (n) => `후기 ${n}`, en: (n) => `${n} review${n === 1 ? '' : 's'}`, ar: (n) => `${n} تقييمات`, 'zh-CN': (n) => `评价 ${n}`, ja: (n) => `レビュー ${n}`, 'zh-TW': (n) => `評價 ${n}`, es: (n) => `${n} reseña${n === 1 ? '' : 's'}`,
-};
 
 const DISTANCE: Record<Language, (d: string) => string> = {
   ko: (d) => `내 위치에서 ${d}`, en: (d) => `${d} from you`, ar: (d) => `على بُعد ${d} منك`, 'zh-CN': (d) => `距你 ${d}`, ja: (d) => `現在地から ${d}`, 'zh-TW': (d) => `距你 ${d}`, es: (d) => `A ${d} de ti`,
@@ -101,33 +91,22 @@ function isAreaId(value: string | null): value is AreaId {
 
 export function RestaurantMapScreen({
   language,
-  userProfile,
   demoMode,
   selectedStore,
   onSelectStore,
 }: {
   language: Language;
-  userProfile: UserProfile | null;
   demoMode: boolean;
   selectedStore: StoreCandidate | null;
   onSelectStore: (store: StoreCandidate | null) => void;
 }) {
   if (!demoMode) {
-    return <LiveRestaurantMapScreen language={language} userProfile={userProfile} selectedStore={selectedStore} onSelectStore={onSelectStore} />;
+    return <LiveRestaurantMapScreen language={language} selectedStore={selectedStore} onSelectStore={onSelectStore} />;
   }
-  return <DemoRestaurantMapScreen language={language} userProfile={userProfile} />;
+  return <DemoRestaurantMapScreen language={language} />;
 }
 
-/** 가게 후기 읽기 · 신고 · 작성 연결(시연 · 실제 API 공통 모양) */
-export interface StoreReviewSource {
-  enabled: boolean;
-  load: (store: StoreCandidate) => Promise<RestaurantReview[]>;
-  report: (review: RestaurantReview, reason: ReportReason) => Promise<void>;
-  /** 후기 작성 시트에 넘길 가게 id(시연은 가상 식당 id) */
-  storeKey: (store: StoreCandidate) => string | number;
-}
-
-function DemoRestaurantMapScreen({ language, userProfile }: { language: Language; userProfile: UserProfile | null }) {
+function DemoRestaurantMapScreen({ language }: { language: Language }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routeState = useLocation().state as { searchCenter?: StoreCoordinates } | null;
@@ -167,20 +146,9 @@ function DemoRestaurantMapScreen({ language, userProfile }: { language: Language
     () => searchDemoStores(language, { query, location: search.location }),
     [language, query, search, version],
   );
-  const reviews: StoreReviewSource = useMemo(() => ({
-    enabled: true,
-    load: async (store) => {
-      const restaurant = demoRestaurantOf(store);
-      return restaurant ? listDemoStoreReviews(restaurant.id) : [];
-    },
-    report: async (review, reason) => reportDemoReview(review.id, reason),
-    storeKey: (store) => demoRestaurantOf(store)?.id ?? store.storeId,
-  }), []);
-
   return (
     <StoreMapView
       language={language}
-      userProfile={userProfile}
       query={query}
       onQueryChange={setQuery}
       demoMode
@@ -201,16 +169,10 @@ function DemoRestaurantMapScreen({ language, userProfile }: { language: Language
         const restaurant = demoRestaurantOf(store);
         return restaurant ? demoAreaName(restaurant, language) : null;
       }}
-      reviews={reviews}
-      onReviewSaved={() => setVersion((value) => value + 1)}
       onScan={(store) => {
         const restaurant = demoRestaurantOf(store);
         if (!restaurant) return;
         setSelectedRestaurant(restaurant.id);
-        navigate('/scan');
-      }}
-      onScanWithoutStore={() => {
-        setSelectedRestaurant(null);
         navigate('/scan');
       }}
     />
@@ -219,12 +181,10 @@ function DemoRestaurantMapScreen({ language, userProfile }: { language: Language
 
 function LiveRestaurantMapScreen({
   language,
-  userProfile,
   selectedStore,
   onSelectStore,
 }: {
   language: Language;
-  userProfile: UserProfile | null;
   selectedStore: StoreCandidate | null;
   onSelectStore: (store: StoreCandidate | null) => void;
 }) {
@@ -243,29 +203,15 @@ function LiveRestaurantMapScreen({
   const candidates = incoming?.selectedStore && !query.trim() && atInitialCenter
     ? [incoming.selectedStore, ...discovery.candidates.filter((item) => item.storeId !== incoming.selectedStore?.storeId)]
     : discovery.candidates;
-  const reviews: StoreReviewSource = useMemo(() => ({
-    enabled: liveFeatures.reviews,
-    load: (store) => getStoreReviews(store.storeId),
-    report: (review, reason) => reportReview(review.id, reason),
-    storeKey: (store) => store.storeId,
-  }), []);
-
   return (
     <StoreMapView
       language={language}
-      userProfile={userProfile}
       query={query}
       onQueryChange={setQuery}
       discovery={{ ...discovery, candidates }}
       initialSelectedId={incoming?.selectedStoreId ?? selectedStore?.storeId ?? null}
-      reviews={reviews}
-      onReviewSaved={discovery.retrySearch}
       onScan={(store) => {
         onSelectStore(store);
-        navigate('/scan');
-      }}
-      onScanWithoutStore={() => {
-        onSelectStore(null);
         navigate('/scan');
       }}
     />
@@ -277,35 +223,24 @@ type StoreDiscovery = Pick<
   'candidates' | 'error' | 'isLoading' | 'locationStatus' | 'retryLocation' | 'retrySearch' | 'searchAt' | 'searchAtCurrentLocation' | 'searchLocation' | 'searchOrigin'
 >;
 
-interface ReviewState {
-  storeId: number;
-  items: RestaurantReview[];
-  loading: boolean;
-  error: boolean;
-}
-
 /**
  * 흐름 2 지도에서 가게 찾기(F2-01~07). 데이터는 호출부가 준다(후보 API · 시연 · 개발 미리보기).
  * - 지도 모드: 검색 · 지역 칩 · 음식 종류 칩 · 핀 · [이 지역에서 검색] · 내 위치 · 가게 목록 시트
- * - 가게를 고르면 상세 시트(나와 같은 프로필의 경험 미리보기 · [이 식당 메뉴 스캔])
+ * - 핀을 고르면 미리보기 시트(F2-04: 가게 사진 · 층 · 대표 메뉴 · [가게 상세 ›] · [이 식당 메뉴 스캔])
+ * - 목록 · 저장한 가게 카드를 누르면 가게 상세(`/stores/:storeId`)
  * - 목록 모드: 주변 가게 | 저장한 가게(이 기기에만 저장)
  */
 export function StoreMapView({
   language,
-  userProfile,
   query,
   onQueryChange,
   discovery,
   initialSelectedId = null,
   demoMode = false,
   districtFallback,
-  reviews,
-  onReviewSaved,
   onScan,
-  onScanWithoutStore,
 }: {
   language: Language;
-  userProfile: UserProfile | null;
   query: string;
   onQueryChange: (query: string) => void;
   discovery: StoreDiscovery;
@@ -314,10 +249,7 @@ export function StoreMapView({
   demoMode?: boolean;
   /** 주소가 없는 가게의 지역 이름(시연) */
   districtFallback?: (store: StoreCandidate) => string | null;
-  reviews: StoreReviewSource;
-  onReviewSaved?: () => void;
   onScan: (store: StoreCandidate) => void;
-  onScanWithoutStore: () => void;
 }) {
   const toast = useToast();
   const routeState = useLocation().state as { category?: FoodCategoryId } | null;
@@ -329,10 +261,6 @@ export function StoreMapView({
   const [mode, setMode] = useState<'map' | 'list'>('map');
   const [listTab, setListTab] = useState<'nearby' | 'saved'>('nearby');
   const [areaSheet, setAreaSheet] = useState(false);
-  const [reviewsOpen, setReviewsOpen] = useState(false);
-  const [writing, setWriting] = useState(false);
-  const [reviewVersion, setReviewVersion] = useState(0);
-  const [reviewState, setReviewState] = useState<ReviewState | null>(null);
 
   // 지도 중심: 끌면 따라감(다시 찾지 않음), 가게를 고르면 그 가게, 새로 찾으면 찾은 위치.
   const [viewCenter, setViewCenter] = useState<StoreCoordinates | null>(null);
@@ -419,17 +347,13 @@ export function StoreMapView({
   const pinStores = selected && !visible.some((store) => store.storeId === selected.storeId) ? [selected, ...visible] : visible;
   const mapStores = pinStores.map((store) => ({ id: String(store.storeId), name: storeDisplayName(store), lat: store.latitude, lng: store.longitude }));
 
-  // 고른 가게의 후기(상세 미리보기 · 전체 화면 공통)
-  useEffect(() => {
-    if (!selected || !reviews.enabled) { setReviewState(null); return; }
-    let active = true;
-    const storeId = selected.storeId;
-    setReviewState({ storeId, items: [], loading: true, error: false });
-    reviews.load(selected)
-      .then((items) => { if (active) setReviewState({ storeId, items, loading: false, error: false }); })
-      .catch(() => { if (active) setReviewState({ storeId, items: [], loading: false, error: true }); });
-    return () => { active = false; };
-  }, [selected?.storeId, reviewVersion, reviews]);
+  // 가게 상세로(목록 · 저장한 가게 카드, 미리보기 시트 [가게 상세]). 거리는 내 위치 기준일 때만 넘긴다.
+  const navigate = useNavigate();
+  const showDistance = searchOrigin === 'current-location' && !query.trim();
+  const openDetail = (store: StoreCandidate) => {
+    const state: StoreDetailRouteState = { candidate: { ...store, distanceMeters: showDistance ? store.distanceMeters : null } };
+    navigate(`/stores/${store.storeId}`, { state });
+  };
 
   const cardFor = (store: StoreCandidate, onClick: () => void) => (
     <StoreCard
@@ -439,7 +363,7 @@ export function StoreMapView({
       reviewCount={store.reviewCount ?? 0}
       district={storeDistrict(store, districtFallback?.(store))}
       category={storeCategoryText(store, language)}
-      distanceMeters={searchOrigin === 'current-location' && !query.trim() ? store.distanceMeters : null}
+      distanceMeters={showDistance ? store.distanceMeters : null}
       saved={isSaved(store.storeId)}
       onToggleSave={() => toggleSave(store)}
       onClick={onClick}
@@ -596,24 +520,22 @@ export function StoreMapView({
 
         {/* 아래: 가게 목록 시트(F2-01) · 결과 없음(F2-03) · 가게 상세(F2-04) */}
         {mapCenter && !selected && (noResult ? (
-          <NoResultSheet language={language} searched={Boolean(query.trim())} onScanWithout={onScanWithoutStore} />
+          <NoResultSheet language={language} searched={Boolean(query.trim())} onGoToArea={() => setAreaSheet(true)} />
         ) : (
           <ListSheet language={language} title={listTitle} sortMenu={sortMenu} onExpand={() => setMode('list')}>
-            {listFallback ?? <div className="space-y-2.5">{visible.map((store) => cardFor(store, () => selectStore(store)))}</div>}
+            {listFallback ?? <div className="space-y-2.5">{visible.map((store) => cardFor(store, () => openDetail(store)))}</div>}
           </ListSheet>
         ))}
         {selected && (
           <StoreDetailSheet
             language={language}
             store={selected}
-            userProfile={userProfile}
-            district={storeDistrict(selected, districtFallback?.(selected))}
-            showDistance={searchOrigin === 'current-location' && !query.trim()}
+            demoMode={demoMode}
+            districtFallback={districtFallback?.(selected) ?? null}
+            showDistance={showDistance}
             saved={isSaved(selected.storeId)}
             onToggleSave={() => toggleSave(selected)}
-            reviews={reviews.enabled ? reviewState : null}
-            onRetryReviews={() => setReviewVersion((value) => value + 1)}
-            onSeeAll={() => setReviewsOpen(true)}
+            onDetail={() => openDetail(selected)}
             onClose={() => setSelected(null)}
             onScan={() => onScan(selected)}
           />
@@ -643,16 +565,16 @@ export function StoreMapView({
                   <div className="mt-3.5 space-y-2.5">
                     {savedStores.length === 0
                       ? <EmptyState icon="bookmark" title={tx(language, T.noSaved)} description={tx(language, T.noSavedBody)} />
-                      : savedStores.map((store) => cardFor(store, () => { setMode('map'); selectStore(store); }))}
+                      : savedStores.map((store) => cardFor(store, () => openDetail(store)))}
                   </div>
                 </>
               ) : noResult ? (
-                <NoResultBody language={language} searched={Boolean(query.trim())} onScanWithout={onScanWithoutStore} />
+                <NoResultBody language={language} searched={Boolean(query.trim())} onGoToArea={() => setAreaSheet(true)} />
               ) : (
                 <>
                   <div className="flex items-center justify-between gap-2">{listTitle}{sortMenu}</div>
                   <div className="mt-3">
-                    {listFallback ?? <div className="space-y-2.5">{visible.map((store) => cardFor(store, () => { setMode('map'); selectStore(store); }))}</div>}
+                    {listFallback ?? <div className="space-y-2.5">{visible.map((store) => cardFor(store, () => openDetail(store)))}</div>}
                   </div>
                 </>
               )}
@@ -664,23 +586,6 @@ export function StoreMapView({
 
       <BottomNav language={language} />
 
-      {/* 후기 전체(F2-05)는 하단 내비까지 덮는 전체 화면 */}
-        {reviewsOpen && selected && (
-          <StoreReviewsScreen
-            language={language}
-            storeName={storeDisplayName(selected)}
-            profile={userProfile}
-            reviews={reviewState?.items ?? []}
-            loading={reviewState?.loading ?? false}
-            error={reviewState?.error ?? false}
-            canWrite={reviews.enabled}
-            onRetry={() => setReviewVersion((value) => value + 1)}
-            onBack={() => setReviewsOpen(false)}
-            onReport={reviews.report}
-            onWrite={() => setWriting(true)}
-          />
-        )}
-
       {areaSheet && (
         <MapAreaSheet
           language={language}
@@ -688,16 +593,6 @@ export function StoreMapView({
           onClose={() => setAreaSheet(false)}
           onNearMe={() => { setAreaSheet(false); setMode('map'); searchNearMe(); }}
           onSelect={(area) => { setAreaSheet(false); goToArea(area.center); }}
-        />
-      )}
-      {writing && selected && (
-        <MealReviewSheet
-          language={language}
-          profile={userProfile}
-          store={{ id: reviews.storeKey(selected), name: storeDisplayName(selected) }}
-          demoMode={demoMode}
-          onClose={() => setWriting(false)}
-          onSaved={() => { setWriting(false); setReviewVersion((value) => value + 1); onReviewSaved?.(); }}
         />
       )}
     </div>
@@ -738,18 +633,19 @@ function ListSheet({ language, title, sortMenu, onExpand, children }: { language
   );
 }
 
-function NoResultBody({ language, searched, onScanWithout }: { language: Language; searched: boolean; onScanWithout: () => void }) {
+/** F2-03 결과 없음. 스캔에는 식당 선택이 필수라(2026-11-25) [식당 없이 스캔하기] 대신 [지역으로 이동]. */
+function NoResultBody({ language, searched, onGoToArea }: { language: Language; searched: boolean; onGoToArea: () => void }) {
   return (
     <div className="flex flex-col items-center px-3 pt-7 text-center">
       <BowlTile className="h-[84px] w-24 bg-hs-mint-100 text-hs-brand-700"><HsIcon name="search" size={36} /></BowlTile>
       <h2 className="mt-[18px] text-[20px] font-black text-hs-ink-900">{tx(language, searched ? T.noResult : T.noNearby)}</h2>
       <p className="mt-2 whitespace-pre-line text-[14px] leading-[1.55] font-semibold text-hs-ink-500">{tx(language, T.noResultBody)}</p>
-      <HsButton size="cta" icon="scan" className="mt-6" onClick={onScanWithout}>{tx(language, T.scanWithout)}</HsButton>
+      <HsButton variant="outline" size="lg" icon="pin" className="mt-6" onClick={onGoToArea}>{tx(language, T.goToArea)}</HsButton>
     </div>
   );
 }
 
-function NoResultSheet(props: { language: Language; searched: boolean; onScanWithout: () => void }) {
+function NoResultSheet(props: { language: Language; searched: boolean; onGoToArea: () => void }) {
   return (
     <section className="absolute inset-x-0 bottom-0 z-40 max-h-[60%] overflow-y-auto rounded-t-hs-sheet bg-hs-surface-0 px-5 pt-2.5 pb-6 shadow-[0_-10px_30px_rgba(23,32,28,0.12)]">
       <div className="flex justify-center" aria-hidden="true"><i className="h-[5px] w-10 rounded-hs-pill bg-hs-line-300" /></div>
@@ -758,28 +654,28 @@ function NoResultSheet(props: { language: Language; searched: boolean; onScanWit
   );
 }
 
-function StoreDetailSheet({ language, store, userProfile, district, showDistance, saved, onToggleSave, reviews, onRetryReviews, onSeeAll, onClose, onScan }: {
+/**
+ * F2-04 가게 선택 · 미리보기 시트: 가게 사진 84(contain) · 이름 · 저장 / 후기 · 구 · 종류 · 층 / 거리 /
+ * '대표 메뉴' 메뉴 태그 / [가게 상세 ›] + [이 식당 메뉴 스캔]. 사진 · 층 · 메뉴는 가게 상세 API에서(실패하면 숨김).
+ */
+function StoreDetailSheet({ language, store, demoMode, districtFallback, showDistance, saved, onToggleSave, onDetail, onClose, onScan }: {
   language: Language;
   store: StoreCandidate;
-  userProfile: UserProfile | null;
-  district: string | null;
+  demoMode: boolean;
+  districtFallback: string | null;
   showDistance: boolean;
   saved: boolean;
   onToggleSave: () => void;
-  /** null: 후기 기능 준비 중 */
-  reviews: ReviewState | null;
-  onRetryReviews: () => void;
-  onSeeAll: () => void;
+  onDetail: () => void;
   onClose: () => void;
   onScan: () => void;
 }) {
   const sheetRef = useRef<HTMLElement>(null);
   const dragStart = useRef<number | null>(null);
-  const myIds = useMemo(() => profileIds(userProfile), [userProfile]);
-  const items = reviews?.items ?? [];
-  const matched = items.filter((review) => matchesProfile(review, myIds));
-  const previews = reviewPreviews(matched, myIds);
-  const meta = [txn(language, REVIEW_COUNT, store.reviewCount ?? 0), district, storeCategoryText(store, language)].filter(Boolean).join(' · ');
+  const detailState = useStoreDetail(store.storeId, demoMode);
+  const detail = detailState.detail;
+  const menus = detail?.menus ?? [];
+  const meta = storeMetaLine({ ...store, floorInfo: detail?.floorInfo ?? store.floorInfo }, language, districtFallback);
 
   useEffect(() => {
     sheetRef.current?.focus();
@@ -790,32 +686,12 @@ function StoreDetailSheet({ language, store, userProfile, district, showDistance
     return () => document.removeEventListener('keydown', onKey);
   }, [store.storeId, onClose]);
 
-  let body: ReactNode;
-  if (!reviews) body = <p className="px-6 text-[13px] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.preparing)}</p>;
-  else if (reviews.loading) body = <div className="flex gap-2.5 overflow-hidden ps-5"><SkeletonCard language={language} lines={['40%', '55%', '70%']} className="w-[250px] flex-none rounded-[22px]!" /><SkeletonCard language={language} lines={['40%', '55%']} className="w-[250px] flex-none rounded-[22px]!" /></div>;
-  else if (reviews.error) body = (
-    <div className="flex items-center gap-2 px-6">
-      <p className="min-w-0 flex-1 text-[13px] font-bold text-hs-danger-700">{tx(language, REVIEW_TEXT.loadFailed)}</p>
-      <HsButton variant="outline" size="sm" onClick={onRetryReviews}>{tx(language, { ko: '다시 시도', en: 'Try again', ar: 'حاول مرة أخرى', 'zh-CN': '重试', ja: '再試行', 'zh-TW': '重試', es: 'Reintentar' })}</HsButton>
-    </div>
-  );
-  else if (myIds.length === 0) body = <p className="px-6 text-[13px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.noProfile)}</p>;
-  else if (previews.length === 0) body = <p className="px-6 text-[13px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.noMatch)}</p>;
-  else body = (
-    <ul className="flex snap-x scroll-px-5 gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
-      {previews.map((preview) => {
-        const value = toAnswerValue(preview.answer);
-        return (
-          <li key={preview.key} className="w-[250px] flex-none snap-start rounded-[22px] bg-hs-surface-0 p-3.5">
-            <span className="inline-flex h-[22px] items-center rounded-hs-pill bg-hs-mint-100 px-2 text-[11px] font-black text-hs-brand-700">{profileTagText(preview.matchId, language, true)}</span>
-            <p className="mt-2 truncate text-[15px] font-black text-hs-ink-900">{preview.menuName}</p>
-            <p className="mt-1 text-[13px] font-bold text-hs-ink-700">{answerLabel(preview.matchId, language)} · {tx(language, T[value])}</p>
-            {preview.note && <p dir="auto" className="mt-1.5 line-clamp-2 text-[13px] leading-[1.5] font-medium text-hs-ink-700">{preview.note}</p>}
-          </li>
-        );
-      })}
-    </ul>
-  );
+  const photoBox = 'size-[84px] flex-none rounded-[20px]';
+  const photo = detailState.status === 'loading'
+    ? <div aria-hidden="true" className={`${photoBox} bg-[#E6ECE9]`} />
+    : detail?.thumbnailUrl
+      ? <ContainPhoto src={detail.thumbnailUrl} alt={`${tx(language, STORE_TEXT.photo)} · ${storeDisplayName(store)}`} className={photoBox} fallback={null} />
+      : null;
 
   return (
     <section
@@ -833,9 +709,20 @@ function StoreDetailSheet({ language, store, userProfile, district, showDistance
         <SheetHandle label={tx(language, T.closeDetail)} onActivate={onClose} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="flex items-start gap-2.5 ps-6 pe-5 pt-2">
+        <div className="flex gap-3.5 px-5 pt-2">
+          {photo}
           <div className="min-w-0 flex-1">
-            <h2 id="map-store-name" className="text-[22px] leading-tight font-black text-hs-ink-900">{storeDisplayName(store)}</h2>
+            <div className="flex items-start gap-1.5">
+              <h2 id="map-store-name" className="min-w-0 flex-1 text-[22px] leading-tight font-black break-words text-hs-ink-900">{storeDisplayName(store)}</h2>
+              <HsIconButton
+                icon="bookmark"
+                tone="ghost"
+                label={tx(language, saved ? T.unsave : T.save)}
+                aria-pressed={saved}
+                onClick={onToggleSave}
+                className={`-mt-1.5 -me-2 ${saved ? 'text-hs-brand-700 [&_svg]:fill-current' : 'text-hs-ink-500'}`}
+              />
+            </div>
             {meta && <p className="mt-1 text-[13px] font-semibold text-hs-ink-500">{meta}</p>}
             {showDistance && typeof store.distanceMeters === 'number' && (
               <p className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-extrabold text-hs-brand-700">
@@ -844,35 +731,18 @@ function StoreDetailSheet({ language, store, userProfile, district, showDistance
               </p>
             )}
           </div>
-          <HsIconButton
-            icon="bookmark"
-            label={tx(language, saved ? T.unsave : T.save)}
-            aria-pressed={saved}
-            onClick={onToggleSave}
-            className={`border-[1.5px] border-hs-line-200 ${saved ? 'text-hs-brand-700 [&_svg]:fill-current' : ''}`}
-          />
         </div>
-
-        <section className="mt-[18px] bg-hs-surface-100 pt-[18px] pb-5" aria-labelledby="map-store-reviews">
-          <div className="flex items-center justify-between gap-2 ps-6 pe-4">
-            <h3 id="map-store-reviews" className="flex min-w-0 items-center gap-1.5 text-[16px] font-black text-hs-ink-900">
-              <HsIcon name="person" size={18} className="flex-none text-hs-brand-700" />
-              <span className="min-w-0">{tx(language, REVIEW_TEXT.title)}</span>
-              {reviews && !reviews.loading && !reviews.error && myIds.length > 0 && <span dir="ltr" className="flex-none text-hs-brand-700">{matched.length}</span>}
-            </h3>
-            {reviews && !reviews.loading && !reviews.error && (
-              <button type="button" onClick={onSeeAll} className="inline-flex min-h-11 flex-none items-center gap-0.5 px-1 text-[13px] font-extrabold text-hs-ink-900">
-                {tx(language, REVIEW_TEXT.seeAll)}
-                <HsIcon name="forward" size={16} strokeWidth={2.4} className={FLIP_RTL} />
-              </button>
-            )}
+        {menus.length > 0 && (
+          <div className="px-5 pt-3.5">
+            <h3 id="map-store-menus" className="text-[13px] font-black text-hs-ink-900">{tx(language, STORE_TEXT.featuredMenus)}</h3>
+            <MenuTags language={language} names={menus.map((menu) => menu.name)} label={tx(language, STORE_TEXT.featuredMenus)} className="mt-2" />
           </div>
-          <p className="mx-6 mt-0.5 mb-3 text-[12px] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.subtitle)}</p>
-          {body}
-        </section>
+        )}
       </div>
-      <div className="flex-none border-t-[1.5px] border-hs-line-200 bg-hs-surface-0 px-5 pt-3 pb-3.5">
-        <HsButton block icon="scan" className="h-[54px]! text-[16px]!" onClick={onScan}>{tx(language, T.scanStore)}</HsButton>
+      <div className="flex flex-none gap-2 px-5 pt-[18px] pb-4">
+        {/* 긴 언어에서 주 버튼이 넘치지 않게: [가게 상세]는 글자 폭, 주 버튼은 남은 폭(두 줄까지) */}
+        <HsButton variant="outline" trailingIcon="forward" className="h-auto! min-h-[52px] flex-none px-5 whitespace-nowrap" onClick={onDetail}>{tx(language, STORE_TEXT.openDetail)}</HsButton>
+        <HsButton icon="scan" className="h-auto! min-h-[52px] min-w-0 flex-1 py-2 text-center" onClick={onScan}>{tx(language, T.scanStore)}</HsButton>
       </div>
     </section>
   );

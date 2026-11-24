@@ -22,6 +22,7 @@
 | PATCH/DELETE `/api/v1/reviews/:reviewId` | 본인 후기 수정·삭제 |
 | POST `/api/v1/reviews/:reviewId/reports` | `{ reason }` 신고. 본인 후기 불가, 신고만으로 후기 삭제하지 않음 |
 | POST `/api/v1/stores/candidates` | 현재 위치·선택적 상호명으로 가게 후보 조회 |
+| GET `/api/v1/stores/:storeId` | 가게 상세(2026-11-25): 이름 · 지점 · 도로명 주소 · `floorInfo` · 좌표 · 업종 코드 · 후기 수 · `thumbnailUrl` · `menus[]`(`storeMenuId` · `name` · `translatedName` · `description` · `priceText` · `priceOptions` · `imageUrl` · `imageAttribution` · `imageSource`). `menus`는 메뉴가 등록된 가게만(null 가능), 사진 주소도 null 가능. 거리는 없다 |
 | POST `/api/v1/uploads/sas` | 업로드 URL 요청 |
 | POST `/api/v1/scans` | `{ storageKey, source, storeId?, storeMatchMethod? }`로 분석 시작 |
 | GET `/api/v1/scans/:scanId` | 상태·최종 메뉴·재촬영 사유·실패 코드(`failureCode`) |
@@ -36,6 +37,7 @@
 | DELETE `/api/v1/cards/saved/:id` | 카드 삭제 |
 
 가게 후보 요청은 `{ latitude, longitude, query?, radiusMeters?, limit? }`, 응답은 `{ items: StoreCandidate[] }`이다.
+가게 상세(`getStoreDetail`, `src/api/store.ts`)는 `{ data }` 감싸기 여부와 상관없이 읽고, `menus`가 배열이 아니면 null로 둔다. 화면은 `useStoreDetail`로 세션 동안 storeId별로 기억해 지도 미리보기 · 가게 상세 · 홈 · 칼럼 카드가 같이 쓴다(실패는 기억하지 않음). 홈 가게 탐색 · 칼럼 속 식당은 카드마다 상세를 부르지만(3곳씩), 지도 목록 · 저장한 가게 · 식당 선택 시트는 부르지 않는다. 2026-11-25 현재 운영 서버는 이 경로가 아직 404다(배포 전).
 후보마다 `reviewCount`가 포함된다. 현재 위치 기반 조회는 50m 거리 구간 안에서 후기 수를 보조 정렬로 사용한다. 지역 중심만 있는 홈 추천은 클라이언트에서 후기 수를 우선한다.
 후보의 `storeId`와 `matchMethod`는 사용자가 가게를 선택한 경우 스캔 시작 요청의 `storeId`,
 `storeMatchMethod`로 함께 전달한다. 가게 연결을 건너뛰면 두 필드를 모두 생략한다. 사용자 좌표는 후보 조회에만
@@ -122,7 +124,7 @@
 - Restaurant: id, 한국어 원명, localizedDisplayName, aliases, 위도·경도, 지역, 메뉴 유형, 사진 출처, 영업 정보 확인 시각.
 - Partnership: restaurantId, status(standard/recipe-verified), recipeCoverage, verifiedAt. `recipe-verified`는 전체 레시피 정보 검증 범위이며 사용자별 섭취 안전 보장이 아니다.
 - Map adapter: Naver Maps SDK는 Restaurant의 위도·경도를 렌더링하고 bounds/center/zoom과 pin selection만 UI에 전달한다. SDK 키는 환경변수로 주입하며 데모 fixture에 넣지 않는다.
-- Scan context: `storeId` nullable, `storeMatchMethod`(`gps_candidate`/`name_search`/`kakao_fallback`) nullable. 두 필드는 함께 존재하거나 함께 생략.
+- Scan context: `storeId` nullable, `storeMatchMethod`(`gps_candidate`/`name_search`/`kakao_fallback`/`store_detail`) nullable. 두 필드는 함께 존재하거나 함께 생략. 가게 상세 화면의 [이 식당 메뉴 스캔]은 진입 경로와 상관없이 `store_detail`(서버 관측용 메타데이터, 2026-11-25 백엔드 확인), 지도 미리보기 시트에서 바로 스캔하면 후보의 원래 값을 보낸다.
 - Visit: id, userId, scanId, restaurantId nullable, profileSnapshot, visitedAt, verificationStatus.
 - Feedback: visitId, profileItemId, questionId, answer(yes/no/unknown), createdAt. 현재 질문은 식단 의사소통의 편의성이다.
 - Like: userId, canonicalMenuId 또는 scanMenuId, restaurantId nullable. idempotent upsert/delete.

@@ -47,14 +47,17 @@ export interface StoreCardProps {
   onClick?: () => void;
   /** 선택된 가게 */
   selected?: boolean;
+  /** 거리 줄 아래 메뉴 태그(MenuTags). 가게 상세 API를 부르는 홈 · 칼럼 카드에서만. */
+  tags?: ReactNode;
   className?: string;
 }
 
 /**
  * 가게 한 곳(지도 목록 · 식당 선택 · 칼럼 속 식당 · 홈). API No 27이 주는 값만:
- * 이름 · 후기 N · 지역(구) · 음식 종류 · 내 위치에서 Nm · 저장(책갈피). 층 · 메뉴 태그 · 평점 · 사진 · 영업시간은 없다.
+ * 이름 · 후기 N · 지역(구) · 음식 종류 · 내 위치에서 Nm · 저장(책갈피). 평점 · 사진 · 영업시간은 없다.
+ * 메뉴 태그(`tags`)는 가게 상세 API를 부르는 홈 · 칼럼 카드에서만 붙인다(지도 목록 · 저장한 가게 · 식당 선택은 없음).
  */
-export function StoreCard({ language, name, reviewCount, district, category, distanceMeters, saved, onToggleSave, onClick, selected = false, className = '' }: StoreCardProps) {
+export function StoreCard({ language, name, reviewCount, district, category, distanceMeters, saved, onToggleSave, onClick, selected = false, tags, className = '' }: StoreCardProps) {
   const meta = [typeof reviewCount === 'number' ? txn(language, T_STORE.reviews, reviewCount) : null, district, category].filter(Boolean).join(' · ');
   const body = (
     <>
@@ -66,6 +69,7 @@ export function StoreCard({ language, name, reviewCount, district, category, dis
           <span>{DISTANCE[language](formatDistance(distanceMeters))}</span>
         </span>
       )}
+      {tags && <span className="mt-2 block">{tags}</span>}
     </>
   );
   return (

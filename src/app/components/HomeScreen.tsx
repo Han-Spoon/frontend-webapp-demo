@@ -6,11 +6,13 @@ import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import type { StoreCandidate } from '../../api/store';
 import { HOME_STORES, type HomeAreaId } from '../demo/homeStores';
 import { SEOUL_AREAS } from './discovery/seoulAreas';
-import { MAP_AREAS } from './map/mapAreas';
 import { FOOD_CATEGORY_LABELS, type FoodCategoryId } from './discovery/foodCategories';
 import { DietPromptCard } from './DietPromptCard';
-import { useFixtureStoreSaves } from '../hooks/useFixtureStoreSaves';
-import { BottomNav, FilterChip, HsIcon, HsIconButton, HsLinkButton, LanguageButton, Logo, OfflineBanner, StoreCard, tx, type AllText, type HsIconName } from './hs';
+import { useGrantedPosition } from '../hooks/useGrantedPosition';
+import { BottomNav, FilterChip, HsIcon, HsIconButton, HsLinkButton, LanguageButton, Logo, OfflineBanner, tx, useToast, type AllText, type HsIconName } from './hs';
+import { useSavedStores } from './map/savedStores';
+import { FeaturedStoreCard } from './store/FeaturedStoreCard';
+import { STORE_TEXT } from './store/storeText';
 
 const H = {
   eyebrow: { ko: '한 숟가락씩, 나에게 맞게', en: 'ONE SPOONFUL AT A TIME', ar: 'ملعقة تلو الأخرى، كما يناسبك', 'zh-CN': '一勺一勺，适合我的', ja: 'ひとさじずつ、わたしに合わせて', 'zh-TW': '一勺一勺，適合我的', es: 'CUCHARADA A CUCHARADA' },
@@ -43,22 +45,28 @@ const CRAVINGS: Array<{ id: FoodCategoryId; icon: HsIconName; tone: string }> = 
 const AUTO_ADVANCE_MS = 5000;
 
 const HOME_AREAS: HomeAreaId[] = ['nearby', 'seongsu', 'myeongdong', 'hongdae'];
-/** 홈(캔버스 '홈 디벨롭 ② 한국어'). 가게 탐색 · 스포트라이트는 하드코딩(2026-11-24 결정). */
+/** 홈(캔버스 '홈 디벨롭 ② 한국어'). 스포트라이트는 하드코딩(2026-11-24 결정), 가게 탐색은 고정 storeId + 가게 상세 API(메뉴 태그, 2026-11-25). */
 export function HomeScreen({
   language,
   userProfile,
+  demoMode = false,
   onChangeLanguage,
 }: {
   language: Language;
   userProfile: UserProfile | null;
   demoMode?: boolean;
-  selectedStore?: StoreCandidate | null;
-  onSelectStore?: (store: StoreCandidate | null) => void;
   onChangeLanguage: (language: Language) => void;
 }) {
   const navigate = useNavigate();
+  const toast = useToast();
   const [area, setArea] = useState<HomeAreaId>('nearby');
-  const { isSaved, toggleSave } = useFixtureStoreSaves();
+  const { isSaved, toggle } = useSavedStores();
+  const position = useGrantedPosition();
+  const toggleSave = (store: StoreCandidate) => {
+    const wasSaved = isSaved(store.storeId);
+    toggle(store);
+    if (!wasSaved) toast.show(tx(language, STORE_TEXT.savedToast), { tone: 'success' });
+  };
   const [slide, setSlide] = useState(0);
   const rail = useRef<HTMLDivElement>(null);
   const stories = CURATION_ARTICLES.slice(0, 4);
@@ -69,12 +77,8 @@ export function HomeScreen({
     return found ? translateText(language, found.label) : id;
   };
 
-  // 내 주변 가게는 용산구로 고정이라, 그 가게를 누르면 용산·삼각지 중심으로 지도를 연다.
-  const YONGSAN_CENTER = MAP_AREAS.find((item) => item.id === 'yongsan-samgakji')?.center;
-  const openMap = (options: { area?: HomeAreaId; category?: FoodCategoryId; fromStore?: boolean } = {}) => {
-    const center = options.area === 'nearby'
-      ? (options.fromStore ? YONGSAN_CENTER : undefined)
-      : options.area ? areaCenter(options.area) : undefined;
+  const openMap = (options: { area?: HomeAreaId; category?: FoodCategoryId } = {}) => {
+    const center = options.area && options.area !== 'nearby' ? areaCenter(options.area) : undefined;
     navigate('/map', {
       state: {
         ...(center ? { searchCenter: { latitude: center.latitude, longitude: center.longitude } } : {}),
@@ -220,17 +224,15 @@ export function HomeScreen({
           </div>
           <div className="mt-3.5 space-y-2 px-5">
             {HOME_STORES[area].map((store) => (
-              <StoreCard
-                key={store.id}
+              <FeaturedStoreCard
+                key={store.storeId}
                 language={language}
-                name={translateText(language, store.name)}
-                reviewCount={store.reviewCount}
-                district={translateText(language, store.district)}
-                category={translateText(language, FOOD_CATEGORY_LABELS[store.category])}
-                distanceMeters={store.distanceMeters}
-                saved={isSaved(store.id)}
-                onToggleSave={() => toggleSave(store.id)}
-                onClick={() => openMap({ area, fromStore: true })}
+                store={store}
+                demoMode={demoMode}
+                position={position}
+                saved={isSaved(store.storeId)}
+                onToggleSave={toggleSave}
+                onOpen={() => navigate(`/stores/${store.storeId}`)}
               />
             ))}
           </div>

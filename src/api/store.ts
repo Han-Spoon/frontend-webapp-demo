@@ -16,9 +16,45 @@ export interface StoreCandidate {
   categoryName?: string | null;
   verified: boolean;
   reviewCount?: number;
-  /** 상가정보 층 원본 값("1", "B1", "지", "반지층", ""). 문구는 프론트가 만든다. 배포 전 서버에는 없음. */
+  /** 상가정보 층 원본 값("1", "B1", "지", "반지층", ""). 문구는 프론트가 만든다. */
   floorInfo?: string;
   matchMethod: StoreMatchMethod;
+}
+
+/** 가게 상세(`GET /api/v1/stores/{storeId}`)의 메뉴 한 줄. 판정은 없다(판정은 스캔 결과에서만). */
+export interface StoreMenu {
+  storeMenuId: number;
+  /** 한국어 메뉴 이름 */
+  name: string;
+  translatedName?: string | null;
+  description?: string | null;
+  priceText?: string | null;
+  /** 스캔 결과와 같은 모양으로 본다(예시 응답은 빈 배열). */
+  priceOptions?: Array<{ label: string; priceText: string; inferred?: boolean }> | null;
+  /** 화면에 쓰지 않음 */
+  menuId?: number | null;
+  imageUrl?: string | null;
+  imageAttribution?: string | null;
+  imageSource?: string | null;
+}
+
+/** 가게 상세(`GET /api/v1/stores/{storeId}`, 2026-11-25 추가). 거리는 주지 않는다. */
+export interface StoreDetail {
+  storeId: number;
+  name: string;
+  branchName?: string | null;
+  roadAddress?: string | null;
+  /** 상가정보 층 원본 값("1", "B1", "지", "반지층", ""). */
+  floorInfo?: string | null;
+  latitude: number;
+  longitude: number;
+  categoryCode?: string | null;
+  categoryName?: string | null;
+  verified?: boolean;
+  reviewCount?: number | null;
+  thumbnailUrl?: string | null;
+  /** 메뉴가 등록된 가게에만 있음(null 가능) */
+  menus?: StoreMenu[] | null;
 }
 
 export interface StoreSummary {
@@ -61,6 +97,38 @@ export async function findStoreCandidates(
     throw new Error('Invalid store candidate response.');
   }
   return deduplicateStores(data.items);
+}
+
+export async function getStoreDetail(storeId: number, signal?: AbortSignal): Promise<StoreDetail> {
+  const response = await authFetch(`/api/v1/stores/${encodeURIComponent(String(storeId))}`, { method: 'GET', signal });
+  const text = await response.text();
+  if (!response.ok) {
+    console.error('Store detail request failed:', response.status, text);
+    throw new ApiError(response.status, text);
+  }
+  const json = text ? JSON.parse(text) : {};
+  const data = (json.data ?? json) as Partial<StoreDetail>;
+  if (typeof data.storeId !== 'number' || typeof data.name !== 'string') throw new Error('Invalid store detail response.');
+  return { ...data, menus: Array.isArray(data.menus) ? data.menus : null } as StoreDetail;
+}
+
+/** 가게 상세를 후보 형식으로(저장 · 스캔 연결용 스냅숏). 거리는 모른다. */
+export function storeDetailToCandidate(detail: StoreDetail, matchMethod: StoreMatchMethod = 'store_detail'): StoreCandidate {
+  return {
+    storeId: detail.storeId,
+    name: detail.name,
+    branchName: detail.branchName ?? null,
+    roadAddress: detail.roadAddress ?? null,
+    latitude: detail.latitude,
+    longitude: detail.longitude,
+    distanceMeters: null,
+    categoryCode: detail.categoryCode ?? null,
+    categoryName: detail.categoryName ?? null,
+    verified: Boolean(detail.verified),
+    reviewCount: detail.reviewCount ?? 0,
+    floorInfo: detail.floorInfo ?? undefined,
+    matchMethod,
+  };
 }
 
 /** Collapse exact duplicates only; keep distinct branches or differing coordinates. */

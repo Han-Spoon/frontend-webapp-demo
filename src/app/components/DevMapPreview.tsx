@@ -6,10 +6,9 @@ import { isLanguage } from '../locales';
 import { MAP_PREVIEW_CANDIDATES, MAP_PREVIEW_CENTER } from '../demo/mapPreviewStores';
 import { useToast } from './hs';
 import { storeDisplayName } from './map/savedStores';
-import { StoreMapView, type StoreReviewSource } from './RestaurantMapScreen';
+import { StoreMapView } from './RestaurantMapScreen';
 
 const noop = () => {};
-const PREVIEW_REVIEWS: StoreReviewSource = { enabled: true, load: async () => [], report: async () => {}, storeKey: (store) => store.storeId };
 
 function previewDistance(store: StoreCandidate, from: { latitude: number; longitude: number }) {
   const dLat = (store.latitude - from.latitude) * 111_320;
@@ -61,10 +60,7 @@ export function DevMapPreview({ fallbackLanguage }: { fallbackLanguage: Language
           searchLocation: search?.location ?? null,
           searchOrigin: search?.origin ?? 'current-location',
         }}
-        userProfile={null}
-        reviews={PREVIEW_REVIEWS}
         onScan={(store) => toast.show(`메뉴 스캔(미리보기): ${storeDisplayName(store)}`)}
-        onScanWithoutStore={() => toast.show('식당 없이 스캔(미리보기)')}
       />
     </>
   );
