@@ -1,4 +1,4 @@
-import { createTranslator } from './locales';
+import { createTranslator, isLanguage } from './locales';
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { appliedScanProfile, getScanResult, mapMenuResult } from '../api/scan';
@@ -101,6 +101,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         store: scan.record?.store ?? scan.store ?? null,
         record: scan.record ?? null,
         title: scan.title ?? item.title,
+        scanLocale: isLanguage(scan.locale) ? scan.locale : null,
         scannedAt: scan.scannedAt ?? item.date,
         profile: snapshot ?? undefined,
         profileUnknown: snapshot === null,
@@ -247,6 +248,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
             title={result.title}
             scannedAt={result.scannedAt}
             scanProfileUnknown={result.profileUnknown}
+            scanLocale={result.scanLocale}
             onBack={() => { clearPhoto(); navigate('/home'); }}
             onRescan={() => { clearPhoto(); navigate('/scan'); }}
           />
