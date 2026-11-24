@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { createServer } from 'vite';
 
 // 4개 언어(zh-CN·ja·zh-TW·es) 번역 누락 문구 수. 바뀌면 번역을 채우거나 이 값과 docs/i18n-accessibility.md를 갱신.
-const I18N_MISSING_BASELINE = { 'zh-CN': 114, ja: 114, 'zh-TW': 59, es: 114 };
+const I18N_MISSING_BASELINE = { 'zh-CN': 58, ja: 58, 'zh-TW': 42, es: 58 };
 
 // Exercise actual source modules with Vite's existing TS loader; no test dependencies needed.
 const server = await createServer({
@@ -13,17 +13,6 @@ const server = await createServer({
   appType: 'custom',
 });
 try {
-  const { restaurantReferencePhoto, restaurantRecommendationPhotos, RESTAURANT_PHOTOS } = await server.ssrLoadModule('/src/app/components/discovery/restaurantPhotos.ts');
-  for (const categories of [Array(6).fill('한식'), Array(6).fill(null), ['한식', '초밥', '한식', null, '비빔밥', '한식']]) {
-    const photos = restaurantRecommendationPhotos(categories);
-    assert.equal(new Set(photos).size, 6, 'Recommendations must not repeat photos');
-    assert.deepEqual(restaurantRecommendationPhotos(categories), photos, 'Photos remain stable for the same list');
-  }
-  assert.equal(restaurantReferencePhoto('한식 > 비빔밥'), RESTAURANT_PHOTOS.bibimbap);
-  assert.equal(restaurantReferencePhoto('일식 > 초밥'), RESTAURANT_PHOTOS.sushi);
-  assert.equal(restaurantReferencePhoto('한식'), RESTAURANT_PHOTOS.korean);
-  for (const category of [null, undefined, '', '일식', '중식', '카페'])
-    assert.equal(restaurantReferencePhoto(category), RESTAURANT_PHOTOS.dining);
   const { menuPrice, parseKrw, DEMO_CURRENCIES } = await server.ssrLoadModule(
     '/src/app/demo/currency.ts',
   );
@@ -175,19 +164,6 @@ try {
   assert.ok(RESTAURANTS.some(restaurant => restaurant.partnership === 'recipe-verified'));
   assert.ok(RESTAURANTS.some(restaurant => restaurant.partnership === 'standard'));
   const restaurant = restaurantsInArea('nearby')[0];
-  const { buildPartnerMenus } = await server.ssrLoadModule('/src/app/demo/partnerMenus.ts');
-  const unrestricted = { ...RESULT_PREVIEW_PROFILE, hasReligion: false, religionType: null, hasAllergies: false, allergies: [], noSpicy: false, noAlcohol: false };
-  assert.ok(buildPartnerMenus(restaurant, unrestricted).every(menu => menu.riskLevel === 'safe'));
-  assert.ok(buildPartnerMenus(restaurant, null).every(menu => menu.riskLevel === 'caution'));
-  assert.equal(buildPartnerMenus(RESTAURANTS.find(r => r.partnership === 'standard'), unrestricted).length, 0);
-  const milkProfile = { ...unrestricted, hasAllergies: true, allergies: ['milk'] };
-  assert.equal(buildPartnerMenus(restaurant, milkProfile).find(menu => menu.id.endsWith('cream-rice')).riskLevel, 'danger');
-  assert.equal(buildPartnerMenus(restaurant, { ...unrestricted, isVegan: true, veganType: 'vegan' }).find(menu => menu.id.endsWith('egg-bowl')).riskLevel, 'danger');
-  assert.equal(buildPartnerMenus(restaurant, { ...unrestricted, isVegan: true, veganType: 'pesco' }).find(menu => menu.id.endsWith('-fish')).riskLevel, 'safe');
-  const halal = { ...unrestricted, hasReligion: true, religionType: 'halal' };
-  assert.equal(buildPartnerMenus(restaurant, halal).find(menu => menu.id.endsWith('pork-stew')).riskLevel, 'danger');
-  assert.ok(buildPartnerMenus(restaurant, halal).every(menu => getCautionProbabilities(menu, halal).length === 0));
-  assert.equal(buildPartnerMenus(restaurant, { ...unrestricted, hasAllergies: true, allergies: ['soybean'] }).find(menu => menu.id.endsWith('-tofu')).riskLevel, 'danger');
   assert.ok(RESTAURANTS.every(r => r.feedback.every(f => f.positive >= 0 && f.total > 0 && f.positive <= f.total)));
   assert.equal(profileMatches(restaurant, null).length, 0);
   assert.ok(

@@ -1,5 +1,7 @@
 # 홈 식당 추천
 
+> 2026-11-25: 이 문서의 `HAN SPOON PICKS`(`LiveHomeDiscovery` · `RestaurantRecommendations` · `restaurantPhotos`)는 새 테마 홈으로 바뀌며 삭제됐다. 지금 홈의 가게 탐색은 하드코딩(`demo/homeStores.ts`)이고 동선은 `user-flows.md`를 본다. 아래는 기록으로 남긴다.
+
 2026-09-15. 홈의 조건별 랭킹을 사진 중심의 `HAN SPOON PICKS` 섹션으로 교체했다.
 
 ## 데이터와 동선

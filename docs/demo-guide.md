@@ -41,7 +41,6 @@ pnpm dev --host 127.0.0.1 --port 5173
 | 위치/지도 | `/map`: 일회성 실제 위치 조회 + 반경 10km의 임시 식당 좌표. 거부 시 성수 fallback |
 | 환율 | demo/currency.ts의 고정값; 매일 00시 실제 갱신 없음 |
 | 스캔 결과 메뉴/82%·68%·36% | results/resultFixtures.ts |
-| 입점 식당의 등록 메뉴 | demo/partnerMenus.ts: 가상 레시피 6종, 현재 프로필로 재계산. 포함 확률 없음 |
 | 라이킷/식당 찜 | han-spoon-demo:liked-menus / saved-restaurants |
 | 장소 선택 | han-spoon-demo:selected-restaurant |
 | 기록·피드백 | han-spoon-demo:records |
