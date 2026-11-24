@@ -53,16 +53,24 @@ Tailwind 클래스(`@theme inline`):
 
 | 디자인 시스템 | 새 컴포넌트 | 대체할 옛 코드 | 상태 |
 | --- | --- | --- | --- |
-| Button · IconButton · HeartButton | `HsButton` · `HsIconButton` · `HsTextIconButton` · `HsHeart` | 화면별 버튼 | 예정 |
-| RiskBadge · RiskTile | `RiskBadge` · `EvidenceBadge` · `RiskTile` | `results/ResultEvidence.tsx` | 예정 |
-| IngredientTag · IngredientRow · MenuCard | 같은 이름 | `ResultsScreen` 안 카드, `AnalysisInsights` | 예정 |
-| InfoBox · StaffCard · AnswerButtons | 같은 이름 | 직원 소통 시트들, `CardsScreen` 안 카드 | 예정 |
-| StoreCard · ScanHistoryCard · ReviewCard · CurationCard | 같은 이름 | 지도 · 식당 선택 · 기록 · 후기 · 큐레이션 안 카드 | 예정 |
-| Chip · OptionRow · Stepper · SearchField | `ChoiceChip` · `FilterChip` · `OptionRow` · `Stepper` · `SearchField` · `TextField` | 온보딩 · 필터 안 코드 | 예정 |
-| BottomSheet · Dialog · Toast | `HsSheet` · `HsDialog` · `Toast` | `common/ModalSheet`, `discovery/BottomSheet`, `common/ConfirmDialog` | 예정 |
-| Tabs · BottomNav · BottomBar · TopArea | `PillTabs` · `UnderlineTabs` · `BottomNav` · `BottomBar` · `TopArea` | `BottomNav.tsx`, 화면별 머리 | 예정 |
-| StateBlocks | `OfflineBanner` · `EmptyState` · `ErrorState` · `InlineError` · `Skeleton` | `OfflineBanner` · `HistoryLoadError` · `FeaturePreparing` | 예정 |
+| Button · IconButton · HeartButton | `HsButton` · `HsLinkButton` · `HsIconButton` · `HsTextIconButton` · `HsHeart` | 화면별 버튼 | 만듦 |
+| RiskBadge · RiskTile | `RiskBadge` · `RiskCountBadge` · `EvidenceBadge` · `RiskTile` · `BowlTile`, 판정 매핑 `riskOf` · `orderByRisk` (`hs/risk.ts`) | `results/ResultEvidence.tsx` | 만듦 |
+| IngredientTag · IngredientRow · MenuCard | `IngredientTag`(만듦), `IngredientRow` · `MenuCard`(흐름 4에서) | `ResultsScreen` 안 카드, `AnalysisInsights` | 일부 |
+| InfoBox · StaffCard · AnswerButtons | `VerdictBox` · `NoticeBox` · `HsNote` · `StaffCard` · `AnswerButtons` | 직원 소통 시트들, `CardsScreen` 안 카드 | 만듦 |
+| StoreCard · ScanHistoryCard · ReviewCard · CurationCard | 같은 이름(`hs/cards.tsx`), 지역명 `districtOf` | 지도 · 식당 선택 · 기록 · 후기 · 큐레이션 안 카드 | 만듦 |
+| Chip · OptionRow · Stepper · SearchField | `ChoiceChip` · `AddChip` · `FilterChip` · `DietTag` · `PlainTag` · `CategoryTag` · `OptionRow` · `Stepper` · `SearchField` · `TextField` | 온보딩 · 필터 안 코드 | 만듦 |
+| BottomSheet · Dialog · Toast | `HsSheet`(한 장: X / 여러 장: `pager`) · `HsDialog` · `ToastProvider` · `useToast` | `common/ModalSheet`, `discovery/BottomSheet`, `common/ConfirmDialog` | 만듦 |
+| Tabs · BottomNav · BottomBar · TopArea | `PillTabs` · `UnderlineTabs` · `BottomNav` · `BottomBar` · `TopArea` · `TopBar` · `Logo` | `BottomNav.tsx`, 화면별 머리 | 만듦 |
+| StateBlocks | `OfflineBanner` · `EmptyState` · `ErrorState` · `InlineError` · `SkeletonCard` · `SkeletonLine` | `OfflineBanner` · `HistoryLoadError` · `FeaturePreparing` | 만듦 |
 | MapPin | 새로 만들지 않음 | `discovery/StoreMap.tsx` 스타일 그대로 | 유지 |
+
+### 쓰는 법
+
+- `import { HsButton, HsSheet, riskOf } from './hs'` 처럼 `src/app/components/hs/index.ts`에서 가져온다.
+- 아이콘은 디자인 시스템 선 아이콘을 옮긴 `HsIcon`(`hs/icons.tsx`)을 먼저 쓰고, 없는 모양만 lucide-react를 `strokeWidth={2.2}`로 쓴다. 방향 아이콘은 `FLIP_RTL`로 아랍어에서 뒤집는다.
+- 새 화면 문구는 7개 언어를 모두 적은 객체(`AllText`)를 `tx(language, …)`로 쓴다. 숫자가 들어가면 `CountText` + `txn`. 번역 사전(`src/app/i18n/`)에 키를 따로 추가하지 않아도 되고, `check-demo`의 번역 누락 수도 늘지 않는다.
+- 개발 서버의 `/dev/hs-gallery?demo=1&lang=ko`(`&open=sheet|pager|dialog`)에서 모든 공통 컴포넌트를 미리 볼 수 있다.
+- 하단 내비의 꺼진 글자는 대비를 위해 `ink-500`, 아이콘만 `ink-400`(디자인 시스템 접근성 규칙: ink-400은 글자 금지).
 
 ## 레이아웃 공통
 
@@ -89,4 +97,5 @@ Tailwind 클래스(`@theme inline`):
 
 ## 진행 기록
 
+- 2026-11-24 2단계: 공통 컴포넌트(`src/app/components/hs/`)와 개발 전용 확인 화면 `/dev/hs-gallery`.
 - 2026-11-24 1단계: 새 테마 토큰(`--hs-*`), 기존 의미 변수 값 교체, `hs-` 클래스, 다크 테마 제거, 새 심볼 파비콘 · 앱 아이콘, `.eyebrow` 11 · 900.

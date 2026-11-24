@@ -37,6 +37,9 @@ const SCAN_FLOW_SCREENS = [ScanScreen, AnalyzingScreen, ResultsScreen];
 const DevResultsPreview = import.meta.env.DEV
   ? lazyScreen(() => import('./components/DevResultsPreview').then((module) => module.DevResultsPreview))
   : null;
+const DevHsGallery = import.meta.env.DEV
+  ? lazyScreen(() => import('./components/DevHsGallery').then((module) => module.DevHsGallery))
+  : null;
 const DevMapPreview = import.meta.env.DEV
   ? lazyScreen(() => import('./components/DevMapPreview').then((module) => module.DevMapPreview))
   : null;
@@ -250,6 +253,12 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         <Route
           path="/dev/results-preview"
           element={DevResultsPreview && <DevResultsPreview fallbackLanguage={language} />}
+        />
+      )}
+      {import.meta.env.DEV && (
+        <Route
+          path="/dev/hs-gallery"
+          element={DevHsGallery && <DevHsGallery fallbackLanguage={language} />}
         />
       )}
       {import.meta.env.DEV && (
