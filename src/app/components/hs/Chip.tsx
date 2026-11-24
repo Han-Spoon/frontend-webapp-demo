@@ -11,7 +11,7 @@ export function ChoiceChip({ selected, className = '', children, type = 'button'
   return (
     <button
       type={type}
-      aria-pressed={selected}
+      aria-pressed={rest.role === 'radio' ? undefined : selected}
       className={`inline-flex min-h-9 items-center gap-[5px] rounded-hs-pill px-[13px] py-1 text-[13px] font-extrabold ${selected ? 'border-[1.5px] border-hs-brand-700 bg-hs-brand-700 text-hs-surface-0' : 'border-[1.5px] border-hs-line-200 bg-hs-surface-0 text-hs-ink-700'} ${className}`}
       {...rest}
     >

@@ -8,6 +8,7 @@ export * from './Heart';
 export * from './IconButton';
 export * from './icons';
 export * from './InfoBox';
+export * from './LanguageButton';
 export * from './Logo';
 export * from './OptionRow';
 export * from './risk';

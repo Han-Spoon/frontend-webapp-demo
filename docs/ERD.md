@@ -172,14 +172,14 @@ erDiagram
 | --- | --- | --- |
 | `id` | `uuid` | 프로필 ID |
 | `user_id` | `uuid` | 사용자 FK |
-| `is_first_time` | `boolean` | 한국 음식 처음 여부 |
+| `is_first_time` | `boolean` | 한국 음식 처음 여부(2026-11 새 온보딩에는 선택이 없어 항상 false 저장) |
 | `is_vegan` | `boolean` | 채식/비건 여부 |
 | `vegan_type` | `string` | 비건, 락토, 오보, 락토오보, 페스코 |
 | `has_religion` | `boolean` | 종교 식단 여부 |
 | `religion_type` | `string` | 할랄, 코셔, 힌두, 기타 |
 | `has_allergies` | `boolean` | 알레르기 여부 |
 | `no_spicy` | `boolean` | 매운 음식 비선호 |
-| `no_alcohol` | `boolean` | 금주 |
+| `no_alcohol` | `boolean` | 금주(2026-11 새 온보딩에는 선택이 없어 항상 false 저장) |
 | `created_at` | `datetime` | 생성일 |
 | `updated_at` | `datetime` | 수정일 |
 

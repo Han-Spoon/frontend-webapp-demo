@@ -91,7 +91,7 @@ export function DevHsGallery({ fallbackLanguage }: { fallbackLanguage: Language 
         </Section>
         <Section name="OptionRow">
           <OptionRow icon="search" title="재료 확인" description="내 알레르기마다 한 장" trailing="2장" onClick={() => {}} />
-          <OptionRow icon="leaf" title="빼고 요청" description="재료를 빼 달라고 부탁해요" trailing="2장" onClick={() => {}} />
+          <OptionRow icon="chili" title="빼고 요청" description="재료를 빼 달라고 부탁해요" trailing="2장" onClick={() => {}} />
           <OptionRow icon="shield" title="식단 기준 전달하기" description="고른 재료마다 한 장씩 보여줘요" selected={option === 'show'} onClick={() => setOption('show')} />
         </Section>
         <Section name="Tabs · Stepper">
