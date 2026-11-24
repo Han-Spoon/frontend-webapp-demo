@@ -21,12 +21,9 @@ const OnboardingScreen = lazyScreen(() => import('./components/OnboardingScreen'
 const ConsentScreen = lazyScreen(() => import('./components/ConsentScreen').then((module) => module.ConsentScreen));
 const RestaurantMapScreen = lazyScreen(() => import('./components/RestaurantMapScreen').then((module) => module.RestaurantMapScreen));
 const ScanScreen = lazyScreen(() => import('./components/ScanScreen').then((module) => module.ScanScreen));
-const ScanHistoryScreen = lazyScreen(() => import('./components/ScanHistoryScreen').then((module) => module.ScanHistoryScreen));
 const AnalyzingScreen = lazyScreen(() => import('./components/AnalyzingScreen').then((module) => module.AnalyzingScreen));
 const ResultsScreen = lazyScreen(() => import('./components/ResultsScreen').then((module) => module.ResultsScreen));
 const MyPageScreen = lazyScreen(() => import('./components/MyPageScreen').then((module) => module.MyPageScreen));
-const SavedMenusScreen = lazyScreen(() => import('./components/SavedMenusScreen').then((module) => module.SavedMenusScreen));
-const MyReviewsScreen = lazyScreen(() => import('./components/reviews/MyReviewsScreen').then((module) => module.MyReviewsScreen));
 const CurationScreen = lazyScreen(() => import('./components/CurationScreen').then((module) => module.CurationScreen));
 const CurationDetailScreen = lazyScreen(() => import('./components/CurationDetailScreen').then((module) => module.CurationDetailScreen));
 const CardsScreen = lazyScreen(() => import('./components/CardsScreen').then((module) => module.CardsScreen));
@@ -120,7 +117,6 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
   };
 
   const t = createTranslator(language);
-  const historyFooter = !demoMode && (scanHistory.hasMore || scanHistory.loading) ? <div className="px-5 pb-5 text-center"><button type="button" disabled={scanHistory.loading} onClick={() => void scanHistory.loadMore()} className="min-h-11 rounded-xl border border-border-warm px-5 text-sm font-bold">{scanHistory.loading ? t('불러오는 중…', 'Loading…', 'جار التحميل…') : t('기록 더 보기', 'Load more records', 'تحميل المزيد من السجلات')}</button></div> : null;
   return (
     <Routes>
       <Route
@@ -165,7 +161,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
       <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
       <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
       <Route path="/restaurants/:id/menu" element={demoMode ? <PartnerMenuScreen language={language} userProfile={userProfile} /> : <Navigate to="/map" replace />} />
-      <Route path="/history" element={<ScanHistoryScreen footer={historyFooter} language={language} history={scanHistory.history} loadFailed={scanHistory.loadFailed} onRetryLoad={() => void scanHistory.loadHistory()} onOpen={openHistory} onDelete={scanHistory.deleteHistory} onRename={scanHistory.renameHistory} />} />
+      <Route path="/history" element={<Navigate to="/mypage?tab=records&view=scans" replace />} />
       <Route
         path="/scan"
         element={
@@ -279,29 +275,23 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         path="/mypage"
         element={
           <MyPageScreen
-            historyFooter={historyFooter}
             language={language}
             demoMode={demoMode}
-            setLanguage={account.changeLanguage}
             currentUser={currentUser}
             userProfile={userProfile}
-            history={scanHistory.history}
-            historyLoadFailed={scanHistory.loadFailed}
-            onRetryHistory={() => void scanHistory.loadHistory()}
+            scanHistory={scanHistory}
             onBack={() => navigate('/home')}
             onEditProfile={(section) =>
               navigate('/onboarding', section ? { state: { editSection: section } } : undefined)
             }
-            onHistoryClick={openHistory}
-            onEditHistoryTitle={scanHistory.renameHistory}
-            onDeleteHistory={scanHistory.deleteHistory}
-            onTerms={() => navigate('/terms', { state: { returnTo: '/mypage' } })}
+            onOpenHistory={openHistory}
+            onTerms={() => navigate('/terms', { state: { returnTo: '/mypage?tab=settings' } })}
             onLogout={account.clearSession}
           />
         }
       />
-      <Route path="/mypage/saved-menus" element={<SavedMenusScreen language={language} demoMode={demoMode} />} />
-      <Route path="/mypage/reviews" element={<MyReviewsScreen language={language} profile={userProfile} demoMode={demoMode} />} />
+      <Route path="/mypage/saved-menus" element={<Navigate to="/mypage?tab=records&view=saved" replace />} />
+      <Route path="/mypage/reviews" element={<Navigate to="/mypage?tab=records&view=reviews" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

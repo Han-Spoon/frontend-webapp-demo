@@ -1,5 +1,14 @@
 # 변경 기록
 
+## 2026-11-25 — 한스푼 새 테마 흐름 7: 마이페이지 (#72)
+
+- 마이페이지를 캔버스 흐름 7(F7-01~08)대로 다시 구현: 민트 상단(아바타 · 이름 · 이메일), 탭 프로필 · 내 기록 · 설정. 내 기록 안에 스캔 기록(··· 이름 수정 · 삭제) · 저장한 음식(2열 카드) · 내 후기를 밑줄 탭으로 합침.
+- 옛 `/history` · `/mypage/saved-menus` · `/mypage/reviews`는 `/mypage?tab=records&view=…`로 이동. 약관 화면에서 돌아오면 설정 탭.
+- 확인 창을 모두 `HsDialog`로(기록 삭제 · 후기 삭제 · 로그아웃 · 회원 탈퇴). 성공은 알림, 실패는 카드 아래 한 줄 또는 확인 창 안.
+- 기록 삭제 확인 문구는 '삭제하면 되돌릴 수 없어요.'만 쓴다(보드의 '찜한 음식과 남긴 후기도 함께 지워져요'는 API 문서에 없는 동작이라 뺌).
+- 지운 파일: `ScanHistoryScreen` · `ScanHistoryList` · `HistoryLoadError` · `SavedMenusScreen` · `reviews/MyReviewsScreen` · `reviews/ReviewCards` · `common/ConfirmDialog` · `results/ResultEvidence`. 개발 fixture는 `mypage/RecordsTab`의 `SavedMenus` · `MyReviews`를 씀.
+- 새 문구 7개 언어. 쓰지 않게 된 사전 키 30개 삭제, 영어 fallback은 zh-CN · ja · es 각 114개, zh-TW 59개.
+
 ## 2026-11-25 — 한스푼 새 테마 흐름 6: 직원 소통 카드 (#70)
 
 - 카드 탭을 캔버스 흐름 6(F6-01~04)대로 다시 구현: 민트 상단, 자주 쓰는 문장(내 식단 카드 + 공통 문장 5개 아이콘 카드, 접기), 저장한 카드(종류 태그 · 메뉴 · 문장 · 삭제), 크게 보기 시트, 빈 상태 · 불러오기 실패 · 불러오는 중.

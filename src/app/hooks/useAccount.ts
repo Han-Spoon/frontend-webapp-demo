@@ -209,12 +209,12 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
     setConsentAccepted(true);
     if (demoMode) {
       const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
-      navigate(returnTo === '/mypage' ? '/mypage' : '/onboarding');
+      navigate(returnTo?.startsWith('/mypage') ? returnTo : '/onboarding');
       return;
     }
     const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
-    if (returnTo === '/mypage') {
-      navigate('/mypage');
+    if (returnTo?.startsWith('/mypage')) {
+      navigate(returnTo);
       return;
     }
     onSignedIn();

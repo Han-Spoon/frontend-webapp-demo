@@ -60,6 +60,7 @@ const PATHS = {
   restroom: <><circle cx="8" cy="5" r="1.8" /><circle cx="16" cy="5" r="1.8" /><path d="M6 21v-6H5l1.5-6h3L11 15h-1v6M14.5 21V9h3v12M16 21v-6" /></>,
   pay: <><rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10.5h18M7 15h4" /></>,
   bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></>,
+  logout: <><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" /><path d="M10 8l-4 4 4 4M6 12h10" /></>,
 } satisfies Record<string, ReactNode>;
 
 export type HsIconName = keyof typeof PATHS;

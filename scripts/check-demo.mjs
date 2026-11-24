@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { createServer } from 'vite';
 
 // 4개 언어(zh-CN·ja·zh-TW·es) 번역 누락 문구 수. 바뀌면 번역을 채우거나 이 값과 docs/i18n-accessibility.md를 갱신.
-const I18N_MISSING_BASELINE = { 'zh-CN': 141, ja: 141, 'zh-TW': 82, es: 141 };
+const I18N_MISSING_BASELINE = { 'zh-CN': 114, ja: 114, 'zh-TW': 59, es: 114 };
 
 // Exercise actual source modules with Vite's existing TS loader; no test dependencies needed.
 const server = await createServer({

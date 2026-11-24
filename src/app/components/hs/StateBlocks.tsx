@@ -36,10 +36,16 @@ export function OfflineBanner({ language, onRetry, force = false, className = ''
 }
 
 /** 빈 상태: 점선 상자 + 그릇 모양 아이콘(mint-100) + 제목 + 설명(+ 필요할 때만 버튼) */
-export function EmptyState({ icon = 'scan', title, description, action, className = '' }: { icon?: HsIconName; title: string; description?: ReactNode; action?: ReactNode; className?: string }) {
+const EMPTY_TONE = {
+  mint: 'bg-hs-mint-100 text-hs-brand-700',
+  coral: 'bg-hs-coral-100 text-hs-orange-500',
+  neutral: 'bg-hs-surface-100 text-hs-ink-700',
+} as const;
+
+export function EmptyState({ icon = 'scan', title, description, action, tone = 'mint', className = '' }: { icon?: HsIconName; title: string; description?: ReactNode; action?: ReactNode; tone?: keyof typeof EMPTY_TONE; className?: string }) {
   return (
     <div className={`rounded-3xl border-[1.5px] border-dashed border-hs-line-dash px-5 py-[26px] text-center ${className}`}>
-      <BowlTile className="mx-auto h-12 w-[52px] bg-hs-mint-100 text-hs-brand-700"><HsIcon name={icon} size={22} /></BowlTile>
+      <BowlTile className={`mx-auto h-12 w-[52px] ${EMPTY_TONE[tone]}`}><HsIcon name={icon} size={22} /></BowlTile>
       <h3 className="mt-3 text-[16px] font-black text-hs-ink-900">{title}</h3>
       {description && <p className="mt-1 text-[13px] font-semibold text-hs-ink-500">{description}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}

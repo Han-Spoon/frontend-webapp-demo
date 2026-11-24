@@ -87,17 +87,17 @@ Tailwind 클래스(`@theme inline`):
 
 | 종류 | 컴포넌트 | 쓰는 곳 |
 | --- | --- | --- |
-| 가운데 확인창 | `common/ConfirmDialog` | 삭제 · 탈퇴 · 로그아웃 · 분석 취소 |
 | 하단 시트(머리 · 내용을 직접 그림) | `common/ModalSheet` | 재료 확인 · 빼고 요청, 내 식단 전달, 카드 팝업 |
 | 하단 시트(제목 · 설명이 정해짐) | `discovery/BottomSheet` | 식당 선택, 기록 저장 |
 
 - 모두 Radix Dialog 기반이라 Esc 닫기, 초점 가두기, 뒤 화면 스크린리더 숨김 · 스크롤 잠금이 기본이다. `role="dialog"` · `aria-modal`을 직접 쓰지 않는다.
-- 열려 있는 동안만 렌더한다(`{open && <ConfirmDialog />}`). 닫을 때 초점 복귀는 `common/returnFocus`의 `useReturnFocus`를 `onCloseAutoFocus`에 건다.
+- 열려 있는 동안만 렌더한다(`{open && <HsSheet />}`). 가운데 확인창은 모두 `HsDialog`(옛 `common/ConfirmDialog`는 2026-11-25 삭제). 닫을 때 초점 복귀는 `common/returnFocus`의 `useReturnFocus`를 `onCloseAutoFocus`에 건다.
 - 확인창의 처음 초점은 취소 버튼이다. 처리 중에는 `busy`로 버튼과 Esc · 바깥 누르기를 막고, 실패는 `error`로 확인창 안에 보여 준다.
 
 ## 진행 기록
 
 - 2026-11-24 흐름 1: 랜딩 · 로그인 · 약관 · 온보딩을 새 컴포넌트로 다시 구현(`LanguageButton` 추가).
+- 2026-11-25 흐름 7: 마이페이지(`MyPageScreen`, `mypage/`). `PillTabs` + `UnderlineTabs`, `ScanHistoryCard` ··· 메뉴 · 제자리 이름 수정, `HsDialog`(기록 미리보기 · 로그아웃 아이콘), `HsHeart`, `ReviewCard`. `EmptyState tone`(mint · coral · neutral), 아이콘 logout. 옛 `ScanHistoryScreen` · `ScanHistoryList` · `HistoryLoadError` · `SavedMenusScreen` · `reviews/MyReviewsScreen` · `reviews/ReviewCards` · `common/ConfirmDialog` · `results/ResultEvidence` 삭제.
 - 2026-11-25 흐름 6: 직원 소통 카드(`CardsScreen`). 공통 문장 카드는 그릇 모양(22/30) surface-100 + 흰 아이콘 칸, 내 식단 카드는 mint-100 + mint-200 테두리, 저장 카드 종류 태그 4색. `HsSheet header`, 아이콘 5종.
 - 2026-11-25 흐름 5: 큐레이션 목록 · 상세(`CurationScreen`, `CurationDetailScreen`, `curation/curationView`). `CategoryTag` · `FilterChip` · `StoreCard` · `SearchField` 사용, 글 사진은 그릇 모양 모서리(18/30 · 16/26), 사진을 못 불러오면 카테고리 색 + 그릇 아이콘. `SearchField` 초점 테두리는 알약 전체(`.hs-search`).
 - 2026-11-25 흐름 2: 지도에서 가게 찾기(`RestaurantMapScreen`, `components/map/`). 공통 `StoreCard` · `PillTabs` · `SearchField` · `HsSheet` · 상태 블록을 쓰고, 지역 시트 · 후기 전체 화면 · 칩 메뉴(`map/ChipMenu`)를 추가. 아이콘 list · map · locate · sort · refresh.
