@@ -11,31 +11,29 @@ const HERO_IMAGE =
 export function LandingScreen({
   language,
   setLanguage,
-  onTryDemo,
 }: {
   language: Language;
   setLanguage: (language: Language) => void;
-  onTryDemo: () => void;
 }) {
   const navigate = useNavigate();
   const t = createTranslator(language);
 
   return (
-    <div className="relative h-dvh overflow-y-auto bg-soy-ink text-white">
+    <div className="relative h-dvh max-w-full overflow-x-hidden overflow-y-auto bg-soy-ink text-white">
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-brand-green-900" />
         <img
           src={HERO_IMAGE}
           alt=""
-          className="h-[64%] w-full object-cover object-[center_48%] opacity-95"
+          className="h-[46%] w-full object-cover object-[center_48%] opacity-95"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,31,23,.08)_0%,rgba(12,34,26,.08)_30%,rgba(14,37,28,.78)_59%,#12251d_76%,#12251d_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,31,23,.08)_0%,rgba(12,34,26,.18)_20%,rgba(14,37,28,.85)_44%,#12251d_61%,#12251d_100%)]" />
         <div className="absolute -end-20 bottom-28 size-64 rounded-full bg-brand-orange-500/20 blur-3xl" />
         <div className="absolute -start-24 bottom-0 size-72 rounded-full bg-brand-green-500/25 blur-3xl" />
       </div>
 
       <div className="relative z-10 flex min-h-full flex-col px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <header className="flex items-center justify-between gap-3">
+        <header className="flex min-w-0 items-center justify-between gap-3">
           <span className="inline-flex rounded-2xl bg-rice-white/95 px-3 py-2 shadow-lg backdrop-blur">
             <img
               src={logo}
@@ -62,13 +60,13 @@ export function LandingScreen({
           </label>
         </header>
 
-        <main className="mt-auto pt-[42vh]">
+        <main className="mt-auto pt-6">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-extrabold tracking-[.14em] text-white/90 backdrop-blur-md">
             <span className="size-1.5 rounded-full bg-brand-orange-500" />
             {t('한식 메뉴 가이드', 'YOUR TASTE, YOUR KOREA', 'ذوقك، كوريا الخاصة بك')}
           </div>
 
-          <h1 className="max-w-[370px] whitespace-pre-line text-[38px] font-extrabold leading-[1.08] tracking-[-0.045em]">
+          <h1 className="max-w-[370px] whitespace-pre-line break-words text-[38px] font-extrabold leading-[1.08] tracking-[-0.045em]">
             {t(
               '낯선 한식 메뉴도,\n맛있는 발견으로.',
               'Discover Korean food,\none menu at a time.',
@@ -107,31 +105,17 @@ export function LandingScreen({
           </div>
         </main>
 
-        <footer className="mt-6">
+        <footer className="mt-5">
           <button
             type="button"
             onClick={() => navigate('/login')}
             className="group flex min-h-15 w-full items-center justify-between rounded-full bg-rice-white py-2 ps-6 pe-2 text-start font-extrabold text-soy-ink shadow-[0_18px_48px_rgba(0,0,0,.28)]"
           >
-            <span>{t('한스푼 시작하기', 'Start with Han Spoon', 'ابدأ مع هان سبون')}</span>
+            <span className="min-w-0 break-words">{t('한스푼 시작하기', 'Start with Han Spoon', 'ابدأ مع هان سبون')}</span>
             <span className="flex size-12 items-center justify-center rounded-full bg-brand-primary text-white transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5">
               <ArrowRight className="size-5 rtl:rotate-180" aria-hidden="true" />
             </span>
           </button>
-          <button
-            type="button"
-            onClick={onTryDemo}
-            className="mt-3 min-h-12 w-full rounded-full border border-white/45 bg-white/10 px-5 text-sm font-bold text-white backdrop-blur-md"
-          >
-            {t('로그인 없이 시연하기', 'Explore the demo without signing in', 'جرّب العرض دون تسجيل الدخول')}
-          </button>
-          <p className="mt-3 text-center text-[11px] font-medium text-white/55">
-            {t(
-              '계정 없이 시연하거나 Google 계정으로 시작할 수 있어요.',
-              'Explore without an account or start with Google.',
-              'استكشف دون حساب أو ابدأ باستخدام Google.',
-            )}
-          </p>
         </footer>
       </div>
     </div>

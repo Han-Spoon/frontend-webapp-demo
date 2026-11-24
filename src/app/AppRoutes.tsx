@@ -126,7 +126,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
     <Routes>
       <Route
         path="/"
-        element={<LandingScreen language={language} setLanguage={setLanguage} onTryDemo={startDemo} />}
+        element={<LandingScreen language={language} setLanguage={setLanguage} />}
       />
       <Route
         path="/login"
