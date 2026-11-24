@@ -46,10 +46,6 @@ import { listDemoStoreReviews, reportDemoReview } from '../demo/reviews';
 import { MealReviewSheet } from './reviews/MealReviewSheet';
 import { RestaurantReviewList } from './reviews/RestaurantReviewList';
 
-/** 지도 검색 반경·핀 수. 서버 최대값. */
-const MAP_SEARCH_RADIUS_METERS = 3000;
-const MAP_SEARCH_LIMIT = 100;
-
 /** 전체 화면 지도에서 나가기. 앱 안에서 들어왔으면 이전 화면, 바로 열었으면 홈. */
 function useGoBack() {
   const navigate = useNavigate();
@@ -335,8 +331,6 @@ function LiveRestaurantMapScreen({
   const discovery = useStoreCandidates(query, {
     initialSearchLocation: initialSearchCenter,
     locateUser: !initialSearchCenter,
-    radiusMeters: MAP_SEARCH_RADIUS_METERS,
-    limit: MAP_SEARCH_LIMIT,
   });
   useEffect(() => {
     if (!detailStore || !showReviews || !liveFeatures.reviews) return;

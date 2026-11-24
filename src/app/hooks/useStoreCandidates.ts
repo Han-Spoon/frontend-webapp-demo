@@ -13,8 +13,6 @@ interface StoreCandidateOptions {
   enabled?: boolean;
   initialSearchLocation?: StoreCoordinates;
   locateUser?: boolean;
-  radiusMeters?: number;
-  limit?: number;
 }
 
 const SEARCH_DEBOUNCE_MS = 350;
@@ -26,8 +24,6 @@ export function useStoreCandidates(
     enabled = true,
     initialSearchLocation,
     locateUser = true,
-    radiusMeters = 1000,
-    limit = 20,
   }: StoreCandidateOptions = {},
 ) {
   const [location, setLocation] = useState<StoreCoordinates | null>(null);
@@ -121,8 +117,8 @@ export function useStoreCandidates(
         const items = await findStoreCandidates({
           ...(searchLocation ?? {}),
           query: query.trim() || undefined,
-          ...(searchLocation ? { radiusMeters } : {}),
-          limit,
+          ...(searchLocation ? { radiusMeters: 1000 } : {}),
+          limit: 20,
         }, controller.signal);
         setCandidates(items);
       } catch (requestError) {
@@ -139,7 +135,7 @@ export function useStoreCandidates(
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [enabled, query, searchLocation, searchRefresh, radiusMeters, limit]);
+  }, [enabled, query, searchLocation, searchRefresh]);
 
   return {
     candidates,
