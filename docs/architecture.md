@@ -14,8 +14,11 @@ React 18 + TypeScript + React Router + Vite 6 + Tailwind 4. pnpm 10.12.1. 이 �
 | `src/api/` | 기존 인증·프로필·업로드·스캔·카드 어댑터 |
 | `src/app/components/HomeScreen.tsx` | 식당 발견, 지역과 사진 중심 추천, 식당 상세 |
 | `src/app/components/ScanScreen.tsx` | 이전 홈의 촬영·파일 검증·업로드 |
-| `src/app/components/discovery/` | 지도, 접근 가능한 바텀시트, 식당 선택, 후보 기반 RestaurantRecommendations와 참고 사진 매핑 |
-| `src/app/components/results/` | 근거, 의사소통 행동, 기록 저장 |
+| `src/app/components/discovery/` | 지도(`StoreMap`), 식당 선택, 음식 종류 |
+| `src/app/components/map/` | 흐름 2 지도 화면 조각(지역 · 후기 · 저장) |
+| `src/app/components/mypage/` | 흐름 7 마이페이지 탭 |
+| `src/app/components/hs/` | 새 테마 공통 컴포넌트 |
+| `src/app/components/results/` | 결과 카드 · 직원 소통 카드 시트 · 내 식단 보여주기 · 기록 편집 |
 | `src/app/results/` | ViewModel, 확률 표시 필터, 고정 결과 fixture |
 | `src/app/demo/` | 가상 식당, 고정 환율, 로컬 저장소, 방문 레코드 |
 | `src/app/constants/curationExtra.ts` | 새 큐레이션 12편 |

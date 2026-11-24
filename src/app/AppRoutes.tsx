@@ -16,7 +16,6 @@ import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from './results/filmingProf
 import type { HistoryItem, PendingMenuImage } from './types';
 
 // 첫 화면(랜딩·로그인·홈) 밖 화면은 진입 시 코드 로드.
-const PartnerMenuScreen = lazyScreen(() => import('./components/PartnerMenuScreen').then((module) => module.PartnerMenuScreen));
 const OnboardingScreen = lazyScreen(() => import('./components/OnboardingScreen').then((module) => module.OnboardingScreen));
 const ConsentScreen = lazyScreen(() => import('./components/ConsentScreen').then((module) => module.ConsentScreen));
 const RestaurantMapScreen = lazyScreen(() => import('./components/RestaurantMapScreen').then((module) => module.RestaurantMapScreen));
@@ -160,7 +159,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
       />
       <Route path="/restaurants/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
       <Route path="/restaurant/map" element={<Navigate to={`/map${window.location.search}`} replace />} />
-      <Route path="/restaurants/:id/menu" element={demoMode ? <PartnerMenuScreen language={language} userProfile={userProfile} /> : <Navigate to="/map" replace />} />
+      <Route path="/restaurants/:id/menu" element={<Navigate to="/map" replace />} />
       <Route path="/history" element={<Navigate to="/mypage?tab=records&view=scans" replace />} />
       <Route
         path="/scan"

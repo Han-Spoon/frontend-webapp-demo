@@ -23,7 +23,7 @@
 - `PendingMenuImage`: 분석 대상 메뉴판 이미지
 - `MenuAnalysis`: 분석된 메뉴 결과
 - `HistoryItem`: 스캔/분석 이력
-- `OwnerCommunicationSheet`: 주문/재료 확인/제외 요청 카드와 사장님 응답
+- `StaffCardsSheet`(결과) · `CardsScreen`: 주문/재료 확인/제외 요청 카드
 - `MyPageScreen`: 저장한 요청 카드
 
 ## ERD

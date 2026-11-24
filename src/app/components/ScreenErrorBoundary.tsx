@@ -45,8 +45,7 @@ export class ScreenErrorBoundary extends Component<ScreenErrorBoundaryProps, Scr
 
 /** 판정을 보여 주는 화면 */
 const VERDICT_PATHS = new Set(['/results', '/analyzing', '/dev/results-preview']);
-export const showsVerdicts = (pathname: string) =>
-  VERDICT_PATHS.has(pathname) || /^\/restaurants\/[^/]+\/menu\/?$/.test(pathname);
+export const showsVerdicts = (pathname: string) => VERDICT_PATHS.has(pathname);
 
 interface ScreenErrorFallbackProps {
   language: Language;

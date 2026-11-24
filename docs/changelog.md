@@ -1,5 +1,11 @@
 # 변경 기록
 
+## 2026-11-25 — 새 테마 전환 뒤 옛 파일 정리 (#76)
+
+- 진입점에서 닿지 않는 옛 파일 삭제: `PartnerMenuScreen` · `demo/partnerMenus`, `OwnerCommunicationSheet` · `ProfileCommunicationSheet`, `common/ModalSheet` · `discovery/BottomSheet`, `discovery/LiveHomeDiscovery` · `RestaurantRecommendations` · `restaurantPhotos`, `results/AnalysisInsights` · `CommunicationActions` · `SaveScanSheet`, `figma/ImageWithFallback`, `constants/menuNames`, `consent.css`, `styles/globals.css`.
+- `/restaurants/:id/menu`는 지도(`/map`)로 이동. 화면 오류 대체 화면의 판정 경고 대상에서 파트너 메뉴 주소 제외.
+- check-demo에서 지운 모듈(사진 매핑 · 파트너 메뉴) 검사 제거. 쓰지 않는 사전 키 125개 삭제, 영어 fallback은 zh-CN · ja · es 각 58개, zh-TW 42개.
+
 ## 2026-11-25 — 한스푼 새 테마 공통 상태 화면 (#74)
 
 - 오프라인 배너를 보드(C-01)대로 상단 영역 바로 아래에 두도록 홈 · 큐레이션 · 글 상세 · 촬영 · 결과 · 지도 · 카드 · 마이페이지 정리(지도는 칩 줄 아래, 다시 시도는 다시 찾기).

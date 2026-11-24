@@ -54,13 +54,13 @@ Tailwind 클래스(`@theme inline`):
 | 디자인 시스템 | 새 컴포넌트 | 대체할 옛 코드 | 상태 |
 | --- | --- | --- | --- |
 | Button · IconButton · HeartButton | `HsButton` · `HsLinkButton` · `HsIconButton` · `HsTextIconButton` · `HsHeart` | 화면별 버튼 | 만듦 |
-| RiskBadge · RiskTile | `RiskBadge` · `RiskCountBadge` · `EvidenceBadge` · `RiskTile` · `BowlTile`, 판정 매핑 `riskOf` · `orderByRisk` (`hs/risk.ts`) | `results/ResultEvidence.tsx` | 만듦 |
-| IngredientTag · IngredientRow · MenuCard | `IngredientTag`, 결과 카드 `results/ResultMenuCard.tsx`(재료 줄 `IngredientList` · 전체 시트 `AllIngredientsSheet`) | `ResultsScreen` 안 카드, `AnalysisInsights` | 만듦 |
+| RiskBadge · RiskTile | `RiskBadge` · `RiskCountBadge` · `EvidenceBadge` · `RiskTile` · `BowlTile`, 판정 매핑 `riskOf` · `orderByRisk` (`hs/risk.ts`) | — | 만듦 |
+| IngredientTag · IngredientRow · MenuCard | `IngredientTag`, 결과 카드 `results/ResultMenuCard.tsx`(재료 줄 `IngredientList` · 전체 시트 `AllIngredientsSheet`) | `ResultsScreen` 안 카드 | 만듦 |
 | InfoBox · StaffCard · AnswerButtons | `VerdictBox` · `NoticeBox` · `HsNote` · `StaffCard` · `AnswerButtons` | 직원 소통 시트들, `CardsScreen` 안 카드 | 만듦 |
 | StoreCard · ScanHistoryCard · ReviewCard · CurationCard | 같은 이름(`hs/cards.tsx`), 지역명 `districtOf` | 지도 · 식당 선택 · 기록 · 후기 · 큐레이션 안 카드 | 만듦 |
 | Chip · OptionRow · Stepper · SearchField | `ChoiceChip` · `AddChip` · `FilterChip` · `DietTag` · `PlainTag` · `CategoryTag` · `OptionRow` · `Stepper` · `SearchField` · `TextField` | 온보딩 · 필터 안 코드 | 만듦 |
-| BottomSheet · Dialog · Toast | `HsSheet`(한 장: X / 여러 장: `pager`) · `HsDialog` · `ToastProvider` · `useToast` | `common/ModalSheet`, `discovery/BottomSheet`, `common/ConfirmDialog` | 만듦 |
-| Tabs · BottomNav · BottomBar · TopArea | `PillTabs` · `UnderlineTabs` · `BottomNav` · `BottomBar` · `TopArea` · `TopBar` · `Logo` | `BottomNav.tsx`, 화면별 머리 | 만듦 |
+| BottomSheet · Dialog · Toast | `HsSheet`(한 장: X / 여러 장: `pager`) · `HsDialog` · `ToastProvider` · `useToast` | — (옛 모달 모두 삭제) | 만듦 |
+| Tabs · BottomNav · BottomBar · TopArea | `PillTabs` · `UnderlineTabs` · `BottomNav` · `BottomBar` · `TopArea` · `TopBar` · `Logo` | — | 만듦 |
 | StateBlocks | `OfflineBanner` · `EmptyState` · `ErrorState` · `InlineError` · `SkeletonCard` · `SkeletonLine` | `OfflineBanner` · `HistoryLoadError` · `FeaturePreparing` | 만듦 |
 | MapPin | 새로 만들지 않음 | `discovery/StoreMap.tsx` 스타일 그대로 | 유지 |
 
@@ -81,17 +81,12 @@ Tailwind 클래스(`@theme inline`):
 - 해당 없는 선택지는 흐리게 두지 않고 뺀다.
 - RTL: `start/end` · `ms/me` · `ps/pe`, 뒤로 · › 아이콘은 `rtl:-scale-x-100`. 숫자 · 가격은 `dir="ltr"`.
 
-## 옛 공용 모달 (새 컴포넌트로 바뀌는 중)
+## 시트 · 확인창 공통 규칙
 
-아래는 새 `HsSheet` · `HsDialog`로 옮기기 전까지 유지하는 규칙이다. 새 컴포넌트도 같은 접근성 규칙을 지킨다.
-
-| 종류 | 컴포넌트 | 쓰는 곳 |
-| --- | --- | --- |
-| 하단 시트(머리 · 내용을 직접 그림) | `common/ModalSheet` | 재료 확인 · 빼고 요청, 내 식단 전달, 카드 팝업 |
-| 하단 시트(제목 · 설명이 정해짐) | `discovery/BottomSheet` | 식당 선택, 기록 저장 |
+2026-11-25 옛 공용 모달(`common/ModalSheet` · `discovery/BottomSheet` · `common/ConfirmDialog`)을 모두 지웠다. 하단 시트는 `HsSheet`, 가운데 확인창은 `HsDialog`만 쓴다.
 
 - 모두 Radix Dialog 기반이라 Esc 닫기, 초점 가두기, 뒤 화면 스크린리더 숨김 · 스크롤 잠금이 기본이다. `role="dialog"` · `aria-modal`을 직접 쓰지 않는다.
-- 열려 있는 동안만 렌더한다(`{open && <HsSheet />}`). 가운데 확인창은 모두 `HsDialog`(옛 `common/ConfirmDialog`는 2026-11-25 삭제). 닫을 때 초점 복귀는 `common/returnFocus`의 `useReturnFocus`를 `onCloseAutoFocus`에 건다.
+- 열려 있는 동안만 렌더한다(`{open && <HsSheet />}`). 닫을 때 초점 복귀는 `common/returnFocus`의 `useReturnFocus`를 `onCloseAutoFocus`에 건다.
 - 확인창의 처음 초점은 취소 버튼이다. 처리 중에는 `busy`로 버튼과 Esc · 바깥 누르기를 막고, 실패는 `error`로 확인창 안에 보여 준다.
 
 ## 진행 기록
