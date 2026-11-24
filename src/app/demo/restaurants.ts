@@ -54,7 +54,7 @@ export const AREA_CENTERS: Record<DiscoverAreaId, [number, number]> = {
   'geumho-oksu': [37.544, 127.018],
   'apgujeong-rodeo': [37.527, 127.039],
   'jamsil-songpa': [37.513, 127.102],
-  'yongsan-samgakji': [37.535, 126.973],
+  'yongsan-samgakji': [37.5273, 126.9661],
   'itaewon-hannam': [37.535, 127.0],
   seongsu: [37.545, 127.055],
   yeouido: [37.522, 126.924],
