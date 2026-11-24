@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Language, UserProfile } from '../types';
 import { translateText } from '../locales';
@@ -15,10 +15,8 @@ const H = {
   title: { ko: '나에게 맞는\n한국 음식 찾기', en: 'Find Korean food\nthat suits you', ar: 'اعثر على طعام كوري\nيناسبك', 'zh-CN': '寻找\n适合我的韩国美食', ja: 'わたしに合う\n韓国料理を見つけよう', 'zh-TW': '尋找\n適合我的韓國美食', es: 'Encuentra comida coreana\na tu medida' },
   myPage: { ko: '마이페이지', en: 'My page', ar: 'صفحتي', 'zh-CN': '我的页面', ja: 'マイページ', 'zh-TW': '我的頁面', es: 'Mi página' },
   stories: { ko: '한스푼 저널', en: 'Han Spoon Journal', ar: 'مجلة هان سبون', 'zh-CN': '韩勺专栏', ja: 'ハンスプーン・ジャーナル', 'zh-TW': '韓勺專欄', es: 'Diario Han Spoon' },
-  read: { ko: '읽어보기', en: 'Read', ar: 'اقرأ', 'zh-CN': '阅读', ja: '読む', 'zh-TW': '閱讀', es: 'Leer' },
   story: { ko: '이야기', en: 'Story', ar: 'قصة', 'zh-CN': '故事', ja: 'ストーリー', 'zh-TW': '故事', es: 'Historia' },
   craving: { ko: '오늘은 뭐가 당기세요?', en: 'What are you craving today?', ar: 'ماذا تشتهي اليوم؟', 'zh-CN': '今天想吃什么？', ja: '今日は何が食べたい？', 'zh-TW': '今天想吃什麼？', es: '¿Qué te apetece hoy?' },
-  noodle: { ko: '국수', en: 'Noodles', ar: 'نودلز', 'zh-CN': '面条', ja: '麺', 'zh-TW': '麵食', es: 'Fideos' },
   spotlightEyebrow: { ko: '스포트라이트', en: 'SPOTLIGHT', ar: 'تحت الضوء', 'zh-CN': '焦点', ja: 'スポットライト', 'zh-TW': '焦點', es: 'EN FOCO' },
   spotlightTitle: { ko: '최근 주목 받고 있는\n식당 모음', en: 'Restaurants getting\nattention lately', ar: 'مطاعم تحظى\nباهتمام مؤخرًا', 'zh-CN': '最近备受关注的\n餐厅合集', ja: '最近注目されている\nお店まとめ', 'zh-TW': '最近備受關注的\n餐廳合集', es: 'Restaurantes que\ndan que hablar' },
   explore: { ko: '가게 탐색', en: 'Explore restaurants', ar: 'استكشف المطاعم', 'zh-CN': '探索餐厅', ja: 'お店を探す', 'zh-TW': '探索餐廳', es: 'Explorar restaurantes' },
@@ -27,12 +25,20 @@ const H = {
   areas: { ko: '지역', en: 'Areas', ar: 'المناطق', 'zh-CN': '地区', ja: 'エリア', 'zh-TW': '地區', es: 'Zonas' },
 } satisfies Record<string, AllText>;
 
-const CRAVINGS: Array<{ id: FoodCategoryId; icon: HsIconName; tone: string; label?: AllText }> = [
+// 음식 종류 8가지(지도 필터와 같은 이름 · 순서). 4개씩 두 줄.
+const CRAVINGS: Array<{ id: FoodCategoryId; icon: HsIconName; tone: string }> = [
   { id: 'korean', icon: 'bowl', tone: 'bg-hs-mint-100 text-hs-brand-700' },
-  { id: 'noodle', icon: 'noodle', tone: 'bg-hs-coral-100 text-hs-coral-700', label: H.noodle },
+  { id: 'soup', icon: 'pot', tone: 'bg-hs-coral-100 text-hs-coral-700' },
   { id: 'meat', icon: 'meat', tone: 'bg-hs-surface-100 text-hs-ink-700' },
-  { id: 'snack', icon: 'skewer', tone: 'bg-hs-mint-100 text-hs-brand-700' },
+  { id: 'seafood', icon: 'fish', tone: 'bg-hs-mint-100 text-hs-brand-700' },
+  { id: 'noodle', icon: 'noodle', tone: 'bg-hs-coral-100 text-hs-coral-700' },
+  { id: 'snack', icon: 'skewer', tone: 'bg-hs-surface-100 text-hs-ink-700' },
+  { id: 'chinese', icon: 'dumpling', tone: 'bg-hs-mint-100 text-hs-brand-700' },
+  { id: 'western', icon: 'cutlery', tone: 'bg-hs-coral-100 text-hs-coral-700' },
 ];
+
+/** 큐레이션 배너 자동 넘김 간격. 사용자가 직접 넘기면 이만큼 더 쉰다. */
+const AUTO_ADVANCE_MS = 5000;
 
 const HOME_AREAS: HomeAreaId[] = ['nearby', 'seongsu', 'myeongdong', 'hongdae'];
 const SAVED_KEY = 'han-spoon-home-saved';
@@ -86,6 +92,18 @@ export function HomeScreen({
     });
   };
 
+  // 카드 하나를 레일 시작(왼쪽, 아랍어는 오른쪽) 여백에 맞춘다. 세로로는 움직이지 않는다.
+  const scrollToSlide = (index: number, smooth = true) => {
+    const el = rail.current;
+    const card = el?.children[index] as HTMLElement | undefined;
+    if (!el || !card) return;
+    const rtl = getComputedStyle(el).direction === 'rtl';
+    const railBox = el.getBoundingClientRect();
+    const cardBox = card.getBoundingClientRect();
+    const padding = parseFloat(getComputedStyle(el).paddingInlineStart) || 0;
+    const delta = rtl ? cardBox.right - (railBox.right - padding) : cardBox.left - (railBox.left + padding);
+    el.scrollBy({ left: delta, behavior: smooth ? 'smooth' : 'auto' });
+  };
   const onRailScroll = () => {
     const el = rail.current;
     if (!el) return;
@@ -93,11 +111,20 @@ export function HomeScreen({
     const step = (card?.offsetWidth ?? 310) + 12;
     setSlide(Math.min(stories.length - 1, Math.max(0, Math.round(Math.abs(el.scrollLeft) / step))));
   };
-  const goToSlide = (index: number) => {
-    const el = rail.current;
-    const card = el?.children[index] as HTMLElement | undefined;
-    card?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
-  };
+  // 사용자가 직접 넘기거나 누르면 자동 넘김을 잠시 쉰다.
+  const lastTouch = useRef(0);
+  const touched = () => { lastTouch.current = Date.now(); };
+  const goToSlide = (index: number) => { touched(); scrollToSlide(index); };
+  const slideRef = useRef(slide);
+  slideRef.current = slide;
+  useEffect(() => {
+    if (stories.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      if (document.hidden || Date.now() - lastTouch.current < AUTO_ADVANCE_MS) return;
+      scrollToSlide((slideRef.current + 1) % stories.length);
+    }, AUTO_ADVANCE_MS);
+    return () => window.clearInterval(timer);
+  }, [stories.length]);
 
   return (
     <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
@@ -117,26 +144,23 @@ export function HomeScreen({
 
         {/* 한스푼 저널: 가로로 넘기는 이야기 카드 */}
         <section aria-label={tx(language, H.stories)} className="relative -mt-10">
-          <div ref={rail} onScroll={onRailScroll} className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-ps-5 px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {stories.map((article, index) => {
-              const green = index % 2 === 0;
-              return (
-                <button
-                  key={article.id}
-                  type="button"
-                  onClick={() => navigate(`/curation/${article.id}`)}
-                  aria-label={`${translateText(language, article.title).replace(/\n/g, ' ')} · ${tx(language, H.read)}`}
-                  className={`relative h-[172px] w-[310px] max-w-[calc(100vw-56px)] flex-none snap-start overflow-hidden rounded-[30px] p-5 text-start ${green ? 'bg-hs-brand-700 text-hs-surface-0 shadow-[0_12px_28px_rgba(23,107,77,0.22)]' : 'bg-hs-coral-100 text-hs-ink-900'}`}
-                >
-                  <span aria-hidden="true" className={`absolute -end-6 -bottom-8 flex size-[150px] items-start justify-start rounded-hs-pill ps-7 pt-6 ${green ? 'bg-[#2A7D5E] text-hs-surface-0' : 'bg-[#FFD8C7] text-hs-coral-700'}`}>
-                    <HsIcon name="bowl" size={56} strokeWidth={1.8} />
-                  </span>
-                  <span className={`relative block text-[11px] font-black tracking-[0.06em] ${green ? 'text-[#BFEBD5]' : 'text-hs-coral-700'}`}>{index === 0 ? tx(language, H.stories) : tagLabel(article.tag, language)}</span>
-                  <span className="relative mt-1.5 line-clamp-3 block max-w-[180px] text-[19px] leading-[1.28] font-black whitespace-pre-line">{translateText(language, article.title)}</span>
-                  <span aria-hidden="true" className="absolute start-5 bottom-4 inline-flex h-[34px] items-center rounded-hs-pill bg-hs-surface-0 px-3.5 text-[13px] font-extrabold text-hs-ink-900">{tx(language, H.read)}</span>
-                </button>
-              );
-            })}
+          <div ref={rail} onScroll={onRailScroll} onPointerDown={touched} onWheel={touched} onKeyDown={touched} onFocus={touched} className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-ps-5 px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {stories.map((article, index) => (
+              <button
+                key={article.id}
+                type="button"
+                onClick={() => navigate(`/curation/${article.id}`)}
+                className="relative h-[172px] w-[310px] max-w-[calc(100vw-56px)] flex-none snap-start overflow-hidden rounded-[30px] bg-hs-brand-700 p-5 text-start text-hs-surface-0 shadow-[0_12px_28px_rgba(23,107,77,0.22)]"
+              >
+                {/* 그 글의 대표 사진. 글자는 아래 어두운 그라데이션 위에. */}
+                <img src={article.image} alt="" loading={index === 0 ? 'eager' : 'lazy'} className="absolute inset-0 size-full object-cover" style={{ objectPosition: article.imagePosition ?? '50% 50%' }} />
+                <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#0B2A1F]/90 via-[#0B2A1F]/45 to-[#0B2A1F]/10" />
+                <span className="absolute inset-x-5 bottom-[18px] block">
+                  <span className="block text-[11px] font-black tracking-[0.06em] text-[#BFEBD5]">{index === 0 ? tx(language, H.stories) : tagLabel(article.tag, language)}</span>
+                  <span className="mt-1.5 line-clamp-2 block text-[19px] leading-[1.28] font-black whitespace-pre-line">{translateText(language, article.title)}</span>
+                </span>
+              </button>
+            ))}
           </div>
           <div className="mt-2 flex justify-center gap-0.5">
             {stories.map((article, index) => (
@@ -153,13 +177,13 @@ export function HomeScreen({
 
         <section className="px-5 pt-4" aria-labelledby="home-craving">
           <h2 id="home-craving" className="text-[19px] font-black">{tx(language, H.craving)}</h2>
-          <div className="mt-3.5 grid grid-cols-4 gap-2">
+          <div className="mt-3.5 grid grid-cols-4 gap-x-2 gap-y-4">
             {CRAVINGS.map((item) => (
               <button key={item.id} type="button" onClick={() => openMap({ category: item.id })} className="flex flex-col items-center gap-1.5 text-[13px] font-extrabold">
                 <span aria-hidden="true" className={`flex h-[62px] w-[70px] max-w-full items-center justify-center rounded-t-[18px] rounded-b-[34px] ${item.tone}`}>
                   <HsIcon name={item.icon} size={28} />
                 </span>
-                {translateText(language, item.label ?? FOOD_CATEGORY_LABELS[item.id])}
+                <span className="break-keep text-center leading-tight">{translateText(language, FOOD_CATEGORY_LABELS[item.id])}</span>
               </button>
             ))}
           </div>
