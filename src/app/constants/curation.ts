@@ -5,10 +5,10 @@ import { EXTRA_CURATION_ARTICLES } from './curationExtra';
 export type CurationTag = 'culture' | 'restaurant' | 'food' | 'tips';
 
 export const CURATION_TAGS: { key: CurationTag; label: LocalizedText }[] = [
-  { key: 'culture', label: { ko: '식문화', en: 'Food Culture', ar: 'ثقافة الطعام' } },
-  { key: 'restaurant', label: { ko: '식당에서', en: 'At the Table', ar: 'في المطعم' } },
-  { key: 'food', label: { ko: '한식 이야기', en: 'Korean Food', ar: 'الطعام الكوري' } },
-  { key: 'tips', label: { ko: '알아두기', en: 'Good to Know', ar: 'معلومة مفيدة' } },
+  { key: 'culture', label: { ko: '식문화', en: 'Food Culture', ar: 'ثقافة الطعام', 'zh-CN': '饮食文化', ja: '食文化', 'zh-TW': '飲食文化', es: 'Cultura gastronómica' } },
+  { key: 'restaurant', label: { ko: '식당에서', en: 'At the Table', ar: 'في المطعم', 'zh-CN': '在餐厅', ja: 'お店で', 'zh-TW': '在餐廳', es: 'En el restaurante' } },
+  { key: 'food', label: { ko: '한식 이야기', en: 'Korean Food', ar: 'الطعام الكوري', 'zh-CN': '韩食故事', ja: '韓国料理の話', 'zh-TW': '韓食故事', es: 'Comida coreana' } },
+  { key: 'tips', label: { ko: '알아두기', en: 'Good to Know', ar: 'معلومة مفيدة', 'zh-CN': '小贴士', ja: '知っておきたい', 'zh-TW': '小知識', es: 'Para saber' } },
 ];
 
 export const tagLabel = (key: CurationTag, language: Language) =>
@@ -231,6 +231,9 @@ export const CURATION_ARTICLES: CurationArticle[] = [
     },
   },
 ];
+
+/** 큐레이션 탭 '한스푼 에디터's 이 달의 칼럼' */
+export const EDITOR_PICK_ID = 'korean-table';
 
 export const HERO_ARTICLES = CURATION_ARTICLES.filter((a) => a.featured);
 export const FEED_ARTICLES = CURATION_ARTICLES.filter((a) => !a.featured);

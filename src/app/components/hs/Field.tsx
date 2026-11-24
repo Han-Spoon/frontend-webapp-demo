@@ -16,7 +16,7 @@ interface SearchFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, '
 /** 검색 칸(알약, surface-100, 52 높이). 지우기 X는 입력이 있을 때만. */
 export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function SearchField({ value, onChange, language, label, className = '', ...rest }, ref) {
   return (
-    <div className={`flex h-[52px] items-center gap-2.5 rounded-hs-pill bg-hs-surface-100 ps-4 pe-1.5 ${className}`}>
+    <div className={`hs-search flex h-[52px] items-center gap-2.5 rounded-hs-pill bg-hs-surface-100 ps-4 pe-1.5 ${className}`}>
       <HsIcon name="search" size={18} className="flex-none text-hs-ink-500" />
       <input
         ref={ref}
