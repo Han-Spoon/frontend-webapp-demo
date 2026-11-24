@@ -115,7 +115,7 @@ export function LoginScreen({ onLogin, language, setLanguage, demoMode, onExitDe
       </section>
 
       <main className="relative z-20 -mt-10 flex min-h-[calc(100dvh-195px)] flex-col rounded-t-[36px] bg-rice-white px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8 shadow-[0_-20px_60px_rgba(3,24,15,.18)]">
-        <div className="my-auto w-full max-w-[350px] self-center">
+        <div className="w-full max-w-[350px] self-center">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <p className="mb-2 text-[10px] font-extrabold tracking-[.15em] text-brand-primary">
@@ -151,8 +151,10 @@ export function LoginScreen({ onLogin, language, setLanguage, demoMode, onExitDe
               'ابدأ بحساب Google واحد دون إنشاء حساب منفصل.',
             )}
           </p>
+        </div>
 
-          {!demoMode && <div className="mt-8 flex min-h-16 w-full items-center justify-center">
+        <div className="mt-auto w-full max-w-[350px] self-center pt-8">
+          {!demoMode && <div className="flex min-h-16 w-full items-center justify-center">
             {isLoading ? (
               <button
                 disabled
