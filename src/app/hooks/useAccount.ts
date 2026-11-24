@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { clearAuthData, getAccessToken } from '../../api/auth';
 import { getConsentStatus } from '../../api/consent';
@@ -8,6 +8,9 @@ import { readDemo, writeDemo } from '../demo/storage';
 import { isBackendLanguage, isLanguage, toBackendLanguage, type Language } from '../locales';
 import { FILMING_PROFILE as RESULT_PREVIEW_PROFILE } from '../results/filmingProfile';
 import type { UserProfile } from '../types';
+
+/** 사용자가 이 기기에서 언어를 직접 고른 적이 있음(값은 'han-spoon-language') */
+const LANGUAGE_CHOSEN_KEY = 'han-spoon-language-chosen';
 
 /**
  * 계정 상태: 시연 세션, 언어, 사용자·식단 프로필, 필수 동의.
@@ -22,9 +25,13 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
   const [language, setLanguage] = useState<Language>(() => {
     const requested = new URLSearchParams(window.location.search).get('lang');
     if (isLanguage(requested)) return requested;
+    // 로그인 전에는 직접 고른 언어만 이어 쓴다(지난 계정의 서버 언어가 남아 첫 화면이 영어로 뜨지 않게). 기본은 한국어.
     const saved = localStorage.getItem('han-spoon-language');
-    return isLanguage(saved) ? saved : 'ko';
+    return isLanguage(saved) && (localStorage.getItem(LANGUAGE_CHOSEN_KEY) === '1' || getAccessToken()) ? saved : 'ko';
   });
+  // loadCurrentUser(비동기)에서 지금 화면 언어를 읽기 위해
+  const languageRef = useRef(language);
+  languageRef.current = language;
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => demoMode
     ? window.location.pathname === '/dev/results-preview' ? RESULT_PREVIEW_PROFILE : readDemo<UserProfile | null>('profile', null)
     : null);
@@ -35,9 +42,20 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
     try {
       const user = await getMe();
       setCurrentUser(user);
-      const locallySelected = localStorage.getItem('han-spoon-language');
-      if (isLanguage(locallySelected) && !isBackendLanguage(locallySelected)) {
-        setLanguage(locallySelected);
+      // 화면 언어 정하기(문서 언어 훅이 지금 언어를 늘 기기에 적으므로 '직접 고름' 표시를 따로 본다):
+      // - 이 기기에서 직접 고른 언어(랜딩 · 로그인 · 온보딩 · 마이페이지)는 그대로 두고 서버에도 맞춘다.
+      // - 프로필이 아직 없는 새 계정(가입 중)은 지금 화면 언어(기본 한국어)를 유지하고 서버에 맞춘다.
+      //   서버 기본값(en)이 한국어 화면을 덮던 문제(2026-11-25).
+      // - 그 밖(다른 기기에서 쓰던 계정)은 서버 언어를 따른다.
+      const chosen = localStorage.getItem(LANGUAGE_CHOSEN_KEY) === '1' ? localStorage.getItem('han-spoon-language') : null;
+      const keep = isLanguage(chosen) ? chosen : !user.hasProfile ? languageRef.current : null;
+      if (keep) {
+        setLanguage(keep);
+        if (isBackendLanguage(keep) && user.languageCode !== keep) {
+          updateMe({ languageCode: keep })
+            .then(() => setCurrentUser((prev) => (prev ? { ...prev, languageCode: keep } : prev)))
+            .catch((syncError) => console.warn('Language sync failed:', syncError));
+        }
       } else if (isLanguage(user.languageCode)) {
         setLanguage(user.languageCode);
       }
@@ -105,10 +123,16 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
     navigate('/login');
   };
 
-  /** 마이페이지 언어 변경(로그인 시 서버에도 저장) */
-  const changeLanguage = async (languageValue: Language) => {
+  /** 로그인 전 · 온보딩 언어 선택: 화면 언어 + 이 기기에 기억(로그인 뒤 서버 언어가 덮지 않게). 서버 저장은 로그인 · 온보딩 저장 때. */
+  const selectLanguage = (languageValue: Language) => {
     setLanguage(languageValue);
     localStorage.setItem('han-spoon-language', languageValue);
+    localStorage.setItem(LANGUAGE_CHOSEN_KEY, '1');
+  };
+
+  /** 마이페이지 언어 변경(로그인 시 서버에도 저장) */
+  const changeLanguage = async (languageValue: Language) => {
+    selectLanguage(languageValue);
     if (demoMode) return;
 
     try {
@@ -151,16 +175,18 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
       }
     }
 
-    const wasEdit = Boolean(userProfile);
+    // 마이페이지에서 항목을 고친 경우만 마이페이지로, 처음 설정(약관 동의 뒤 온보딩)은 홈으로.
+    const wasEdit = Boolean((location.state as { editSection?: string } | null)?.editSection);
     setUserProfile(profile);
-    setLanguage(profile.languageCode);
-    localStorage.setItem('han-spoon-language', profile.languageCode);
+    selectLanguage(profile.languageCode);
     await loadCurrentUser();
     navigate(wasEdit ? '/mypage' : '/home');
   };
 
   /** 로그인 뒤 이동: 동의 전 → 약관, 프로필 있음 → 홈, 없음 → 온보딩 */
   const completeLogin = async (hasProfile: boolean) => {
+    // 로그인 화면에서 보던 언어(기본 한국어, 랜딩 · 로그인에서 바꿀 수 있음)를 그대로 이어 쓰고 서버에 맞춘다.
+    selectLanguage(languageRef.current);
     await loadCurrentUser();
     const status = await getConsentStatus();
     setConsentAccepted(status.hasRequiredConsents);
@@ -192,14 +218,11 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
       return;
     }
     onSignedIn();
-    const user = await getMe();
-    setCurrentUser(user);
-    if (user.hasProfile) {
-      await loadUserProfile();
-      navigate('/home');
-    } else {
-      navigate('/onboarding');
-    }
+    // 약관 동의 뒤에는 항상 온보딩(흐름 1: 약관 → 언어 · 국가 · 식단). 이미 프로필이 있으면 채워 둔 채로 연다.
+    const user = await getMe().catch(() => null);
+    if (user) setCurrentUser(user);
+    if (user?.hasProfile) await loadUserProfile();
+    navigate('/onboarding');
   };
 
   /** 로그아웃·탈퇴 뒤 화면 상태 정리 */
@@ -213,6 +236,7 @@ export function useAccount({ onSignedIn }: { onSignedIn: () => void }) {
     demoMode,
     language,
     setLanguage,
+    selectLanguage,
     userProfile,
     currentUser,
     consentAccepted,
