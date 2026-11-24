@@ -6,12 +6,12 @@ import { getScanResult, mapMenuResult, type ScanRecordResponse } from '../../api
 import type { StoreSummary } from '../../api/store';
 import { liveFeatures } from '../featureAvailability';
 import type { Language, MenuAnalysis, UserProfile } from '../types';
-import { LANGUAGE_LOCALES, translateText } from '../locales';
+import { LANGUAGE_LOCALES, LANGUAGE_OPTIONS, translateText } from '../locales';
 import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import { menuPrice } from '../demo/currency';
 import { useDemoValue } from '../demo/storage';
 import { RESTAURANTS } from '../demo/restaurants';
-import { FILMING_PROFILE } from '../results/filmingFixtures';
+import { FILMING_PROFILE } from '../results/filmingProfile';
 import { buildMenuResultViewModel, getProfileCommunicationItems, localizeMenuText } from '../results/resultViewModel';
 import { preparingLabel } from './FeaturePreparing';
 import {
@@ -66,6 +66,8 @@ interface ResultsScreenProps {
   menuPhotoUrl?: string | null;
   /** 판정 당시 식단 모름(서버 기록 등). 현재 프로필을 판정 기준으로 표시하지 않음. */
   scanProfileUnknown?: boolean;
+  /** 서버 기록의 스캔 언어(지금 언어와 다르면 안내) */
+  scanLocale?: Language | null;
   /** 기록 이름(서버 title · 기기 기록 title) */
   title?: string | null;
   /** 스캔 시각(ISO) */
@@ -102,7 +104,7 @@ function HowToReadSheet({ language, onClose }: { language: Language; onClose: ()
   );
 }
 
-export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, record, demoMode = false, menuPhotoUrl, scanProfileUnknown = false, title, scannedAt, currentUserProfile, onSavedRecord }: ResultsScreenProps) {
+export function ResultsScreen({ language, menus, userProfile: suppliedProfile, onBack, onRescan, sourceScanId, savedRecordId, partnerRestaurantId, store, record, demoMode = false, menuPhotoUrl, scanProfileUnknown = false, scanLocale = null, title, scannedAt, currentUserProfile, onSavedRecord }: ResultsScreenProps) {
   const filmingScenario = menus.some(menu => menu.demoScenario === 'bunsik-vegan-shrimp');
   const userProfile = filmingScenario ? { ...FILMING_PROFILE, languageCode: language } : suppliedProfile;
   // 판정 기준을 모르면 userProfile은 직원 전달용 지금 식단일 뿐.
@@ -305,12 +307,18 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                 {dietEmpty && <HsLinkButton tone="brand" onClick={() => navigate('/onboarding', { state: { editSection: 'diet' } })}>{tx(language, R.setDiet)}</HsLinkButton>}
               </>
             )}
+            {filmingScenario && <p className="mt-2 text-[12px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, R.demoProfileNote)}</p>}
             {profileItems.length > 0 && (
               <HsButton variant="outline" size="lg" block icon="person" className="mt-3.5" onClick={() => setDietSheetOpen(true)}>{tx(language, R.showMyDiet)}</HsButton>
             )}
           </section>
         </header>
         <OfflineBanner language={language} className="mx-5 mt-3" />
+        {scanLocale && scanLocale !== language && (
+          <p role="note" className="mx-5 mt-3 text-[12px] leading-[1.5] font-semibold text-hs-ink-500">
+            {tx(language, R.scanLocaleNote).replace('{lang}', LANGUAGE_OPTIONS.find(option => option.value === scanLocale)?.label ?? scanLocale)}
+          </p>
+        )}
 
         {!demoMode && !liveFeatures.savedMenus && <p role="status" className="mx-5 mt-3 text-[12px] font-bold text-hs-ink-500">{preparingLabel(language)}</p>}
         {favoriteError && <InlineError className="mx-5 mt-3">{favoriteError}</InlineError>}

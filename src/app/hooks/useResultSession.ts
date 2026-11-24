@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ScanRecordResponse } from '../../api/scan';
 import type { StoreSummary } from '../../api/store';
-import type { MenuAnalysis, UserProfile } from '../types';
+import type { Language, MenuAnalysis, UserProfile } from '../types';
 
 /** 결과 화면이 보는 한 건의 결과. 항상 통째로 바꿔 이전 결과의 값이 섞이지 않게 함. */
 export interface ResultSession {
@@ -17,6 +17,8 @@ export interface ResultSession {
   profileUnknown: boolean;
   /** 기록 이름(서버 title · 기기 기록 title) */
   title?: string | null;
+  /** 서버 기록의 스캔 언어. 메뉴 설명 · 판정 이유는 이 언어로만 저장됨. */
+  scanLocale?: Language | null;
   /** 스캔 시각(ISO). 없으면 결과를 연 시각. */
   scannedAt?: string | null;
   /** 방금 찍은 메뉴판 사진의 임시 주소(blob). 결과 화면을 떠나면 해제. */

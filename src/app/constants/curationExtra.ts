@@ -16,7 +16,7 @@ const storyPhotos: Record<string, string> = {
   'ordering-rhythm': '/images/curation/diet-conversation.webp',
 };
 
-// 시연용 자체 작성 글. zh-TW는 대만 전용 문안으로 별도 관리.
+// 시연용 자체 작성 글. zh-TW는 대만 전용 문안으로 별도 관리(zh-CN은 그 문안을 간체로 옮김).
 const stories: {
   id: string;
   emoji: string;
@@ -27,6 +27,10 @@ const stories: {
   introKo: string;
   introEn: string;
   introAr: string;
+  'zh-CN': string;
+  ja: string;
+  es: string;
+  intro: { 'zh-CN': string; ja: string; es: string };
 }[] = [
   {
     id: 'sauce-on-side',
@@ -35,9 +39,13 @@ const stories: {
     ko: '소스는 따로, 취향은 가까이',
     en: 'Sauce on the side, your way',
     ar: 'الصلصة جانباً، حسب ذوقك',
+    'zh-CN': '酱汁分开上，更贴近自己的口味',
+    ja: 'ソースは別に、好みはそばに',
+    es: 'La salsa aparte, a tu gusto',
     introKo: '작은 그릇 하나가 만들어주는 선택의 여유',
     introEn: 'A little bowl can give you more choice',
     introAr: 'وعاء صغير يمنحك حرية الاختيار',
+    intro: { 'zh-CN': '一只小碟，让每一口多一点选择', ja: '小さな器ひとつで、選べるゆとりが生まれます', es: 'Un cuenco pequeño te da más opciones' },
   },
   {
     id: 'market-small-plates',
@@ -46,9 +54,13 @@ const stories: {
     ko: '시장에서 시작하는 작은 한 입',
     en: 'Small bites at the market',
     ar: 'لقمات صغيرة في السوق',
+    'zh-CN': '从市场的一小口开始',
+    ja: '市場で始める、小さなひと口',
+    es: 'Pequeños bocados en el mercado',
     introKo: '다 먹어보기보다, 마음에 드는 한 가지부터',
     introEn: 'Start with one dish that catches your eye',
     introAr: 'ابدأ بطبق يلفت انتباهك',
+    intro: { 'zh-CN': '不用一次吃遍，先选一道吸引你的料理', ja: '全部食べるより、気になるひとつから', es: 'Empieza por el plato que más te llame la atención' },
   },
   {
     id: 'solo-table',
@@ -57,9 +69,13 @@ const stories: {
     ko: '혼자여도 좋은 한국의 식탁',
     en: 'A table for one',
     ar: 'طاولة لشخص واحد',
+    'zh-CN': '一个人也自在的韩式餐桌',
+    ja: 'ひとりでも心地よい韓国の食卓',
+    es: 'Una mesa para uno',
     introKo: '혼밥을 편안하게 만드는 작은 주문 요령',
     introEn: 'Make a solo meal feel easy',
     introAr: 'اجعل وجبتك الفردية مريحة',
+    intro: { 'zh-CN': '让独自用餐更轻松的小技巧', ja: 'ひとりごはんを気楽にする、注文の小さなコツ', es: 'Pequeños trucos para comer solo con comodidad' },
   },
   {
     id: 'broth-question',
@@ -68,9 +84,13 @@ const stories: {
     ko: '국물 속 이야기를 물어보세요',
     en: 'Ask what is in the broth',
     ar: 'اسأل عما في المرق',
+    'zh-CN': '问问汤里藏着什么',
+    ja: 'スープの中身を聞いてみよう',
+    es: 'Pregunta qué lleva el caldo',
     introKo: '맑은 국물에도 저마다의 재료가 있어요',
     introEn: 'Even a clear broth has its own ingredients',
     introAr: 'حتى المرق الصافي له مكوناته',
+    intro: { 'zh-CN': '清澈的汤头，也有自己的食材故事', ja: '澄んだスープにも、それぞれの材料があります', es: 'Hasta un caldo claro tiene sus propios ingredientes' },
   },
   {
     id: 'seongsu-walk',
@@ -79,9 +99,13 @@ const stories: {
     ko: '성수, 산책과 한 끼 사이',
     en: 'A stroll and a meal in Seongsu',
     ar: 'نزهة ووجبة في سونغسو',
+    'zh-CN': '圣水，在散步与一餐之间',
+    ja: '聖水、散歩とごはんのあいだ',
+    es: 'Seongsu, entre un paseo y una comida',
     introKo: '목적지를 빽빽하게 채우지 않는 오후',
     introEn: 'Leave a little room in your afternoon',
     introAr: 'اترك مساحة في برنامجك',
+    intro: { 'zh-CN': '替午后留一点没有排满的空白', ja: '予定をぎっしり詰めない午後', es: 'Una tarde sin la agenda llena' },
   },
   {
     id: 'busan-seaside',
@@ -90,9 +114,13 @@ const stories: {
     ko: '부산에서는 바다 곁 한 끼',
     en: 'A meal by the sea in Busan',
     ar: 'وجبة قرب البحر في بوسان',
+    'zh-CN': '在釜山，享用海边的一餐',
+    ja: '釜山では、海のそばでひと休み',
+    es: 'Una comida junto al mar en Busan',
     introKo: '풍경도 취향도 함께 고르는 여행',
     introEn: 'Choose the view and the food you enjoy',
     introAr: 'اختر المنظر والطعام الذي تحبه',
+    intro: { 'zh-CN': '风景与口味，都由自己选择的旅程', ja: '景色も好みも、自分で選ぶ旅', es: 'Elige tanto la vista como la comida' },
   },
   {
     id: 'spice-conversation',
@@ -101,9 +129,13 @@ const stories: {
     ko: '덜 맵게, 더 즐겁게',
     en: 'Less heat, more enjoyment',
     ar: 'حرارة أقل، متعة أكثر',
+    'zh-CN': '少一点辣，多一点享受',
+    ja: '辛さ控えめで、もっと楽しく',
+    es: 'Menos picante, más disfrute',
     introKo: '맵기의 기준은 대화로 맞춰가요',
     introEn: 'Find your spice level through conversation',
     introAr: 'حدد مستوى الحرارة بالحوار',
+    intro: { 'zh-CN': '用对话找出适合自己的辣度', ja: '辛さの基準は会話で合わせていきます', es: 'Ajusta el nivel de picante conversando' },
   },
   {
     id: 'banchan-questions',
@@ -112,9 +144,13 @@ const stories: {
     ko: '작은 반찬, 하나씩 알아가기',
     en: 'Get to know your banchan',
     ar: 'تعرّف على الأطباق الجانبية',
+    'zh-CN': '一碟一碟认识韩式小菜',
+    ja: '小さなおかずを、ひとつずつ知る',
+    es: 'Conoce tus banchan uno a uno',
     introKo: '한 상의 작은 그릇에도 이름이 있어요',
     introEn: 'Every little plate has a story',
     introAr: 'لكل طبق صغير قصة',
+    intro: { 'zh-CN': '餐桌上的每只小碟，都有自己的名字', ja: '食卓の小皿にも、それぞれ名前があります', es: 'Cada platito de la mesa tiene su nombre' },
   },
   {
     id: 'cafe-pause',
@@ -123,9 +159,13 @@ const stories: {
     ko: '카페에서 쉬어가는 한 페이지',
     en: 'A café pause in your day',
     ar: 'استراحة مقهى في يومك',
+    'zh-CN': '在咖啡馆翻开休息的一页',
+    ja: 'カフェでひと休みする1ページ',
+    es: 'Una pausa en la cafetería',
     introKo: '커피보다 먼저 고르는 오늘의 속도',
     introEn: 'Choose a slower pace before your coffee',
     introAr: 'اختر إيقاعاً أهدأ قبل القهوة',
+    intro: { 'zh-CN': '点咖啡之前，先选择今天想要的步调', ja: 'コーヒーより先に選ぶ、今日のペース', es: 'Elige el ritmo del día antes que el café' },
   },
   {
     id: 'halal-conversation',
@@ -134,9 +174,13 @@ const stories: {
     ko: '내 식단을 설명하는 첫 문장',
     en: 'The first sentence about your diet',
     ar: 'الجملة الأولى عن نظامك الغذائي',
+    'zh-CN': '说明饮食需求的第一句话',
+    ja: '自分の食事を説明する最初のひと言',
+    es: 'La primera frase sobre tu dieta',
     introKo: '서로 이해하는 주문은 짧은 대화에서 시작해요',
     introEn: 'A thoughtful order starts with a short conversation',
     introAr: 'يبدأ الطلب الواضح بحوار قصير',
+    intro: { 'zh-CN': '彼此理解的点餐，从一段短短的对话开始', ja: 'わかり合える注文は、短い会話から始まります', es: 'Un buen pedido empieza con una conversación breve' },
   },
   {
     id: 'menu-memory',
@@ -145,9 +189,13 @@ const stories: {
     ko: '맛있는 기억을 모으는 방법',
     en: 'Collect your food memories',
     ar: 'اجمع ذكريات الطعام',
+    'zh-CN': '收藏美味记忆的方法',
+    ja: 'おいしい記憶を集める方法',
+    es: 'Colecciona tus recuerdos gastronómicos',
     introKo: '이름을 잊기 전에, 오늘의 한 끼를 기록해요',
     introEn: 'Save today’s meal before its name slips away',
     introAr: 'احفظ وجبة اليوم قبل أن تنسى اسمها',
+    intro: { 'zh-CN': '忘记名字之前，记下今天这一餐', ja: '名前を忘れる前に、今日の一食を記録しよう', es: 'Guarda la comida de hoy antes de olvidar su nombre' },
   },
   {
     id: 'ordering-rhythm',
@@ -156,9 +204,13 @@ const stories: {
     ko: '주문부터 계산까지, 천천히',
     en: 'From ordering to paying',
     ar: 'من الطلب إلى الدفع',
+    'zh-CN': '从点餐到结账，慢慢来',
+    ja: '注文から会計まで、ゆっくりと',
+    es: 'Del pedido a la cuenta, sin prisa',
     introKo: '낯선 식당의 리듬을 익히는 세 가지 질문',
     introEn: 'Three questions to find your way at the table',
     introAr: 'ثلاثة أسئلة لتعرف طريقة المطعم',
+    intro: { 'zh-CN': '用三个问题掌握陌生餐厅的节奏', ja: '知らない店のリズムをつかむ3つの質問', es: 'Tres preguntas para entender el ritmo de un restaurante' },
   },
 ];
 
@@ -172,8 +224,8 @@ export const EXTRA_CURATION_ARTICLES: CurationArticle[] = stories.map(
     accent: 'bg-brand-green-50',
     date: '2026-09-10',
     image: storyPhotos[story.id],
-    title: { ko: story.ko, en: story.en, ar: story.ar, 'zh-TW': zhTW.title },
-    excerpt: { ko: story.introKo, en: story.introEn, ar: story.introAr, 'zh-TW': zhTW.excerpt },
+    title: { ko: story.ko, en: story.en, ar: story.ar, 'zh-CN': story['zh-CN'], ja: story.ja, 'zh-TW': zhTW.title, es: story.es },
+    excerpt: { ko: story.introKo, en: story.introEn, ar: story.introAr, ...story.intro, 'zh-TW': zhTW.excerpt },
     });
   },
 );

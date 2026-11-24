@@ -1,13 +1,27 @@
 import type { LocalizedMenuText, MenuAnalysis, MenuIngredientEvidence } from '../types';
 import { translateText } from '../locales';
+import { FILMING_TEXT } from './filmingFixturesI18n';
 
 /** 촬영 고정 시나리오 전용. OCR·모델 추론·레시피 검증·직원 기록 없음. */
 export { FILMING_PROFILE } from './filmingProfile';
 const L = (ko: string, en: string): LocalizedMenuText => ({
   ko,
   en,
+  ...FILMING_TEXT[ko],
   'zh-TW': translateText('zh-TW', { ko, en, ar: en }),
 });
+/** 메뉴판 확인 문구(메뉴명 · 가격) */
+const menuFinding = (d: { ko: string; en: string; price: number }): LocalizedMenuText => {
+  const name = L(d.ko, d.en);
+  const won = d.price.toLocaleString('ko-KR');
+  return {
+    ...L(`메뉴판: ${d.ko} · ${won}원`, `Menu: ${d.en} · KRW ${d.price}`),
+    ar: `القائمة: ${name.ar ?? d.en} · ${won} وون`,
+    'zh-CN': `菜单：${name['zh-CN'] ?? d.en} · ${won}韩元`,
+    ja: `メニュー: ${name.ja ?? d.en} · ${won}ウォン`,
+    es: `Menú: ${name.es ?? d.en} · ${won} KRW`,
+  };
+};
 const V = ['vegan:vegan'];
 const S = ['vegan:vegan', 'allergy:shrimp'];
 const ingredient = (ko: string, en: string, profileIds: string[], probability?: number): MenuIngredientEvidence => ({
@@ -176,7 +190,7 @@ export const FILMING_MENUS: MenuAnalysis[] = dishes.map(d => ({
     hiddenIngredientPaths: d.path ? [d.path.map(pair => L(...pair))] : [],
     uncertainties: [L(...d.question), L(...d.kitchen)],
     checks: [
-      { kind: 'menu', status: 'observed', finding: L(`메뉴판: ${d.ko} · ${d.price.toLocaleString('ko-KR')}원`, `Menu: ${d.en} · KRW ${d.price}`) },
+      { kind: 'menu', status: 'observed', finding: menuFinding(d) },
       { kind: 'recipe', status: 'inferred', finding: L(...d.recipe) },
       { kind: 'profile', status: 'inferred', finding: L(...d.reason) },
       { kind: 'cross-contact', status: 'unverified', finding: L(...d.kitchen) },
