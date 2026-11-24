@@ -26,6 +26,8 @@ interface HsSheetProps {
   children: ReactNode;
   /** 내용 영역 좌우 여백을 직접 정할 때 */
   bodyClassName?: string;
+  /** 제목 줄 대신 보일 내용(칩 등). 제목은 스크린리더 이름으로만 남는다. */
+  header?: ReactNode;
 }
 
 /**
@@ -33,7 +35,7 @@ interface HsSheetProps {
  * Radix Dialog 기반: Esc · 바깥 누르기 닫기, 초점 가두기, 닫을 때 초점 복귀.
  * 열려 있는 동안만 렌더한다(`{open && <HsSheet … />}`).
  */
-export function HsSheet({ language, onClose, title, subtitle, pager, footer, children, bodyClassName = 'px-5' }: HsSheetProps) {
+export function HsSheet({ language, onClose, title, subtitle, pager, footer, children, bodyClassName = 'px-5', header }: HsSheetProps) {
   const returnFocus = useReturnFocus();
   const drag = useRef<{ y: number; id: number } | null>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -74,7 +76,8 @@ export function HsSheet({ language, onClose, title, subtitle, pager, footer, chi
             </div>
             <div className="flex items-center gap-2 ps-6 pe-5 pt-3">
               <div className="min-w-0 flex-1">
-                <Dialog.Title className="hs-title-md text-hs-ink-900">{title}</Dialog.Title>
+                <Dialog.Title className={header ? 'sr-only' : 'hs-title-md text-hs-ink-900'}>{title}</Dialog.Title>
+                {header}
                 {subtitle && <div className="mt-[3px] text-[13px] font-extrabold text-hs-ink-500">{subtitle}</div>}
               </div>
               {pager ? (

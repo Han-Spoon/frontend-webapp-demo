@@ -98,6 +98,7 @@ Tailwind 클래스(`@theme inline`):
 ## 진행 기록
 
 - 2026-11-24 흐름 1: 랜딩 · 로그인 · 약관 · 온보딩을 새 컴포넌트로 다시 구현(`LanguageButton` 추가).
+- 2026-11-25 흐름 6: 직원 소통 카드(`CardsScreen`). 공통 문장 카드는 그릇 모양(22/30) surface-100 + 흰 아이콘 칸, 내 식단 카드는 mint-100 + mint-200 테두리, 저장 카드 종류 태그 4색. `HsSheet header`, 아이콘 5종.
 - 2026-11-25 흐름 5: 큐레이션 목록 · 상세(`CurationScreen`, `CurationDetailScreen`, `curation/curationView`). `CategoryTag` · `FilterChip` · `StoreCard` · `SearchField` 사용, 글 사진은 그릇 모양 모서리(18/30 · 16/26), 사진을 못 불러오면 카테고리 색 + 그릇 아이콘. `SearchField` 초점 테두리는 알약 전체(`.hs-search`).
 - 2026-11-25 흐름 2: 지도에서 가게 찾기(`RestaurantMapScreen`, `components/map/`). 공통 `StoreCard` · `PillTabs` · `SearchField` · `HsSheet` · 상태 블록을 쓰고, 지역 시트 · 후기 전체 화면 · 칩 메뉴(`map/ChipMenu`)를 추가. 아이콘 list · map · locate · sort · refresh.
 - 2026-11-25 홈: 캔버스 '홈 디벨롭 ②'대로(하드코딩 가게 탐색 · 스포트라이트). `DietPromptCard` 새 모양, 아이콘 noodle · meat · skewer.

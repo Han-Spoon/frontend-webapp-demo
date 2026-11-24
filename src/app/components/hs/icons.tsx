@@ -55,6 +55,11 @@ const PATHS = {
   locate: <><circle cx="12" cy="12" r="3" /><circle cx="12" cy="12" r="8" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2" /></>,
   sort: <path d="M7 4v16M4 7l3-3 3 3M17 20V4M14 17l3 3 3-3" />,
   refresh: <><path d="M20 11a8 8 0 1 0-2.3 5.7" /><path d="M20 4v7h-7" /></>,
+  utensils: <><path d="M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10" /><path d="M15 3l1 18M19 3l-1 18" /></>,
+  refill: <><path d="M3.5 12h17a8.5 7 0 0 1-17 0z" /><path d="M12 3v6M9 6h6" /></>,
+  restroom: <><circle cx="8" cy="5" r="1.8" /><circle cx="16" cy="5" r="1.8" /><path d="M6 21v-6H5l1.5-6h3L11 15h-1v6M14.5 21V9h3v12M16 21v-6" /></>,
+  pay: <><rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10.5h18M7 15h4" /></>,
+  bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></>,
 } satisfies Record<string, ReactNode>;
 
 export type HsIconName = keyof typeof PATHS;
