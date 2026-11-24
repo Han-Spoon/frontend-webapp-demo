@@ -9,23 +9,30 @@ export interface DemoReviewReport {
   reportedAt: string;
 }
 
-const fixtureReview = (storeId: string): RestaurantReview => {
+/** 가게마다 같은 시연 후기 3건(다른 방문자의 선택형 답). 실제 후기 API 대신. */
+const FIXTURE_MENUS: ReviewMenu[][] = [
+  [{ name: '비빔밥', answers: { 'allergy:shrimp': 'no', 'vegan:vegan': 'unknown' }, note: '직원에게 재료를 확인하고 주문했어요.' }],
+  [{ name: '된장찌개', answers: { 'allergy:shrimp': 'yes' }, note: '' }],
+  [{ name: '김치전', answers: { 'vegan:vegan': 'unknown', 'preference:no-spicy': 'yes' }, note: '육수 재료는 물어봐야 해요.' }],
+];
+
+const fixtureReviews = (storeId: string): RestaurantReview[] => {
   const restaurant = RESTAURANTS.find(item => item.id === storeId);
-  return {
-    id: `fixture-review-${storeId}`,
+  return FIXTURE_MENUS.map((menus, index) => ({
+    id: `fixture-review-${storeId}-${index}`,
     storeId,
     storeName: restaurant?.name.ko ?? '',
     scanId: null,
-    menus: [{ name: '대표 메뉴', answers: {}, note: '직원에게 재료를 확인하고 주문했어요.' }],
+    menus,
     mine: false,
-    createdAt: '2026-10-01T09:00:00Z',
-    updatedAt: '2026-10-01T09:00:00Z',
-  };
+    createdAt: `2026-10-0${index + 1}T09:00:00Z`,
+    updatedAt: `2026-10-0${index + 1}T09:00:00Z`,
+  }));
 };
 
 export const listDemoStoreReviews = (storeId: string): RestaurantReview[] => [
   ...readDemo<RestaurantReview[]>('reviews', []).filter(item => item.storeId === storeId),
-  fixtureReview(storeId),
+  ...fixtureReviews(storeId),
 ];
 export const listDemoMyReviews = (): RestaurantReview[] =>
   readDemo<RestaurantReview[]>('reviews', []);

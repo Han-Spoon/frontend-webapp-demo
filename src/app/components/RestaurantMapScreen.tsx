@@ -1,64 +1,99 @@
-import { liveFeatures } from '../featureAvailability';
-import { preparingLabel, preparingMessage } from './FeaturePreparing';
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ArrowLeft,
-  Camera,
-  Utensils,
-  Search,
-  Loader2,
-  LocateFixed,
-  RotateCw,
-  Users,
-  X,
-} from 'lucide-react';
 import type { StoreCandidate } from '../../api/store';
+import { getStoreReviews, reportReview, type ReportReason, type RestaurantReview } from '../../api/reviews';
+import { liveFeatures } from '../featureAvailability';
 import type { Language, UserProfile } from '../types';
-import {
-  AREAS,
-  AREA_CENTERS,
-  RESTAURANTS,
-  profileMatches,
-  type AreaId,
-  type Restaurant,
-} from '../demo/restaurants';
+import { AREAS, RESTAURANTS, type AreaId } from '../demo/restaurants';
 import { demoAreaName, demoRestaurantOf, demoStoreId, searchDemoStores } from '../demo/mapDemoStores';
-import { useDemoValue } from '../demo/storage';
-import { createTranslator, translateText, type LocalizedText } from '../locales';
-import {
-  getProfileCommunicationItems,
-  localizeMenuText,
-} from '../results/resultViewModel';
-import { menuPrice } from '../demo/currency';
-import { StoreMap } from './discovery/StoreMap';
-import { BottomSheet } from './discovery/BottomSheet';
-import { PartnershipBadge } from './discovery/PartnershipBadge';
-import { MapStorePanel, storeDisplayName, type StoreCardExtras } from './discovery/MapStorePanel';
-import { FOOD_CATEGORY_ICONS, FOOD_CATEGORY_LABELS, FOOD_CATEGORY_ORDER, foodCategoryOf, type FoodCategoryId } from './discovery/foodCategories';
-import { SEOUL_AREAS, areaAt, type SeoulArea } from './discovery/seoulAreas';
-import { useStoreCandidates, type StoreCoordinates, type StoreLocationStatus, type StoreSearchOrigin } from '../hooks/useStoreCandidates';
-import { getStoreReviews, reportReview, type RestaurantReview } from '../../api/reviews';
 import { listDemoStoreReviews, reportDemoReview } from '../demo/reviews';
+import { useDemoValue } from '../demo/storage';
+import { useStoreCandidates, type StoreCoordinates, type StoreLocationStatus, type StoreSearchOrigin } from '../hooks/useStoreCandidates';
+import { StoreMap } from './discovery/StoreMap';
+import { FOOD_CATEGORY_LABELS, FOOD_CATEGORY_ORDER, foodCategoryOf, type FoodCategoryId } from './discovery/foodCategories';
 import { MealReviewSheet } from './reviews/MealReviewSheet';
-import { RestaurantReviewList } from './reviews/RestaurantReviewList';
+import { BottomNav, EmptyState, ErrorState, HsButton, HsIcon, HsIconButton, PillTabs, SearchField, SkeletonCard, StoreCard, tx, useToast, type AllText } from './hs';
+import { BowlTile } from './hs/RiskBadge';
+import { FLIP_RTL } from './hs/icons';
+import { txn, type CountText } from './hs/text';
+import { translateText } from '../locales';
+import { ChipMenu } from './map/ChipMenu';
+import { MapAreaSheet } from './map/MapAreaSheet';
+import { DEFAULT_MAP_AREA, MAP_AREAS, mapAreaAt } from './map/mapAreas';
+import { REVIEW_TEXT, profileIds, profileTagText, matchesProfile, reviewPreviews, toAnswerValue, answerLabel } from './map/reviewText';
+import { StoreReviewsScreen } from './map/StoreReviewsScreen';
+import { storeCategoryText, storeDisplayName, storeDistrict, useSavedStores } from './map/savedStores';
 
-/** 지도 검색 반경·핀 수. 서버 최대값. */
+/** 지도 검색 반경 · 핀 수. 서버 최대값. */
 const MAP_SEARCH_RADIUS_METERS = 3000;
 const MAP_SEARCH_LIMIT = 100;
+/** 지도 위에 겹치는 높이(px): 위 검색 · 칩 줄, 아래 가게 목록 시트 */
+const TOP_OVERLAY = 128;
+const LIST_SHEET_HEIGHT = 280;
+/** 가게를 고르면 상세 시트에 가리지 않게 핀을 이만큼 위로 */
+const DETAIL_FOCUS_OFFSET = 150;
 
-/** 전체 화면 지도에서 나가기. 앱 안에서 들어왔으면 이전 화면, 바로 열었으면 홈. */
-function useGoBack() {
-  const navigate = useNavigate();
-  return () => {
-    const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-    if (historyIndex > 0) navigate(-1);
-    else navigate('/home');
-  };
-}
+const T = {
+  search: { ko: '식당 이름 검색', en: 'Search restaurant names', ar: 'ابحث باسم المطعم', 'zh-CN': '搜索餐厅名称', ja: '店名で検索', 'zh-TW': '搜尋餐廳名稱', es: 'Buscar por nombre' },
+  showList: { ko: '목록 보기', en: 'Show list', ar: 'عرض القائمة', 'zh-CN': '查看列表', ja: 'リストを見る', 'zh-TW': '查看列表', es: 'Ver lista' },
+  showMap: { ko: '지도 보기', en: 'Show map', ar: 'عرض الخريطة', 'zh-CN': '查看地图', ja: '地図を見る', 'zh-TW': '查看地圖', es: 'Ver mapa' },
+  area: { ko: '지역', en: 'Area', ar: 'المنطقة', 'zh-CN': '区域', ja: 'エリア', 'zh-TW': '區域', es: 'Zona' },
+  nearMe: { ko: '내 주변', en: 'Near me', ar: 'بالقرب مني', 'zh-CN': '我的周边', ja: '現在地周辺', 'zh-TW': '我的周邊', es: 'Cerca de mí' },
+  chooseArea: { ko: '지역 고르기', en: 'Choose an area', ar: 'اختر منطقة', 'zh-CN': '选择区域', ja: 'エリアを選ぶ', 'zh-TW': '選擇區域', es: 'Elegir zona' },
+  all: { ko: '전체', en: 'All', ar: 'الكل', 'zh-CN': '全部', ja: 'すべて', 'zh-TW': '全部', es: 'Todo' },
+  cuisine: { ko: '음식 종류', en: 'Cuisine', ar: 'نوع الطعام', 'zh-CN': '菜系', ja: '料理の種類', 'zh-TW': '菜系', es: 'Tipo de cocina' },
+  searchHere: { ko: '이 지역에서 검색', en: 'Search this area', ar: 'ابحث في هذه المنطقة', 'zh-CN': '搜索此区域', ja: 'このエリアで検索', 'zh-TW': '搜尋此區域', es: 'Buscar en esta zona' },
+  locate: { ko: '내 위치로 이동', en: 'Go to my location', ar: 'انتقل إلى موقعي', 'zh-CN': '前往我的位置', ja: '現在地へ移動', 'zh-TW': '前往我的位置', es: 'Ir a mi ubicación' },
+  nearby: { ko: '주변 가게', en: 'Nearby', ar: 'مطاعم قريبة', 'zh-CN': '附近店铺', ja: '近くのお店', 'zh-TW': '附近店家', es: 'Cerca' },
+  saved: { ko: '저장한 가게', en: 'Saved', ar: 'المحفوظة', 'zh-CN': '收藏的店铺', ja: '保存したお店', 'zh-TW': '收藏的店家', es: 'Guardados' },
+  results: { ko: '검색 결과', en: 'Results', ar: 'النتائج', 'zh-CN': '搜索结果', ja: '検索結果', 'zh-TW': '搜尋結果', es: 'Resultados' },
+  listTabs: { ko: '가게 목록', en: 'Restaurant lists', ar: 'قوائم المطاعم', 'zh-CN': '店铺列表', ja: 'お店のリスト', 'zh-TW': '店家列表', es: 'Listas de restaurantes' },
+  sort: { ko: '정렬', en: 'Sort', ar: 'الترتيب', 'zh-CN': '排序', ja: '並び替え', 'zh-TW': '排序', es: 'Ordenar' },
+  deviceNote: { ko: '이 기기에만 저장돼요. 저장 당시 정보이며 다른 기기와 동기화되지 않아요.', en: 'Saved on this device only. Details are from when you saved them and do not sync to other devices.', ar: 'محفوظة على هذا الجهاز فقط. المعلومات من وقت الحفظ ولا تتزامن مع الأجهزة الأخرى.', 'zh-CN': '仅保存在此设备上，为保存时的信息，不会与其他设备同步。', ja: 'この端末にのみ保存されます。保存した時点の情報で、他の端末とは同期されません。', 'zh-TW': '僅儲存在此裝置上，為儲存時的資訊，不會與其他裝置同步。', es: 'Se guarda solo en este dispositivo, con los datos del momento en que lo guardaste. No se sincroniza con otros dispositivos.' },
+  noSaved: { ko: '저장한 가게가 없어요', en: 'No saved restaurants yet', ar: 'لا توجد مطاعم محفوظة بعد', 'zh-CN': '还没有收藏的店铺', ja: '保存したお店はまだありません', 'zh-TW': '還沒有收藏的店家', es: 'Aún no hay restaurantes guardados' },
+  noSavedBody: { ko: '가게 카드의 책갈피를 누르면 여기에 모여요.', en: 'Tap the bookmark on a restaurant card to keep it here.', ar: 'اضغط على علامة الحفظ في بطاقة المطعم ليظهر هنا.', 'zh-CN': '点击店铺卡片上的书签，即可收藏到这里。', ja: 'お店カードのしおりを押すとここに集まります。', 'zh-TW': '點擊店家卡片上的書籤，即可收藏到這裡。', es: 'Toca el marcador de una tarjeta para guardarlo aquí.' },
+  noResult: { ko: '검색된 식당이 없어요', en: 'No restaurants found', ar: 'لم يتم العثور على مطاعم', 'zh-CN': '没有找到餐厅', ja: 'お店が見つかりません', 'zh-TW': '沒有找到餐廳', es: 'No se encontraron restaurantes' },
+  noNearby: { ko: '주변에 등록된 식당이 아직 없어요', en: 'No registered restaurants nearby yet', ar: 'لا توجد مطاعم مسجلة بالقرب بعد', 'zh-CN': '附近还没有登记的餐厅', ja: '近くに登録されたお店はまだありません', 'zh-TW': '附近還沒有登記的餐廳', es: 'Aún no hay restaurantes registrados cerca' },
+  noResultBody: { ko: '식당을 찾지 못해도 괜찮아요.\n메뉴판만 찍으면 바로 확인할 수 있어요.', en: "It's fine if you can't find the restaurant.\nJust scan the menu to check it right away.", ar: 'لا بأس إن لم تجد المطعم.\nصوّر القائمة فقط لتتحقق فورًا.', 'zh-CN': '找不到餐厅也没关系。\n只要拍下菜单就能马上确认。', ja: 'お店が見つからなくても大丈夫です。\nメニューを撮るだけですぐ確認できます。', 'zh-TW': '找不到餐廳也沒關係。\n只要拍下菜單就能馬上確認。', es: 'No pasa nada si no encuentras el restaurante.\nEscanea la carta y compruébalo al instante.' },
+  scanWithout: { ko: '식당 없이 스캔하기', en: 'Scan without a restaurant', ar: 'المسح بدون مطعم', 'zh-CN': '不选餐厅直接扫描', ja: 'お店なしでスキャン', 'zh-TW': '不選餐廳直接掃描', es: 'Escanear sin restaurante' },
+  noCategory: { ko: '이 음식 종류의 가게가 없어요', en: 'No restaurants of this type here', ar: 'لا توجد مطاعم من هذا النوع هنا', 'zh-CN': '这里没有这类店铺', ja: 'この種類のお店はありません', 'zh-TW': '這裡沒有這類店家', es: 'No hay restaurantes de este tipo aquí' },
+  loadFailed: { ko: '식당 목록을 불러오지 못했어요', en: 'Could not load restaurants', ar: 'تعذر تحميل المطاعم', 'zh-CN': '无法加载餐厅列表', ja: 'お店の一覧を読み込めませんでした', 'zh-TW': '無法載入餐廳列表', es: 'No se pudieron cargar los restaurantes' },
+  checkConnection: { ko: '연결 상태를 확인하고 다시 시도해 주세요.', en: 'Check your connection and try again.', ar: 'تحقق من الاتصال وحاول مرة أخرى.', 'zh-CN': '请检查网络连接后重试。', ja: '接続を確認してもう一度お試しください。', 'zh-TW': '請檢查網路連線後重試。', es: 'Revisa tu conexión e inténtalo de nuevo.' },
+  locating: { ko: '현재 위치를 확인하고 있어요.', en: 'Finding your location…', ar: 'جارٍ تحديد موقعك…', 'zh-CN': '正在确认当前位置…', ja: '現在地を確認しています…', 'zh-TW': '正在確認目前位置…', es: 'Buscando tu ubicación…' },
+  locationNeeded: { ko: '주변 식당을 찾으려면\n위치 권한이 필요해요', en: 'Location access is needed\nto find nearby restaurants', ar: 'يلزم إذن الموقع\nللعثور على المطاعم القريبة', 'zh-CN': '需要位置权限\n才能查找附近餐厅', ja: '近くのお店を探すには\n位置情報の許可が必要です', 'zh-TW': '需要位置權限\n才能尋找附近餐廳', es: 'Necesitamos tu ubicación\npara encontrar restaurantes cercanos' },
+  locationNeededBody: { ko: '허용하지 않아도 지역을 골라 둘러볼 수 있어요.', en: 'You can still pick an area to browse without it.', ar: 'يمكنك اختيار منطقة للتصفح حتى بدون الإذن.', 'zh-CN': '不允许也可以选择区域浏览。', ja: '許可しなくてもエリアを選んで見て回れます。', 'zh-TW': '不允許也可以選擇區域瀏覽。', es: 'También puedes elegir una zona para explorar sin permiso.' },
+  retryLocation: { ko: '위치 다시 확인', en: 'Check location again', ar: 'التحقق من الموقع مجددًا', 'zh-CN': '重新确认位置', ja: '位置情報を再確認', 'zh-TW': '重新確認位置', es: 'Volver a comprobar la ubicación' },
+  goToArea: { ko: '지역으로 이동', en: 'Go to an area', ar: 'الانتقال إلى منطقة', 'zh-CN': '前往区域', ja: 'エリアへ移動', 'zh-TW': '前往區域', es: 'Ir a una zona' },
+  locationDenied: { ko: '위치를 확인하지 못했어요. 지역을 골라 둘러보세요.', en: 'Could not get your location. Pick an area to browse.', ar: 'تعذر تحديد موقعك. اختر منطقة للتصفح.', 'zh-CN': '无法确认位置，请选择区域浏览。', ja: '位置情報を取得できませんでした。エリアを選んでください。', 'zh-TW': '無法確認位置，請選擇區域瀏覽。', es: 'No pudimos obtener tu ubicación. Elige una zona.' },
+  scanStore: { ko: '이 식당 메뉴 스캔', en: "Scan this restaurant's menu", ar: 'امسح قائمة هذا المطعم', 'zh-CN': '扫描这家店的菜单', ja: 'このお店のメニューをスキャン', 'zh-TW': '掃描這家店的菜單', es: 'Escanear la carta de este restaurante' },
+  closeDetail: { ko: '가게 정보 닫기', en: 'Close restaurant details', ar: 'إغلاق تفاصيل المطعم', 'zh-CN': '关闭店铺信息', ja: 'お店の情報を閉じる', 'zh-TW': '關閉店家資訊', es: 'Cerrar detalles' },
+  save: { ko: '가게 저장', en: 'Save restaurant', ar: 'حفظ المطعم', 'zh-CN': '收藏店铺', ja: 'お店を保存', 'zh-TW': '收藏店家', es: 'Guardar restaurante' },
+  unsave: { ko: '가게 저장 해제', en: 'Remove saved restaurant', ar: 'إزالة المطعم المحفوظ', 'zh-CN': '取消收藏店铺', ja: 'お店の保存を解除', 'zh-TW': '取消收藏店家', es: 'Quitar restaurante guardado' },
+  savedToast: { ko: '가게를 저장했어요', en: 'Restaurant saved', ar: 'تم حفظ المطعم', 'zh-CN': '已收藏店铺', ja: 'お店を保存しました', 'zh-TW': '已收藏店家', es: 'Restaurante guardado' },
+  present: { ko: '있었어요', en: 'It had it', ar: 'كان موجودًا', 'zh-CN': '含有', ja: '入っていた', 'zh-TW': '含有', es: 'Lo tenía' },
+  absent: { ko: '없었어요', en: "It didn't", ar: 'لم يكن موجودًا', 'zh-CN': '不含', ja: '入っていなかった', 'zh-TW': '不含', es: 'No lo tenía' },
+  unknown: { ko: '잘 모르겠어요', en: 'Not sure', ar: 'لست متأكدًا', 'zh-CN': '不确定', ja: 'よくわからない', 'zh-TW': '不確定', es: 'No estoy seguro' },
+} satisfies Record<string, AllText>;
+
+const REVIEW_COUNT: CountText = {
+  ko: (n) => `후기 ${n}`, en: (n) => `${n} review${n === 1 ? '' : 's'}`, ar: (n) => `${n} تقييمات`, 'zh-CN': (n) => `评价 ${n}`, ja: (n) => `レビュー ${n}`, 'zh-TW': (n) => `評價 ${n}`, es: (n) => `${n} reseña${n === 1 ? '' : 's'}`,
+};
+
+const DISTANCE: Record<Language, (d: string) => string> = {
+  ko: (d) => `내 위치에서 ${d}`, en: (d) => `${d} from you`, ar: (d) => `على بُعد ${d} منك`, 'zh-CN': (d) => `距你 ${d}`, ja: (d) => `現在地から ${d}`, 'zh-TW': (d) => `距你 ${d}`, es: (d) => `A ${d} de ti`,
+};
+const formatDistance = (meters: number) => (meters >= 1000 ? `${(meters / 1000).toFixed(1).replace(/\.0$/, '')}km` : `${Math.round(meters)}m`);
+
+type StoreSort = 'default' | 'distance' | 'reviews';
+const SORT_LABELS: Record<StoreSort, AllText> = {
+  // 기본순: 서버 순서(검증 가게 먼저). 개인화 · 안전 순위가 아니다.
+  default: { ko: '기본순', en: 'Default', ar: 'الترتيب الافتراضي', 'zh-CN': '默认排序', ja: '標準', 'zh-TW': '預設排序', es: 'Predeterminado' },
+  distance: { ko: '거리순', en: 'Nearest', ar: 'الأقرب', 'zh-CN': '距离最近', ja: '近い順', 'zh-TW': '距離最近', es: 'Más cerca' },
+  reviews: { ko: '후기 많은순', en: 'Most reviewed', ar: 'الأكثر مراجعة', 'zh-CN': '评价最多', ja: 'レビューが多い順', 'zh-TW': '評價最多', es: 'Más reseñas' },
+};
+
+/** 칩에 쓰는 음식 종류(기타 제외) */
+const CATEGORY_CHIPS = FOOD_CATEGORY_ORDER.filter((id) => id !== 'other');
 
 function isAreaId(value: string | null): value is AreaId {
   return AREAS.some((area) => area.id === value);
@@ -80,44 +115,38 @@ export function RestaurantMapScreen({
   if (!demoMode) {
     return <LiveRestaurantMapScreen language={language} userProfile={userProfile} selectedStore={selectedStore} onSelectStore={onSelectStore} />;
   }
-
   return <DemoRestaurantMapScreen language={language} userProfile={userProfile} />;
 }
 
-function DemoRestaurantMapScreen({
-  language,
-  userProfile,
-}: {
-  language: Language;
-  userProfile: UserProfile | null;
-}) {
-  const t = createTranslator(language);
+/** 가게 후기 읽기 · 신고 · 작성 연결(시연 · 실제 API 공통 모양) */
+export interface StoreReviewSource {
+  enabled: boolean;
+  load: (store: StoreCandidate) => Promise<RestaurantReview[]>;
+  report: (review: RestaurantReview, reason: ReportReason) => Promise<void>;
+  /** 후기 작성 시트에 넘길 가게 id(시연은 가상 식당 id) */
+  storeKey: (store: StoreCandidate) => string | number;
+}
+
+function DemoRestaurantMapScreen({ language, userProfile }: { language: Language; userProfile: UserProfile | null }) {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const routeState = useLocation().state as { searchCenter?: StoreCoordinates } | null;
   const requestedArea = searchParams.get('area');
-  const detail = RESTAURANTS.find((restaurant) => restaurant.id === searchParams.get('restaurant')) ?? null;
-  // 첫 위치: 식당 지정 시 그 지역 중심(식당 선택), 지역 지정 시 그 지역 중심, 없으면 성수. '내 주변'은 위치 1회 요청.
+  const requestedRestaurant = RESTAURANTS.find((restaurant) => restaurant.id === searchParams.get('restaurant')) ?? null;
+  // 첫 위치: 식당 지정 → 그 식당, 홈에서 고른 지역 → 그 중심, 지역 지정 → 그 중심, 없으면 성수. '내 주변'은 위치를 한 번 요청.
   const [initial] = useState(() => {
-    if (detail) {
-      const [latitude, longitude] = AREA_CENTERS[detail.area];
-      return { location: { latitude, longitude }, selectedId: demoStoreId(detail) };
-    }
-    if (isAreaId(requestedArea) && requestedArea !== 'nearby') {
-      const [latitude, longitude] = AREA_CENTERS[requestedArea];
-      return { location: { latitude, longitude }, selectedId: null };
-    }
-    const seongsu = SEOUL_AREAS.find((area) => area.id === 'seongsu')!;
-    return { location: { latitude: seongsu.latitude, longitude: seongsu.longitude }, selectedId: null };
+    if (requestedRestaurant) return { location: { latitude: requestedRestaurant.lat, longitude: requestedRestaurant.lng }, selectedId: demoStoreId(requestedRestaurant) };
+    if (routeState?.searchCenter) return { location: routeState.searchCenter, selectedId: null };
+    const area = isAreaId(requestedArea) && requestedArea !== 'nearby' ? MAP_AREAS.find((item) => item.id === requestedArea) : null;
+    return { location: (area ?? DEFAULT_MAP_AREA).center, selectedId: null };
   });
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState<{ location: StoreCoordinates; origin: StoreSearchOrigin }>({ location: initial.location, origin: 'map-center' });
   const [locationStatus, setLocationStatus] = useState<StoreLocationStatus>('ready');
-  const [reviewing, setReviewing] = useState(false);
-  const [reviewVersion, setReviewVersion] = useState(0);
+  const [version, setVersion] = useState(0);
   const [, setSelectedRestaurant] = useDemoValue<string | null>('selected-restaurant', null);
-  const profileItems = getProfileCommunicationItems(userProfile);
 
-  const searchAtCurrentLocation = () => {
+  const searchAtCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) { setLocationStatus('unsupported'); return; }
     setLocationStatus('loading');
     navigator.geolocation.getCurrentPosition(
@@ -125,184 +154,68 @@ function DemoRestaurantMapScreen({
         setSearch({ location: { latitude: position.coords.latitude, longitude: position.coords.longitude }, origin: 'current-location' });
         setLocationStatus('ready');
       },
-      // 실패해도 보던 지역 유지.
+      // 실패해도 보던 지역은 그대로 둔다.
       () => setLocationStatus('denied'),
       { timeout: 8000, maximumAge: 300000 },
     );
-  };
+  }, []);
   useEffect(() => {
-    if (!detail && requestedArea === 'nearby') searchAtCurrentLocation();
+    if (!requestedRestaurant && requestedArea === 'nearby') searchAtCurrentLocation();
   }, []);
 
   const candidates = useMemo(
     () => searchDemoStores(language, { query, location: search.location }),
-    [language, query, search, reviewVersion],
+    [language, query, search, version],
   );
-  const restaurantOf = (store: StoreCandidate) => demoRestaurantOf(store);
-  const scanRestaurant = (restaurant: Restaurant) => {
-    setSelectedRestaurant(restaurant.id);
-    navigate(restaurant.partnership === 'recipe-verified' ? `/restaurants/${restaurant.id}/menu` : '/scan');
-  };
-  const closeDetail = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('restaurant');
-    setSearchParams(next, { replace: true });
-  };
+  const reviews: StoreReviewSource = useMemo(() => ({
+    enabled: true,
+    load: async (store) => {
+      const restaurant = demoRestaurantOf(store);
+      return restaurant ? listDemoStoreReviews(restaurant.id) : [];
+    },
+    report: async (review, reason) => reportDemoReview(review.id, reason),
+    storeKey: (store) => demoRestaurantOf(store)?.id ?? store.storeId,
+  }), []);
 
   return (
-    <>
-      <StoreMapView
-        language={language}
-        query={query}
-        onQueryChange={setQuery}
-        demoMode
-        discovery={{
-          candidates,
-          error: false,
-          isLoading: false,
-          locationStatus,
-          retryLocation: searchAtCurrentLocation,
-          retrySearch: () => setReviewVersion((value) => value + 1),
-          searchAt: (location) => setSearch({ location, origin: 'map-center' }),
-          searchAtCurrentLocation,
-          searchLocation: search.location,
-          searchOrigin: search.origin,
-        }}
-        initialSelectedId={initial.selectedId}
-        extras={(store) => {
-          const restaurant = restaurantOf(store);
-          if (!restaurant) return undefined;
-          return {
-            photos: [restaurant.image],
-            area: demoAreaName(restaurant, language) ?? undefined,
-            badge: <PartnershipBadge restaurant={restaurant} language={language} compact />,
-            primaryAction: restaurant.partnership === 'recipe-verified' ? 'menu' : 'scan',
-          };
-        }}
-        onOpenDetail={(store) => {
-          const restaurant = restaurantOf(store);
-          if (!restaurant) return;
-          const next = new URLSearchParams(searchParams);
-          next.set('restaurant', restaurant.id);
-          setSearchParams(next, { replace: true });
-        }}
-        onScan={(store) => {
-          const restaurant = restaurantOf(store);
-          if (restaurant) scanRestaurant(restaurant);
-        }}
-      />
-
-      {detail && (
-        <BottomSheet
-          language={language}
-          onClose={closeDetail}
-          title={localizeMenuText(detail.name, language)}
-          description={`${demoAreaName(detail, language) ?? ''} · ${localizeMenuText(detail.category, language)} · ${t('1인 예상', 'Est. per person', 'تقدير للفرد')} ${menuPrice(String(detail.price), language)?.original}`}
-        >
-          <div className="relative mb-4 overflow-hidden rounded-[24px]">
-            <img
-              src={detail.image}
-              alt=""
-              className="h-48 w-full object-cover"
-            />
-            <div className="absolute start-3 top-3">
-              <PartnershipBadge restaurant={detail} language={language} />
-            </div>
-          </div>
-          {detail.partnership === 'recipe-verified' && (
-            <div className="mb-5 rounded-2xl bg-brand-primary-soft p-3.5">
-              <p className="text-sm font-extrabold text-brand-primary">
-                {t(
-                  '한스푼 파트너가 모든 레시피를 제공했어요.',
-                  'This partner supplied every recipe to Han Spoon.',
-                  'قدم هذا الشريك جميع الوصفات إلى Han Spoon.',
-                )}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-text-secondary">
-                {t(
-                  '레시피 인증은 정보 확인 범위를 뜻하며, 개인별 섭취 안전을 보장하지 않아요.',
-                  'Recipe verification describes information coverage, not a guarantee of individual dietary safety.',
-                  'توثيق الوصفات يصف نطاق المعلومات ولا يضمن السلامة الغذائية الفردية.',
-                )}
-              </p>
-            </div>
-          )}
-          <div className="mb-6 flex gap-2">
-            <button
-              onClick={() => scanRestaurant(detail)}
-              className="flex min-h-13 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-primary px-4 text-sm font-bold text-white"
-            >
-              {detail.partnership === 'recipe-verified' ? <Utensils className="size-4" /> : <Camera className="size-4" />}
-              {detail.partnership === 'recipe-verified' ? t('내 프로필로 메뉴 보기', 'View menus for my profile', 'القائمة حسب ملفي') : t(
-                '이 식당 메뉴 스캔',
-                'Scan this restaurant’s menu',
-                'امسح قائمة هذا المطعم',
-              )}
-            </button>
-          </div>
-
-          <h3 className="flex items-center gap-2 font-extrabold">
-            <Users className="size-4 text-brand-primary" />
-            {t(
-              '나와 같은 프로필의 경험',
-              'Experiences from people like you',
-              'تجارب أشخاص باحتياجات مماثلة',
-            )}
-          </h3>
-          <p className="mb-3 mt-1 text-xs leading-5 text-text-secondary">
-            {t(
-              '선택한 조건이 하나 이상 같은 방문자의 선택형 후기예요.',
-              'Feedback from diners sharing at least one of your preferences.',
-              'آراء زوار يشاركونك تفضيلاً غذائياً واحداً على الأقل.',
-            )}
-          </p>
-          {profileMatches(detail, userProfile).map((feedback) => {
-            const profileItem = profileItems.find(
-              (item) => item.id === feedback.profileId,
-            );
-            return (
-              <div
-                key={feedback.profileId}
-                className="mb-2 rounded-2xl bg-brand-primary-soft p-3.5"
-              >
-                <p className="text-xs font-extrabold text-brand-primary">
-                  {profileItem
-                    ? localizeMenuText(profileItem.label, language)
-                    : feedback.profileId}
-                </p>
-                <p className="mt-1 text-sm leading-6">
-                  {t(
-                    `${feedback.total}명 중 ${feedback.positive}명이 요청을 전달하기 편했어요`,
-                    `${feedback.positive} of ${feedback.total} diners found it easy to discuss their needs`,
-                    `${feedback.positive} من ${feedback.total} زائراً وجدوا التواصل سهلاً`,
-                  )}
-                </p>
-              </div>
-            );
-          })}
-          {profileMatches(detail, userProfile).length === 0 && (
-            <p className="rounded-2xl bg-surface-subtle p-4 text-sm leading-6">
-              {userProfile
-                ? t(
-                    '아직 같은 프로필의 후기가 없어요.',
-                    'No matching dietary feedback yet.',
-                    'لا توجد آراء مطابقة لملفك بعد.',
-                  )
-                : t(
-                    '식단 프로필을 설정하면 나와 비슷한 사람들의 경험을 볼 수 있어요.',
-                    'Set your profile to see experiences from similar diners.',
-                    'حدد ملفك لرؤية تجارب زوار مشابهين.',
-                  )}
-            </p>
-          )}
-          <div className="mt-5 border-t border-border-warm pt-4"><button type="button" onClick={() => setReviewing(true)} className="mb-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-extrabold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}</button><RestaurantReviewList key={detail.id} language={language} profile={userProfile} reviews={listDemoStoreReviews(detail.id)} onReport={async (review, reason) => { reportDemoReview(review.id, reason); setReviewVersion(reviewVersion + 1); }} /></div>
-        </BottomSheet>
-      )}
-      {reviewing && detail && <MealReviewSheet language={language} profile={userProfile} store={{ id: detail.id, name: localizeMenuText(detail.name, language) }} demoMode onClose={() => setReviewing(false)} onSaved={() => setReviewVersion(value => value + 1)} />}
-    </>
+    <StoreMapView
+      language={language}
+      userProfile={userProfile}
+      query={query}
+      onQueryChange={setQuery}
+      demoMode
+      discovery={{
+        candidates,
+        error: false,
+        isLoading: false,
+        locationStatus,
+        retryLocation: searchAtCurrentLocation,
+        retrySearch: () => setVersion((value) => value + 1),
+        searchAt: (location) => setSearch({ location, origin: 'map-center' }),
+        searchAtCurrentLocation,
+        searchLocation: search.location,
+        searchOrigin: search.origin,
+      }}
+      initialSelectedId={initial.selectedId}
+      districtFallback={(store) => {
+        const restaurant = demoRestaurantOf(store);
+        return restaurant ? demoAreaName(restaurant, language) : null;
+      }}
+      reviews={reviews}
+      onReviewSaved={() => setVersion((value) => value + 1)}
+      onScan={(store) => {
+        const restaurant = demoRestaurantOf(store);
+        if (!restaurant) return;
+        setSelectedRestaurant(restaurant.id);
+        navigate('/scan');
+      }}
+      onScanWithoutStore={() => {
+        setSelectedRestaurant(null);
+        navigate('/scan');
+      }}
+    />
   );
 }
-
 
 function LiveRestaurantMapScreen({
   language,
@@ -315,162 +228,47 @@ function LiveRestaurantMapScreen({
   selectedStore: StoreCandidate | null;
   onSelectStore: (store: StoreCandidate | null) => void;
 }) {
-  const t = createTranslator(language);
   const navigate = useNavigate();
-  const routeLocation = useLocation();
-  const initialSearchCenter = (
-    routeLocation.state as {
-      searchCenter?: { latitude: number; longitude: number };
-    } | null
-  )?.searchCenter;
-  const incoming = routeLocation.state as { initialQuery?: string; selectedStoreId?: number; selectedStore?: StoreCandidate } | null;
+  const incoming = useLocation().state as { searchCenter?: StoreCoordinates; initialQuery?: string; selectedStoreId?: number; selectedStore?: StoreCandidate } | null;
+  const initialSearchCenter = incoming?.searchCenter;
   const [query, setQuery] = useState(incoming?.initialQuery ?? '');
-  const [detailStore, setDetailStore] = useState<StoreCandidate | null>(null);
-  const [reviewing, setReviewing] = useState(false);
-  const [showReviews, setShowReviews] = useState(false);
-  const [reviews, setReviews] = useState<RestaurantReview[]>([]);
-  const [reviewsError, setReviewsError] = useState('');
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewRefresh, setReviewRefresh] = useState(0);
   const discovery = useStoreCandidates(query, {
     initialSearchLocation: initialSearchCenter,
     locateUser: !initialSearchCenter,
     radiusMeters: MAP_SEARCH_RADIUS_METERS,
     limit: MAP_SEARCH_LIMIT,
   });
-  useEffect(() => {
-    if (!detailStore || !showReviews || !liveFeatures.reviews) return;
-    let active = true;
-    setReviews([]);
-    setReviewsError('');
-    setReviewsLoading(true);
-    getStoreReviews(detailStore.storeId).then(items => { if (active) setReviews(items); })
-      .catch(() => { if (active) setReviewsError(t('후기를 불러오지 못했어요.', 'Could not load reviews.', 'تعذر تحميل المراجعات.')); })
-      .finally(() => { if (active) setReviewsLoading(false); });
-    return () => { active = false; };
-  }, [detailStore?.storeId, showReviews, reviewRefresh]);
-
-  const selectAndScan = (store: StoreCandidate) => {
-    onSelectStore(store);
-    navigate('/scan');
-  };
-  const openDetail = (store: StoreCandidate) => {
-    setDetailStore(store);
-    setReviewing(false);
-    setShowReviews(true);
-  };
+  // 다른 화면에서 가게를 넘겨받았으면, 처음 결과 맨 앞에 둔다(반경 밖이어도 선택 가능).
+  const atInitialCenter = discovery.searchLocation?.latitude === initialSearchCenter?.latitude && discovery.searchLocation?.longitude === initialSearchCenter?.longitude;
+  const candidates = incoming?.selectedStore && !query.trim() && atInitialCenter
+    ? [incoming.selectedStore, ...discovery.candidates.filter((item) => item.storeId !== incoming.selectedStore?.storeId)]
+    : discovery.candidates;
+  const reviews: StoreReviewSource = useMemo(() => ({
+    enabled: liveFeatures.reviews,
+    load: (store) => getStoreReviews(store.storeId),
+    report: (review, reason) => reportReview(review.id, reason),
+    storeKey: (store) => store.storeId,
+  }), []);
 
   return (
-    <>
-      <StoreMapView
-        language={language}
-        query={query}
-        onQueryChange={setQuery}
-        discovery={{ ...discovery, candidates: incoming?.selectedStore && !query.trim() && discovery.searchLocation?.latitude === initialSearchCenter?.latitude && discovery.searchLocation?.longitude === initialSearchCenter?.longitude ? [incoming.selectedStore, ...discovery.candidates.filter(item => item.storeId !== incoming.selectedStore?.storeId)] : discovery.candidates }}
-        initialSelectedId={incoming?.selectedStoreId ?? selectedStore?.storeId ?? null}
-        onOpenDetail={openDetail}
-        onScan={selectAndScan}
-      />
-      {detailStore && showReviews && <BottomSheet language={language} title={storeDisplayName(detailStore)} description={detailStore.roadAddress ?? detailStore.categoryName ?? ''} onClose={() => setShowReviews(false)}><button type="button" onClick={() => selectAndScan(detailStore)} className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-brand-primary text-sm font-extrabold text-white"><Camera className="size-4" />{t('이 식당 메뉴 스캔', 'Scan this restaurant’s menu', 'امسح قائمة هذا المطعم')}</button><div className="border-t border-border-warm pt-5"><>{!liveFeatures.reviews ? <p role="status" className="rounded-xl bg-surface-subtle p-4 text-sm">{preparingMessage(language)}</p> : <RestaurantReviewList key={detailStore.storeId} language={language} profile={userProfile} reviews={reviews} reviewCount={detailStore.reviewCount} loading={reviewsLoading} error={reviewsError} onRetry={() => setReviewRefresh(value => value + 1)} onReport={async (review, reason) => { await reportReview(review.id, reason); }} />}</></div><button type="button" disabled={!liveFeatures.reviews} onClick={() => { setShowReviews(false); setReviewing(true); }} className="mt-5 min-h-11 w-full rounded-[18px] border border-brand-primary text-sm font-bold text-brand-primary">{t('후기 작성', 'Write a review', 'اكتب مراجعة')}{!liveFeatures.reviews && ` · ${preparingLabel(language)}`}</button></BottomSheet>}
-      {detailStore && reviewing && <MealReviewSheet language={language} profile={userProfile} store={{ id: detailStore.storeId, name: storeDisplayName(detailStore) }} demoMode={false} onClose={() => setReviewing(false)} onSaved={() => { setShowReviews(true); setReviewRefresh(value => value + 1); discovery.retrySearch(); }} />}
-    </>
-  );
-}
-
-type StoreSort = 'default' | 'distance' | 'reviews';
-
-const SORT_LABELS: Record<StoreSort, LocalizedText> = {
-  // 서버 순서(검증 가게 먼저). 개인화·안전 순위 아님.
-  default: { ko: '기본순', en: 'Default', ar: 'الترتيب الافتراضي', 'zh-CN': '默认排序', ja: '標準', 'zh-TW': '預設排序', es: 'Predeterminado' },
-  distance: { ko: '거리순', en: 'Nearest', ar: 'الأقرب', 'zh-CN': '距离最近', ja: '近い順', 'zh-TW': '距離最近', es: 'Más cerca' },
-  reviews: { ko: '리뷰 많은순', en: 'Most reviewed', ar: 'الأكثر مراجعة', 'zh-CN': '评价最多', ja: '口コミが多い順', 'zh-TW': '評價最多', es: 'Más reseñas' },
-};
-
-/** 정렬 드롭다운. 접힌 목록에서는 위로, 펼친 목록에서는 아래로. */
-function SortMenu({ language, value, distanceSortable, openUpward, onChange }: {
-  language: Language;
-  value: StoreSort;
-  distanceSortable: boolean;
-  openUpward: boolean;
-  onChange: (sort: StoreSort) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const options: StoreSort[] = distanceSortable ? ['default', 'distance', 'reviews'] : ['default', 'reviews'];
-
-  useEffect(() => {
-    if (!open) return;
-    menuRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
-
-  const close = () => { setOpen(false); buttonRef.current?.focus(); };
-  const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const items = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? [])];
-    const index = items.indexOf(document.activeElement as HTMLButtonElement);
-    if (event.key === 'Escape') { event.preventDefault(); close(); }
-    else if (event.key === 'ArrowDown') { event.preventDefault(); items[(index + 1) % items.length]?.focus(); }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); items[(index - 1 + items.length) % items.length]?.focus(); }
-    else if (event.key === 'Tab') setOpen(false);
-  };
-
-  return (
-    <div ref={rootRef} className="relative shrink-0">
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-        className="inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-full border border-border-warm bg-rice-white ps-3.5 pe-2.5 text-xs font-bold text-text-primary"
-      >
-        {translateText(language, SORT_LABELS[value])}
-        <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
-      </button>
-      {open && (
-        <div
-          ref={menuRef}
-          role="menu"
-          onKeyDown={onMenuKeyDown}
-          className={`absolute start-0 z-50 min-w-40 rounded-2xl border border-border-warm bg-rice-white p-1 shadow-[var(--shadow-float)] ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'}`}
-        >
-          {options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="menuitemradio"
-              aria-checked={option === value}
-              onClick={() => { onChange(option); close(); }}
-              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-start text-sm font-semibold hover:bg-surface-subtle focus:bg-surface-subtle focus:outline-none"
-            >
-              {translateText(language, SORT_LABELS[option])}
-              {option === value && <Check className="size-4 text-brand-primary" aria-hidden="true" />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FilterChip({ pressed, onClick, children }: { pressed: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      onClick={onClick}
-      className={`inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-xs font-bold ${
-        pressed ? 'border-soy-ink bg-soy-ink text-white' : 'border-border-warm bg-rice-white text-text-secondary'
-      }`}
-    >
-      {children}
-    </button>
+    <StoreMapView
+      language={language}
+      userProfile={userProfile}
+      query={query}
+      onQueryChange={setQuery}
+      discovery={{ ...discovery, candidates }}
+      initialSelectedId={incoming?.selectedStoreId ?? selectedStore?.storeId ?? null}
+      reviews={reviews}
+      onReviewSaved={discovery.retrySearch}
+      onScan={(store) => {
+        onSelectStore(store);
+        navigate('/scan');
+      }}
+      onScanWithoutStore={() => {
+        onSelectStore(null);
+        navigate('/scan');
+      }}
+    />
   );
 }
 
@@ -479,71 +277,103 @@ type StoreDiscovery = Pick<
   'candidates' | 'error' | 'isLoading' | 'locationStatus' | 'retryLocation' | 'retrySearch' | 'searchAt' | 'searchAtCurrentLocation' | 'searchLocation' | 'searchOrigin'
 >;
 
-/** 전체 화면 지도(탭 바 없음): 지도·검색·가게 목록/카드. 데이터는 호출부 제공(후보 API·시연·fixture). */
+interface ReviewState {
+  storeId: number;
+  items: RestaurantReview[];
+  loading: boolean;
+  error: boolean;
+}
+
+/**
+ * 흐름 2 지도에서 가게 찾기(F2-01~07). 데이터는 호출부가 준다(후보 API · 시연 · 개발 미리보기).
+ * - 지도 모드: 검색 · 지역 칩 · 음식 종류 칩 · 핀 · [이 지역에서 검색] · 내 위치 · 가게 목록 시트
+ * - 가게를 고르면 상세 시트(나와 같은 프로필의 경험 미리보기 · [이 식당 메뉴 스캔])
+ * - 목록 모드: 주변 가게 | 저장한 가게(이 기기에만 저장)
+ */
 export function StoreMapView({
   language,
+  userProfile,
   query,
   onQueryChange,
   discovery,
   initialSelectedId = null,
-  extras,
   demoMode = false,
-  onOpenDetail,
+  districtFallback,
+  reviews,
+  onReviewSaved,
   onScan,
+  onScanWithoutStore,
 }: {
   language: Language;
+  userProfile: UserProfile | null;
   query: string;
   onQueryChange: (query: string) => void;
   discovery: StoreDiscovery;
-  /** 시연 모드: 네이버 지도 대신 위치 개요(끌기·이 지역에서 검색 없음) */
-  demoMode?: boolean;
   initialSelectedId?: number | null;
-  extras?: (store: StoreCandidate) => StoreCardExtras | undefined;
-  onOpenDetail: (store: StoreCandidate) => void;
+  /** 시연 모드: 네이버 지도 대신 위치 개요 */
+  demoMode?: boolean;
+  /** 주소가 없는 가게의 지역 이름(시연) */
+  districtFallback?: (store: StoreCandidate) => string | null;
+  reviews: StoreReviewSource;
+  onReviewSaved?: () => void;
   onScan: (store: StoreCandidate) => void;
+  onScanWithoutStore: () => void;
 }) {
-  const t = createTranslator(language);
-  const navigate = useNavigate();
+  const toast = useToast();
   const routeState = useLocation().state as { category?: FoodCategoryId } | null;
-  const {
-    candidates,
-    error,
-    isLoading,
-    locationStatus,
-    retryLocation,
-    retrySearch,
-    searchAt,
-    searchAtCurrentLocation,
-    searchLocation,
-    searchOrigin,
-  } = discovery;
-  const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId);
-  // 지도 중심: 끌면 따라감(재조회 없음), 가게 선택 시 그 가게, 새 검색 시 검색 위치.
-  const [viewCenter, setViewCenter] = useState<{ latitude: number; longitude: number } | null>(null);
-  // 지도를 옮긴 뒤에만 [이 지역에서 검색] 표시.
+  const { candidates, error, isLoading, locationStatus, retryLocation, retrySearch, searchAt, searchAtCurrentLocation, searchLocation, searchOrigin } = discovery;
+  const { isSaved, toggle, savedStores } = useSavedStores();
+
+  const [selected, setSelected] = useState<StoreCandidate | null>(null);
+  const pendingSelectId = useRef<number | null>(initialSelectedId);
+  const [mode, setMode] = useState<'map' | 'list'>('map');
+  const [listTab, setListTab] = useState<'nearby' | 'saved'>('nearby');
+  const [areaSheet, setAreaSheet] = useState(false);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
+  const [writing, setWriting] = useState(false);
+  const [reviewVersion, setReviewVersion] = useState(0);
+  const [reviewState, setReviewState] = useState<ReviewState | null>(null);
+
+  // 지도 중심: 끌면 따라감(다시 찾지 않음), 가게를 고르면 그 가게, 새로 찾으면 찾은 위치.
+  const [viewCenter, setViewCenter] = useState<StoreCoordinates | null>(null);
   const [movedByUser, setMovedByUser] = useState(false);
   useEffect(() => {
     if (searchLocation) setViewCenter(searchLocation);
     setMovedByUser(false);
   }, [searchLocation]);
+
+  // 이름 검색을 바꾸면 고른 가게를 놓는다.
   const previousQuery = useRef(query);
   useEffect(() => {
-    if (previousQuery.current !== query) setSelectedId(null);
+    if (previousQuery.current !== query) setSelected(null);
     previousQuery.current = query;
   }, [query]);
-  // 정렬(기본: 서버 순서)·음식 종류. 음식 종류는 핀·카드에도 적용.
-  const [sort, setSort] = useState<StoreSort>('default');
-  // 홈 '오늘은 뭐가 당기세요?'에서 고른 음식 종류로 시작
-  const [category, setCategory] = useState<FoodCategoryId | 'all'>(() => (routeState?.category ?? 'all'));
-  const categories = useMemo(() => {
-    const present = new Set(candidates.map((store) => foodCategoryOf(store)));
-    return FOOD_CATEGORY_ORDER.filter((id) => present.has(id));
-  }, [candidates]);
+
+  // 다른 화면에서 넘겨받은 가게: 후보에 나타나면 고른다.
   useEffect(() => {
-    if (category !== 'all' && candidates.length > 0 && !categories.includes(category)) setCategory('all');
-  }, [categories, category, candidates.length]);
+    const id = pendingSelectId.current;
+    if (id === null) return;
+    const store = candidates.find((item) => item.storeId === id);
+    if (store) {
+      pendingSelectId.current = null;
+      setSelected(store);
+      setViewCenter({ latitude: store.latitude, longitude: store.longitude });
+    }
+  }, [candidates]);
+
+  // 위치를 직접 요청했는데 막히면 알림(보던 지도는 그대로).
+  const askedLocation = useRef(false);
+  useEffect(() => {
+    if (!askedLocation.current || locationStatus === 'loading') return;
+    askedLocation.current = false;
+    if ((locationStatus === 'denied' || locationStatus === 'unsupported') && searchLocation) toast.show(tx(language, T.locationDenied), { tone: 'error' });
+  }, [locationStatus]);
+
+  // 정렬 · 음식 종류. 음식 종류는 핀에도 적용. 홈 '오늘은 뭐가 당기세요?'에서 고른 종류로 시작.
   const distanceSortable = !query.trim();
+  const [sort, setSort] = useState<StoreSort>('distance');
   const activeSort: StoreSort = sort === 'distance' && !distanceSortable ? 'default' : sort;
+  const [category, setCategory] = useState<FoodCategoryId | 'all'>(() => routeState?.category ?? 'all');
   const visible = useMemo(() => {
     const filtered = category === 'all' ? candidates : candidates.filter((store) => foodCategoryOf(store) === category);
     if (activeSort === 'default') return filtered;
@@ -552,197 +382,497 @@ export function StoreMapView({
       ? (a.distanceMeters ?? far) - (b.distanceMeters ?? far)
       : (b.reviewCount ?? 0) - (a.reviewCount ?? 0) || (a.distanceMeters ?? far) - (b.distanceMeters ?? far));
   }, [activeSort, candidates, category]);
-  const selected = visible.find((store) => store.storeId === selectedId) ?? null;
-  // 고른 가게를 지도 가운데로(카드에 가리지 않게, 마커 탭·카드 넘기기 공통).
-  const selectStore = (storeId: number | null) => {
-    setSelectedId(storeId);
-    const store = candidates.find((item) => item.storeId === storeId);
+
+  const selectStore = (store: StoreCandidate | null) => {
+    setSelected(store);
     if (store) setViewCenter({ latitude: store.latitude, longitude: store.longitude });
   };
   const searchHere = () => {
     if (!viewCenter) return;
-    setSelectedId(null);
+    setSelected(null);
     searchAt(viewCenter);
   };
   const searchNearMe = () => {
     setMovedByUser(false);
-    // 이미 현재 위치 결과면 재조회 없이 지도만 복귀.
-    if (searchOrigin === 'current-location' && searchLocation && locationStatus === 'ready') setViewCenter({ ...searchLocation });
-    else searchAtCurrentLocation();
-  };
-  // 지역 태그: 이름 검색 중이면 검색어 지우고 그 지역 중심에서 재조회.
-  const currentArea = searchOrigin === 'current-location' ? null : areaAt(searchLocation);
-  const searchArea = (area: SeoulArea) => {
+    setSelected(null);
     if (query) onQueryChange('');
-    setSelectedId(null);
-    searchAt({ latitude: area.latitude, longitude: area.longitude });
+    // 이미 현재 위치 결과면 다시 찾지 않고 지도만 돌아온다.
+    if (searchOrigin === 'current-location' && searchLocation && locationStatus === 'ready') setViewCenter({ ...searchLocation });
+    else {
+      askedLocation.current = true;
+      searchAtCurrentLocation();
+    }
   };
-  const mapCenter = viewCenter ?? searchLocation ?? (candidates[0] ? { latitude: candidates[0].latitude, longitude: candidates[0].longitude } : null);
-  const mapStores = visible.map((store) => ({
-    id: String(store.storeId),
-    name: storeDisplayName(store),
-    lat: store.latitude,
-    lng: store.longitude,
-  }));
-  const goBack = useGoBack();
+  const goToArea = (center: StoreCoordinates) => {
+    if (query) onQueryChange('');
+    setSelected(null);
+    setMode('map');
+    searchAt(center);
+  };
 
-  const fallback = error ? (
-    <div role="alert" className="px-1 py-6 text-center">
-      <AlertCircle className="mx-auto mb-3 size-8 text-text-tertiary" aria-hidden="true" />
-      <p className="text-base font-extrabold">{t('식당 목록을 불러오지 못했어요.', 'Could not load restaurants.', 'تعذر تحميل المطاعم.')}</p>
-      <p className="mt-2 text-sm text-text-secondary">{t('연결 상태를 확인하고 다시 시도해 주세요.', 'Check your connection and try again.', 'تحقق من الاتصال وحاول مرة أخرى.')}</p>
-      <button type="button" onClick={retrySearch} className="mt-4 min-h-11 rounded-[18px] border border-brand-primary px-4 text-sm font-bold text-brand-primary">{t('다시 시도', 'Try again', 'حاول مرة أخرى')}</button>
-    </div>
+  const currentArea = mapAreaAt(searchLocation);
+  const areaLabel = searchOrigin === 'current-location' && searchLocation
+    ? tx(language, T.nearMe)
+    : currentArea ? tx(language, currentArea.label) : tx(language, T.area);
+
+  const mapCenter = viewCenter ?? searchLocation ?? (candidates[0] ? { latitude: candidates[0].latitude, longitude: candidates[0].longitude } : null);
+  const pinStores = selected && !visible.some((store) => store.storeId === selected.storeId) ? [selected, ...visible] : visible;
+  const mapStores = pinStores.map((store) => ({ id: String(store.storeId), name: storeDisplayName(store), lat: store.latitude, lng: store.longitude }));
+
+  // 고른 가게의 후기(상세 미리보기 · 전체 화면 공통)
+  useEffect(() => {
+    if (!selected || !reviews.enabled) { setReviewState(null); return; }
+    let active = true;
+    const storeId = selected.storeId;
+    setReviewState({ storeId, items: [], loading: true, error: false });
+    reviews.load(selected)
+      .then((items) => { if (active) setReviewState({ storeId, items, loading: false, error: false }); })
+      .catch(() => { if (active) setReviewState({ storeId, items: [], loading: false, error: true }); });
+    return () => { active = false; };
+  }, [selected?.storeId, reviewVersion, reviews]);
+
+  const cardFor = (store: StoreCandidate, onClick: () => void) => (
+    <StoreCard
+      key={store.storeId}
+      language={language}
+      name={storeDisplayName(store)}
+      reviewCount={store.reviewCount ?? 0}
+      district={storeDistrict(store, districtFallback?.(store))}
+      category={storeCategoryText(store, language)}
+      distanceMeters={searchOrigin === 'current-location' && !query.trim() ? store.distanceMeters : null}
+      saved={isSaved(store.storeId)}
+      onToggleSave={() => toggleSave(store)}
+      onClick={onClick}
+    />
+  );
+  const toggleSave = (store: StoreCandidate) => {
+    const wasSaved = isSaved(store.storeId);
+    toggle(store);
+    if (!wasSaved) toast.show(tx(language, T.savedToast), { tone: 'success' });
+  };
+
+  const sortMenu = candidates.length > 0 && (
+    <ChipMenu
+      menuLabel={tx(language, T.sort)}
+      value={activeSort}
+      onChange={setSort}
+      align="end"
+      options={(distanceSortable ? (['distance', 'reviews', 'default'] as StoreSort[]) : (['default', 'reviews'] as StoreSort[])).map((value) => ({ value, label: tx(language, SORT_LABELS[value]) }))}
+      className="inline-flex h-9 items-center gap-1 rounded-hs-pill bg-hs-surface-100 px-3 text-[13px] font-extrabold text-hs-ink-700"
+    >
+      <HsIcon name="sort" size={14} strokeWidth={2.4} />
+      {tx(language, SORT_LABELS[activeSort])}
+    </ChipMenu>
+  );
+  const listTitle = (
+    <h2 className="text-[18px] font-black text-hs-ink-900">
+      {tx(language, query.trim() ? T.results : T.nearby)} <span dir="ltr" className="text-hs-brand-700">{visible.length}</span>
+    </h2>
+  );
+
+  // 목록 대신 보여 줄 상태(오류 · 불러오는 중 · 결과 없음 · 음식 종류에 없음)
+  const listFallback: ReactNode = error ? (
+    <ErrorState language={language} title={tx(language, T.loadFailed)} description={tx(language, T.checkConnection)} onRetry={retrySearch} />
   ) : candidates.length === 0 && isLoading ? (
-    <div role="status" className="flex justify-center py-6">
-      <Loader2 className="size-6 animate-spin text-brand-primary" aria-hidden="true" />
-      <span className="sr-only">{translateText(language, { ko: '불러오는 중', en: 'Loading', ar: 'جارٍ التحميل', 'zh-CN': '加载中', ja: '読み込み中', 'zh-TW': '載入中', es: 'Cargando' })}</span>
+    <div className="space-y-2.5">
+      <SkeletonCard language={language} className="border-[1.5px] border-hs-line-200" />
+      <SkeletonCard language={language} className="border-[1.5px] border-hs-line-200" />
     </div>
-  ) : candidates.length === 0 ? (
-    <div className="px-1 py-6 text-center">
-      <p className="font-bold">{query.trim() ? t('검색된 식당이 없어요.', 'No restaurant matched.', 'لم يتم العثور على مطعم.') : t('주변에 등록된 식당이 아직 없어요.', 'No registered restaurants nearby yet.', 'لا توجد مطاعم مسجلة بالقرب منك بعد.')}</p>
-      <button type="button" onClick={() => navigate('/scan')} className="mt-3 min-h-10 text-sm font-bold text-brand-primary">{t('식당 없이 스캔하기', 'Scan without a restaurant', 'المسح بدون مطعم')}</button>
+  ) : candidates.length > 0 && visible.length === 0 ? (
+    <EmptyState icon="search" title={tx(language, T.noCategory)} action={<HsButton variant="outline" size="md" onClick={() => setCategory('all')}>{tx(language, T.all)}</HsButton>} />
+  ) : null;
+  const noResult = !error && !isLoading && candidates.length === 0 && (searchLocation || query.trim());
+
+  const searchRow = (inList: boolean) => (
+    <div className="flex gap-2">
+      <SearchField
+        value={query}
+        onChange={onQueryChange}
+        language={language}
+        label={tx(language, T.search)}
+        placeholder={tx(language, T.search)}
+        className={`min-w-0 flex-1 ${inList ? '' : 'bg-hs-surface-0! shadow-[0_4px_14px_rgba(23,32,28,0.10)]'}`}
+      />
+      <HsIconButton
+        icon={inList ? 'map' : 'list'}
+        label={tx(language, inList ? T.showMap : T.showList)}
+        tone={inList ? 'soft' : 'white'}
+        iconSize={22}
+        onClick={() => { setSelected(null); setMode(inList ? 'map' : 'list'); }}
+        className={`size-[52px]! ${inList ? '' : 'shadow-[0_4px_14px_rgba(23,32,28,0.10)]'}`}
+      />
     </div>
-  ) : undefined;
+  );
+
+  const chipClass = (on: boolean) => `inline-flex h-[38px] flex-none items-center gap-[5px] whitespace-nowrap rounded-hs-pill px-3.5 text-[13px] font-extrabold shadow-[0_2px_8px_rgba(23,32,28,0.08)] ${on ? 'bg-hs-ink-900 text-hs-surface-0' : 'bg-hs-surface-0 text-hs-ink-700'}`;
 
   return (
-    <div className="relative h-dvh overflow-hidden bg-[#e9eee5] text-soy-ink">
-      {/* isolate: 네이버 지도 내부 요소(로고 등)가 목록 시트 위로 오지 않게 */}
-      <div className="absolute inset-0 isolate">
-        {mapCenter ? (
-          <StoreMap
-            language={language}
-            stores={mapStores}
-            center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
-            selectedId={selected ? String(selected.storeId) : null}
-            onSelect={(mapStore) => selectStore(Number(mapStore.id))}
-            onCenterChange={(center) => { setViewCenter({ latitude: center.lat, longitude: center.lng }); setMovedByUser(true); }}
-            fitStores={false}
-            demoMode={demoMode}
-            // 가리는 높이: 위 검색창·지역 태그, 아래 카드·버튼 줄
-            demoInsets={{ top: 112, bottom: 400 }}
-            className="h-full w-full bg-[#e9eee5]"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-surface-subtle px-8 text-center">
-            {locationStatus === 'loading' ? (
-              <div role="status" className="text-sm text-text-secondary">
-                <Loader2 className="mx-auto mb-3 size-7 animate-spin text-brand-primary" />
-                {t('현재 위치를 확인하고 있어요.', 'Finding your current location…', 'جارٍ تحديد موقعك الحالي…')}
-              </div>
-            ) : (
-              <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-                <AlertCircle className="mx-auto mb-2 size-6" />
-                <p className="font-bold">{t('주변 식당을 찾으려면 위치 권한이 필요해요.', 'Location access is needed to find nearby restaurants.', 'يلزم إذن الموقع للعثور على المطاعم القريبة.')}</p>
-                {locationStatus === 'denied' && <button type="button" onClick={retryLocation} className="mt-3 min-h-10 rounded-xl border border-amber-300 bg-white px-4 font-bold">{t('위치 다시 확인', 'Try location again', 'إعادة محاولة تحديد الموقع')}</button>}
-              </div>
-            )}
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-hs-surface-0 text-hs-ink-900">
+      {/* isolate: 지도 영역 안 겹침(시트 · 안내)이 하단 내비의 촬영 버튼을 덮지 않게 */}
+      <div className="relative isolate min-h-0 flex-1 overflow-hidden">
+        {/* isolate: 네이버 지도 안 요소(로고 등)가 시트 위로 오지 않게 */}
+        <div className="absolute inset-0 isolate">
+          {mapCenter ? (
+            <StoreMap
+              language={language}
+              stores={mapStores}
+              center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
+              selectedId={selected ? String(selected.storeId) : null}
+              onSelect={(mapStore) => selectStore(pinStores.find((store) => String(store.storeId) === mapStore.id) ?? null)}
+              onCenterChange={(center) => { setViewCenter({ latitude: center.lat, longitude: center.lng }); setMovedByUser(true); }}
+              fitStores={false}
+              demoMode={demoMode}
+              demoInsets={{ top: TOP_OVERLAY, bottom: selected ? 420 : LIST_SHEET_HEIGHT + 20 }}
+              focusOffsetY={selected ? DETAIL_FOCUS_OFFSET : 0}
+              className="h-full w-full bg-[#EEF3F0]"
+            />
+          ) : (
+            <div className="h-full w-full bg-[#EEF3F0]" aria-hidden="true" />
+          )}
+        </div>
+
+        {/* 위: 검색 · 지역 · 음식 종류 */}
+        <div className="absolute inset-x-0 top-0 z-30 px-4 pt-[max(18px,env(safe-area-inset-top))]">
+          {searchRow(false)}
+          <div role="group" aria-label={tx(language, T.cuisine)} className="-mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+            <button type="button" onClick={() => setAreaSheet(true)} aria-haspopup="dialog" aria-label={`${tx(language, T.chooseArea)}: ${areaLabel}`} className={chipClass(true)}>
+              <HsIcon name={searchOrigin === 'current-location' && searchLocation ? 'locate' : 'pin'} size={14} strokeWidth={2.4} />
+              {areaLabel}
+              <HsIcon name="chevronDown" size={14} strokeWidth={2.6} />
+            </button>
+            {/* 전체는 눌린 상태여도 흰 칩(디자인 보드: 진한 칩은 지역 · 고른 음식 종류만) */}
+            <button type="button" aria-pressed={category === 'all'} onClick={() => { setCategory('all'); setSelected(null); }} className={chipClass(false)}>{tx(language, T.all)}</button>
+            {CATEGORY_CHIPS.map((id) => (
+              <button key={id} type="button" aria-pressed={category === id} onClick={() => { setCategory(category === id ? 'all' : id); setSelected(null); }} className={chipClass(category === id)}>
+                {translateText(language, FOOD_CATEGORY_LABELS[id])}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 위치를 아직 모를 때(F2-07) */}
+        {!mapCenter && (
+          locationStatus === 'loading' ? (
+            <div role="status" className="absolute inset-x-5 top-[38%] z-20 text-center text-[14px] font-bold text-hs-ink-500">
+              <span className="mx-auto mb-3 block size-7 animate-spin rounded-full border-[3px] border-hs-mint-200 border-t-hs-brand-700 motion-reduce:animate-none" aria-hidden="true" />
+              {tx(language, T.locating)}
+            </div>
+          ) : (
+            <>
+              <div className="absolute inset-0 z-20 bg-[rgba(238,243,240,0.75)]" aria-hidden="true" />
+              <section role="alert" className="absolute inset-x-5 top-1/2 z-30 -translate-y-1/2 rounded-[32px] bg-hs-surface-0 px-[22px] pt-[26px] pb-5 text-center shadow-[0_16px_40px_rgba(23,32,28,0.14)]">
+                <BowlTile className="mx-auto h-[74px] w-[84px] bg-hs-mint-100 text-hs-brand-700"><HsIcon name="locate" size={34} /></BowlTile>
+                <h2 className="mt-4 whitespace-pre-line text-[19px] leading-[1.35] font-black">{tx(language, T.locationNeeded)}</h2>
+                <p className="mt-2 text-[14px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, T.locationNeededBody)}</p>
+                <HsButton block className="mt-[18px] h-[52px]!" onClick={retryLocation}>{tx(language, T.retryLocation)}</HsButton>
+                <HsButton block variant="outline" size="md" className="mt-2 h-12!" onClick={() => setAreaSheet(true)}>{tx(language, T.goToArea)}</HsButton>
+              </section>
+            </>
+          )
+        )}
+
+        {/* 지도 버튼: 이 지역에서 검색 · 내 위치 */}
+        {mapCenter && !selected && (
+          <div className="pointer-events-none absolute inset-x-0 z-30 grid grid-cols-[1fr_auto_1fr] items-center px-4" style={{ bottom: noResult ? 'calc(min(60%, 360px) + 14px)' : LIST_SHEET_HEIGHT + 14 }}>
+            <span />
+            <div className="pointer-events-auto">
+              {movedByUser && !query.trim() && (
+                <button type="button" onClick={searchHere} className="inline-flex h-10 items-center gap-1.5 rounded-hs-pill bg-hs-brand-700 px-4 text-[13px] font-black text-hs-surface-0 shadow-[0_6px_16px_rgba(23,107,77,0.3)]">
+                  <HsIcon name="refresh" size={15} strokeWidth={2.6} />
+                  {tx(language, T.searchHere)}
+                </button>
+              )}
+            </div>
+            <div className="pointer-events-auto justify-self-end">
+              <button type="button" onClick={searchNearMe} disabled={locationStatus === 'loading'} aria-label={tx(language, T.locate)} className="flex size-12 items-center justify-center rounded-hs-pill bg-hs-surface-0 text-hs-brand-700 shadow-[0_4px_14px_rgba(23,32,28,0.12)] disabled:opacity-60">
+                {locationStatus === 'loading'
+                  ? <span className="size-5 animate-spin rounded-full border-[3px] border-hs-mint-200 border-t-hs-brand-700 motion-reduce:animate-none" aria-hidden="true" />
+                  : <HsIcon name="locate" size={22} />}
+              </button>
+            </div>
           </div>
         )}
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-36 bg-gradient-to-b from-rice-cream/90 to-transparent" />
 
-      <header className="absolute inset-x-0 top-0 z-30 flex h-16 items-center gap-3 px-4 pt-[env(safe-area-inset-top)]">
-        <button
-          type="button"
-          onClick={goBack}
-          aria-label={translateText(language, { ko: '뒤로', en: 'Back', ar: 'رجوع', 'zh-CN': '返回', ja: '戻る', 'zh-TW': '返回', es: 'Volver' })}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border-warm bg-rice-white/95 shadow-sm backdrop-blur"
-        >
-          <ArrowLeft className="size-5 rtl:rotate-180" />
-        </button>
-        <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border-warm bg-rice-white/95 px-4 shadow-sm backdrop-blur">
-          <Search className="size-4 shrink-0 text-text-secondary" />
-          <input
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder={t('식당 이름 검색', 'Search by restaurant name', 'ابحث باسم المطعم')}
-            aria-label={t('식당 검색', 'Search restaurants', 'ابحث عن مطعم')}
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-text-tertiary"
-          />
-          {query && <button type="button" onClick={() => onQueryChange('')} aria-label={t('검색 지우기', 'Clear search', 'مسح البحث')} className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-subtle"><X className="size-4" /></button>}
-        </label>
-      </header>
-
-      <nav
-        aria-label={translateText(language, { ko: '지역으로 이동', en: 'Go to area', ar: 'انتقل إلى منطقة', 'zh-CN': '前往区域', ja: 'エリアへ移動', 'zh-TW': '前往區域', es: 'Ir a la zona' })}
-        className="absolute inset-x-0 top-16 z-30 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]"
-      >
-        {SEOUL_AREAS.map((area) => (
-          <button
-            key={area.id}
-            type="button"
-            aria-pressed={currentArea?.id === area.id}
-            onClick={() => searchArea(area)}
-            className={`inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-xs font-bold shadow-sm ${
-              currentArea?.id === area.id
-                ? 'border-brand-primary bg-brand-primary text-white'
-                : 'border-border-warm bg-rice-white/95 text-text-secondary backdrop-blur'
-            }`}
-          >
-            {translateText(language, area.label)}
-          </button>
+        {/* 아래: 가게 목록 시트(F2-01) · 결과 없음(F2-03) · 가게 상세(F2-04) */}
+        {mapCenter && !selected && (noResult ? (
+          <NoResultSheet language={language} searched={Boolean(query.trim())} onScanWithout={onScanWithoutStore} />
+        ) : (
+          <ListSheet language={language} title={listTitle} sortMenu={sortMenu} onExpand={() => setMode('list')}>
+            {listFallback ?? <div className="space-y-2.5">{visible.map((store) => cardFor(store, () => selectStore(store)))}</div>}
+          </ListSheet>
         ))}
-      </nav>
+        {selected && (
+          <StoreDetailSheet
+            language={language}
+            store={selected}
+            userProfile={userProfile}
+            district={storeDistrict(selected, districtFallback?.(selected))}
+            showDistance={searchOrigin === 'current-location' && !query.trim()}
+            saved={isSaved(selected.storeId)}
+            onToggleSave={() => toggleSave(selected)}
+            reviews={reviews.enabled ? reviewState : null}
+            onRetryReviews={() => setReviewVersion((value) => value + 1)}
+            onSeeAll={() => setReviewsOpen(true)}
+            onClose={() => setSelected(null)}
+            onScan={() => onScan(selected)}
+          />
+        )}
 
-      {(searchLocation || query.trim()) && (
-        <MapStorePanel
-          language={language}
-          stores={visible}
-          selectedId={selected ? selected.storeId : null}
-          onSelect={selectStore}
-          origin={query.trim() ? null : searchOrigin}
-          fallback={fallback}
-          expandSignal={query.trim() || undefined}
-          extras={extras}
-          toolbar={candidates.length > 0 ? ({ expanded }) => (
-            <div className="flex items-center gap-2 ps-4">
-              <SortMenu
-                language={language}
-                value={activeSort}
-                distanceSortable={distanceSortable}
-                openUpward={!expanded}
-                onChange={setSort}
-              />
-              <span aria-hidden="true" className="h-5 w-px shrink-0 bg-border-warm" />
-              <div
-                role="group"
-                aria-label={translateText(language, { ko: '음식 종류', en: 'Cuisine', ar: 'نوع الطعام', 'zh-CN': '菜系', ja: '料理の種類', 'zh-TW': '菜系', es: 'Tipo de cocina' })}
-                className="flex min-w-0 flex-1 gap-2 overflow-x-auto pe-4 [scrollbar-width:none]"
-              >
-                <FilterChip pressed={category === 'all'} onClick={() => { setCategory('all'); setSelectedId(null); }}>
-                  {translateText(language, { ko: '전체', en: 'All', ar: 'الكل', 'zh-CN': '全部', ja: 'すべて', 'zh-TW': '全部', es: 'Todos' })}
-                </FilterChip>
-                {categories.map((id) => (
-                  <FilterChip key={id} pressed={category === id} onClick={() => { setCategory(category === id ? 'all' : id); setSelectedId(null); }}>
-                    <span aria-hidden="true" className="me-1">{FOOD_CATEGORY_ICONS[id]}</span>
-                    {translateText(language, FOOD_CATEGORY_LABELS[id])}
-                  </FilterChip>
-                ))}
-              </div>
-              {isLoading && <Loader2 className="me-4 size-4 shrink-0 animate-spin text-brand-primary" aria-label={translateText(language, { ko: '불러오는 중', en: 'Loading', ar: 'جارٍ التحميل', 'zh-CN': '加载中', ja: '読み込み中', 'zh-TW': '載入中', es: 'Cargando' })} />}
+        {/* 목록 모드(F2-06) */}
+        {mode === 'list' && (
+          <div className="absolute inset-0 z-50 flex flex-col bg-hs-surface-0">
+            <div className="flex-none px-4 pt-[max(18px,env(safe-area-inset-top))]">{searchRow(true)}</div>
+            <PillTabs
+              label={tx(language, T.listTabs)}
+              value={listTab}
+              onChange={setListTab}
+              items={[
+                { value: 'nearby', label: tx(language, query.trim() ? T.results : T.nearby) },
+                { value: 'saved', label: `${tx(language, T.saved)} ${savedStores.length}` },
+              ]}
+              className="mx-5 mt-4 flex-none"
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3.5 pb-6">
+              {listTab === 'saved' ? (
+                <>
+                  <p className="flex items-start gap-2 rounded-[18px] bg-hs-surface-100 px-3.5 py-3 text-[12px] leading-[1.5] font-semibold text-hs-ink-700">
+                    <HsIcon name="alert" size={16} strokeWidth={2.4} className="mt-px flex-none text-hs-brand-700" />
+                    <span>{tx(language, T.deviceNote)}</span>
+                  </p>
+                  <div className="mt-3.5 space-y-2.5">
+                    {savedStores.length === 0
+                      ? <EmptyState icon="bookmark" title={tx(language, T.noSaved)} description={tx(language, T.noSavedBody)} />
+                      : savedStores.map((store) => cardFor(store, () => { setMode('map'); selectStore(store); }))}
+                  </div>
+                </>
+              ) : noResult ? (
+                <NoResultBody language={language} searched={Boolean(query.trim())} onScanWithout={onScanWithoutStore} />
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-2">{listTitle}{sortMenu}</div>
+                  <div className="mt-3">
+                    {listFallback ?? <div className="space-y-2.5">{visible.map((store) => cardFor(store, () => { setMode('map'); selectStore(store); }))}</div>}
+                  </div>
+                </>
+              )}
             </div>
-          ) : undefined}
-          mapControls={{
-            center: movedByUser && !query.trim() ? (
-              <button type="button" onClick={searchHere} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-soy-ink px-4 text-xs font-bold text-white shadow-md">
-                <RotateCw className="size-3.5" aria-hidden="true" />
-                {translateText(language, { ko: '이 지역에서 검색', en: 'Search this area', ar: 'ابحث في هذه المنطقة', 'zh-CN': '搜索此区域', ja: 'このエリアで検索', 'zh-TW': '搜尋此區域', es: 'Buscar en esta zona' })}
-              </button>
-            ) : undefined,
-            end: (
-              <button type="button" onClick={searchNearMe} disabled={locationStatus === 'loading'} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border-warm bg-rice-white px-3.5 text-xs font-bold text-text-primary shadow-md disabled:opacity-70">
-                {locationStatus === 'loading' ? <Loader2 className="size-4 animate-spin text-brand-primary" aria-hidden="true" /> : <LocateFixed className="size-4 text-brand-primary" aria-hidden="true" />}
-                {locationStatus === 'denied'
-                  ? t('위치 다시 확인', 'Try location again', 'إعادة محاولة تحديد الموقع')
-                  : translateText(language, { ko: '내 주변', en: 'Near me', ar: 'بالقرب مني', 'zh-CN': '我的周边', ja: '現在地周辺', 'zh-TW': '我的周邊', es: 'Cerca de mí' })}
-              </button>
-            ),
-          }}
-          onOpenDetail={onOpenDetail}
-          onScan={onScan}
+          </div>
+        )}
+
+      </div>
+
+      <BottomNav language={language} />
+
+      {/* 후기 전체(F2-05)는 하단 내비까지 덮는 전체 화면 */}
+        {reviewsOpen && selected && (
+          <StoreReviewsScreen
+            language={language}
+            storeName={storeDisplayName(selected)}
+            profile={userProfile}
+            reviews={reviewState?.items ?? []}
+            loading={reviewState?.loading ?? false}
+            error={reviewState?.error ?? false}
+            canWrite={reviews.enabled}
+            onRetry={() => setReviewVersion((value) => value + 1)}
+            onBack={() => setReviewsOpen(false)}
+            onReport={reviews.report}
+            onWrite={() => setWriting(true)}
+          />
+        )}
+
+      {areaSheet && (
+        <MapAreaSheet
+          language={language}
+          currentAreaId={searchOrigin === 'current-location' ? null : currentArea?.id ?? null}
+          onClose={() => setAreaSheet(false)}
+          onNearMe={() => { setAreaSheet(false); setMode('map'); searchNearMe(); }}
+          onSelect={(area) => { setAreaSheet(false); goToArea(area.center); }}
+        />
+      )}
+      {writing && selected && (
+        <MealReviewSheet
+          language={language}
+          profile={userProfile}
+          store={{ id: reviews.storeKey(selected), name: storeDisplayName(selected) }}
+          demoMode={demoMode}
+          onClose={() => setWriting(false)}
+          onSaved={() => { setWriting(false); setReviewVersion((value) => value + 1); onReviewSaved?.(); }}
         />
       )}
     </div>
+  );
+}
+
+/** 끌어 올리거나 손잡이를 누르면 목록 모드로 */
+function useDragUp(onUp: () => void) {
+  const start = useRef<number | null>(null);
+  return {
+    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => { start.current = event.clientY; },
+    onPointerUp: (event: ReactPointerEvent<HTMLElement>) => {
+      if (start.current !== null && start.current - event.clientY > 30) onUp();
+      start.current = null;
+    },
+    onPointerCancel: () => { start.current = null; },
+  };
+}
+
+function SheetHandle({ label, onActivate, drag }: { label: string; onActivate: () => void; drag?: ReturnType<typeof useDragUp> }) {
+  return (
+    <div className="flex flex-none touch-none justify-center pt-1" {...drag}>
+      <button type="button" aria-label={label} onClick={onActivate} className="flex h-6 w-16 items-center justify-center">
+        <i aria-hidden="true" className="h-[5px] w-10 rounded-hs-pill bg-hs-line-300" />
+      </button>
+    </div>
+  );
+}
+
+function ListSheet({ language, title, sortMenu, onExpand, children }: { language: Language; title: ReactNode; sortMenu: ReactNode; onExpand: () => void; children: ReactNode }) {
+  const drag = useDragUp(onExpand);
+  return (
+    <section className="absolute inset-x-0 bottom-0 z-40 flex max-h-[55%] flex-col rounded-t-hs-sheet bg-hs-surface-0 shadow-[0_-10px_30px_rgba(23,32,28,0.12)]" style={{ height: LIST_SHEET_HEIGHT }}>
+      <SheetHandle label={tx(language, T.showList)} onActivate={onExpand} drag={drag} />
+      <div className="flex flex-none items-center justify-between gap-2 px-5 pt-1.5" {...drag}>{title}{sortMenu}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4">{children}</div>
+    </section>
+  );
+}
+
+function NoResultBody({ language, searched, onScanWithout }: { language: Language; searched: boolean; onScanWithout: () => void }) {
+  return (
+    <div className="flex flex-col items-center px-3 pt-7 text-center">
+      <BowlTile className="h-[84px] w-24 bg-hs-mint-100 text-hs-brand-700"><HsIcon name="search" size={36} /></BowlTile>
+      <h2 className="mt-[18px] text-[20px] font-black text-hs-ink-900">{tx(language, searched ? T.noResult : T.noNearby)}</h2>
+      <p className="mt-2 whitespace-pre-line text-[14px] leading-[1.55] font-semibold text-hs-ink-500">{tx(language, T.noResultBody)}</p>
+      <HsButton size="cta" icon="scan" className="mt-6" onClick={onScanWithout}>{tx(language, T.scanWithout)}</HsButton>
+    </div>
+  );
+}
+
+function NoResultSheet(props: { language: Language; searched: boolean; onScanWithout: () => void }) {
+  return (
+    <section className="absolute inset-x-0 bottom-0 z-40 max-h-[60%] overflow-y-auto rounded-t-hs-sheet bg-hs-surface-0 px-5 pt-2.5 pb-6 shadow-[0_-10px_30px_rgba(23,32,28,0.12)]">
+      <div className="flex justify-center" aria-hidden="true"><i className="h-[5px] w-10 rounded-hs-pill bg-hs-line-300" /></div>
+      <NoResultBody {...props} />
+    </section>
+  );
+}
+
+function StoreDetailSheet({ language, store, userProfile, district, showDistance, saved, onToggleSave, reviews, onRetryReviews, onSeeAll, onClose, onScan }: {
+  language: Language;
+  store: StoreCandidate;
+  userProfile: UserProfile | null;
+  district: string | null;
+  showDistance: boolean;
+  saved: boolean;
+  onToggleSave: () => void;
+  /** null: 후기 기능 준비 중 */
+  reviews: ReviewState | null;
+  onRetryReviews: () => void;
+  onSeeAll: () => void;
+  onClose: () => void;
+  onScan: () => void;
+}) {
+  const sheetRef = useRef<HTMLElement>(null);
+  const dragStart = useRef<number | null>(null);
+  const myIds = useMemo(() => profileIds(userProfile), [userProfile]);
+  const items = reviews?.items ?? [];
+  const matched = items.filter((review) => matchesProfile(review, myIds));
+  const previews = reviewPreviews(matched, myIds);
+  const meta = [txn(language, REVIEW_COUNT, store.reviewCount ?? 0), district, storeCategoryText(store, language)].filter(Boolean).join(' · ');
+
+  useEffect(() => {
+    sheetRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented && !document.querySelector('[role="dialog"]')) onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [store.storeId, onClose]);
+
+  let body: ReactNode;
+  if (!reviews) body = <p className="px-6 text-[13px] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.preparing)}</p>;
+  else if (reviews.loading) body = <div className="flex gap-2.5 overflow-hidden ps-5"><SkeletonCard language={language} lines={['40%', '55%', '70%']} className="w-[250px] flex-none rounded-[22px]!" /><SkeletonCard language={language} lines={['40%', '55%']} className="w-[250px] flex-none rounded-[22px]!" /></div>;
+  else if (reviews.error) body = (
+    <div className="flex items-center gap-2 px-6">
+      <p className="min-w-0 flex-1 text-[13px] font-bold text-hs-danger-700">{tx(language, REVIEW_TEXT.loadFailed)}</p>
+      <HsButton variant="outline" size="sm" onClick={onRetryReviews}>{tx(language, { ko: '다시 시도', en: 'Try again', ar: 'حاول مرة أخرى', 'zh-CN': '重试', ja: '再試行', 'zh-TW': '重試', es: 'Reintentar' })}</HsButton>
+    </div>
+  );
+  else if (myIds.length === 0) body = <p className="px-6 text-[13px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.noProfile)}</p>;
+  else if (previews.length === 0) body = <p className="px-6 text-[13px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.noMatch)}</p>;
+  else body = (
+    <ul className="flex snap-x scroll-px-5 gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+      {previews.map((preview) => {
+        const value = toAnswerValue(preview.answer);
+        return (
+          <li key={preview.key} className="w-[250px] flex-none snap-start rounded-[22px] bg-hs-surface-0 p-3.5">
+            <span className="inline-flex h-[22px] items-center rounded-hs-pill bg-hs-mint-100 px-2 text-[11px] font-black text-hs-brand-700">{profileTagText(preview.matchId, language, true)}</span>
+            <p className="mt-2 truncate text-[15px] font-black text-hs-ink-900">{preview.menuName}</p>
+            <p className="mt-1 text-[13px] font-bold text-hs-ink-700">{answerLabel(preview.matchId, language)} · {tx(language, T[value])}</p>
+            {preview.note && <p dir="auto" className="mt-1.5 line-clamp-2 text-[13px] leading-[1.5] font-medium text-hs-ink-700">{preview.note}</p>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  return (
+    <section
+      ref={sheetRef}
+      tabIndex={-1}
+      aria-labelledby="map-store-name"
+      className="absolute inset-x-0 bottom-0 z-40 flex max-h-[calc(100%-120px)] flex-col rounded-t-hs-sheet bg-hs-surface-0 shadow-[0_-10px_30px_rgba(23,32,28,0.12)] focus:outline-none"
+    >
+      <div
+        className="flex-none touch-none"
+        onPointerDown={(event) => { dragStart.current = event.clientY; }}
+        onPointerUp={(event) => { if (dragStart.current !== null && event.clientY - dragStart.current > 50) onClose(); dragStart.current = null; }}
+        onPointerCancel={() => { dragStart.current = null; }}
+      >
+        <SheetHandle label={tx(language, T.closeDetail)} onActivate={onClose} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex items-start gap-2.5 ps-6 pe-5 pt-2">
+          <div className="min-w-0 flex-1">
+            <h2 id="map-store-name" className="text-[22px] leading-tight font-black text-hs-ink-900">{storeDisplayName(store)}</h2>
+            {meta && <p className="mt-1 text-[13px] font-semibold text-hs-ink-500">{meta}</p>}
+            {showDistance && typeof store.distanceMeters === 'number' && (
+              <p className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-extrabold text-hs-brand-700">
+                <HsIcon name="pin" size={13} strokeWidth={2.4} />
+                {(DISTANCE[language] ?? DISTANCE.en)(formatDistance(store.distanceMeters))}
+              </p>
+            )}
+          </div>
+          <HsIconButton
+            icon="bookmark"
+            label={tx(language, saved ? T.unsave : T.save)}
+            aria-pressed={saved}
+            onClick={onToggleSave}
+            className={`border-[1.5px] border-hs-line-200 ${saved ? 'text-hs-brand-700 [&_svg]:fill-current' : ''}`}
+          />
+        </div>
+
+        <section className="mt-[18px] bg-hs-surface-100 pt-[18px] pb-5" aria-labelledby="map-store-reviews">
+          <div className="flex items-center justify-between gap-2 ps-6 pe-4">
+            <h3 id="map-store-reviews" className="flex min-w-0 items-center gap-1.5 text-[16px] font-black text-hs-ink-900">
+              <HsIcon name="person" size={18} className="flex-none text-hs-brand-700" />
+              <span className="min-w-0">{tx(language, REVIEW_TEXT.title)}</span>
+              {reviews && !reviews.loading && !reviews.error && myIds.length > 0 && <span dir="ltr" className="flex-none text-hs-brand-700">{matched.length}</span>}
+            </h3>
+            {reviews && !reviews.loading && !reviews.error && (
+              <button type="button" onClick={onSeeAll} className="inline-flex min-h-11 flex-none items-center gap-0.5 px-1 text-[13px] font-extrabold text-hs-ink-900">
+                {tx(language, REVIEW_TEXT.seeAll)}
+                <HsIcon name="forward" size={16} strokeWidth={2.4} className={FLIP_RTL} />
+              </button>
+            )}
+          </div>
+          <p className="mx-6 mt-0.5 mb-3 text-[12px] font-semibold text-hs-ink-500">{tx(language, REVIEW_TEXT.subtitle)}</p>
+          {body}
+        </section>
+      </div>
+      <div className="flex-none border-t-[1.5px] border-hs-line-200 bg-hs-surface-0 px-5 pt-3 pb-3.5">
+        <HsButton block icon="scan" className="h-[54px]! text-[16px]!" onClick={onScan}>{tx(language, T.scanStore)}</HsButton>
+      </div>
+    </section>
   );
 }

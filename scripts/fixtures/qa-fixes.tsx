@@ -6,7 +6,7 @@ import { ResultsScreen } from '../../src/app/components/ResultsScreen';
 import { SavedMenusScreen } from '../../src/app/components/SavedMenusScreen';
 import { MyReviewsScreen } from '../../src/app/components/reviews/MyReviewsScreen';
 import { OwnerCommunicationSheet } from '../../src/app/components/OwnerCommunicationSheet';
-import { MapStorePanel } from '../../src/app/components/discovery/MapStorePanel';
+import { StoreMapView } from '../../src/app/components/RestaurantMapScreen';
 import { ScreenErrorBoundary, ScreenErrorFallback } from '../../src/app/components/ScreenErrorBoundary';
 import { lazyScreen, retryFailedScreens } from '../../src/app/lazyScreen';
 import type { MenuAnalysis } from '../../src/app/types';
@@ -26,7 +26,7 @@ function QA() {
  {screen==='saved' &&<SavedMenusScreen language={language}/>}
  {screen==='reviews'&&<MyReviewsScreen language={language} profile={null}/>}
  {screen==='owner'&&(closed?<p>Sheet closed</p>:<OwnerCommunicationSheet language={language} menu={menu} userProfile={null} type="request" demoMode onClose={()=>setClosed(true)}/>)}
- {screen==='map'&&<MapStorePanel language={language} stores={stores} selectedId={-20261123} onSelect={()=>{}} origin={null} onOpenDetail={()=>{}} onScan={()=>{}}/>}
+ {screen==='map'&&<StoreMapView language={language} userProfile={null} query="" onQueryChange={()=>{}} demoMode initialSelectedId={-20261123} discovery={{candidates:stores,error:false,isLoading:false,locationStatus:'ready',retryLocation:()=>{},retrySearch:()=>{},searchAt:()=>{},searchAtCurrentLocation:()=>{},searchLocation:{latitude:37.5,longitude:127},searchOrigin:'map-center'}} reviews={{enabled:true,load:async()=>[],report:async()=>{},storeKey:(store)=>store.storeId}} onScan={()=>{}} onScanWithoutStore={()=>{}}/>}
  {screen==='chunk'&&<ScreenErrorBoundary onReset={retryFailedScreens} fallback={reset=><ScreenErrorFallback language={language} pathname="/map" onRetry={reset}/>}><Suspense fallback={<p>Loading</p>}><Failed/></Suspense></ScreenErrorBoundary>}
  </main></>;
 }

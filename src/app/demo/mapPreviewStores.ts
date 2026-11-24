@@ -1,9 +1,7 @@
 import type { StoreCandidate } from '../../api/store';
-import type { StoreCardExtras } from '../components/discovery/MapStorePanel';
-import { DINING_PHOTO_POOL } from '../components/discovery/restaurantPhotos';
 
 /**
- * `/dev/map-preview` 전용 가상 데이터(용산 밀집·같은 좌표 겹침 재현). 좌표·별점·영업시간·사진·층은 실제 정보 아님.
+ * `/dev/map-preview` 전용 가상 데이터(용산 밀집·같은 좌표 겹침 재현). 좌표·층은 실제 정보 아님.
  * 층은 후보 API 원본 형식("6", "B1", "지", "반지층", "")으로 포맷터 확인용.
  */
 export const MAP_PREVIEW_CENTER = { latitude: 37.5312, longitude: 126.9636 };
@@ -51,7 +49,6 @@ const SCATTERED_FLOORS: Array<string | undefined> = [
   '반지층', '1', '', 'B2', '1', '', '반', '2',
   undefined, '1', '', '3', '1', '',
 ];
-const HOURS = ['11:00–21:00', '10:30–22:00', '17:00–24:00', '11:30–15:00, 17:00–21:30'];
 
 function seeded(index: number, salt: number) {
   const value = Math.sin(index * salt) * 43758.5453;
@@ -89,12 +86,3 @@ export const MAP_PREVIEW_CANDIDATES: StoreCandidate[] = spots.map((spot, index) 
   floorInfo: spot.floor,
   matchMethod: 'gps_candidate',
 }));
-
-export const MAP_PREVIEW_EXTRAS = new Map<number, StoreCardExtras>(
-  MAP_PREVIEW_CANDIDATES.map((store, index) => [store.storeId, {
-    rating: Math.round((3.6 + seeded(index + 1, 5.71) * 1.3) * 10) / 10,
-    hours: HOURS[index % HOURS.length],
-    // 분위기 참고 사진(실제 가게 사진 아님). 3곳마다 1곳은 사진 없음.
-    photos: index % 3 === 2 ? undefined : [0, 1, 2].map((offset) => DINING_PHOTO_POOL[(index + offset) % DINING_PHOTO_POOL.length]),
-  }]),
-);

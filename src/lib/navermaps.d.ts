@@ -32,6 +32,8 @@ declare namespace naver.maps {
     constructor(element: string | HTMLElement, options?: MapOptions);
     getCenter(): LatLng;
     setCenter(latlng: LatLng): void;
+    /** 픽셀만큼 지도를 옮긴다(양수 y: 보이는 영역이 아래로) */
+    panBy(offset: Point): void;
     setZoom(zoom: number): void;
     fitBounds(bounds: LatLngBounds, padding?: number | object): void;
     getProjection(): MapSystemProjection;

@@ -98,6 +98,7 @@ Tailwind 클래스(`@theme inline`):
 ## 진행 기록
 
 - 2026-11-24 흐름 1: 랜딩 · 로그인 · 약관 · 온보딩을 새 컴포넌트로 다시 구현(`LanguageButton` 추가).
+- 2026-11-25 흐름 2: 지도에서 가게 찾기(`RestaurantMapScreen`, `components/map/`). 공통 `StoreCard` · `PillTabs` · `SearchField` · `HsSheet` · 상태 블록을 쓰고, 지역 시트 · 후기 전체 화면 · 칩 메뉴(`map/ChipMenu`)를 추가. 아이콘 list · map · locate · sort · refresh.
 - 2026-11-25 홈: 캔버스 '홈 디벨롭 ②'대로(하드코딩 가게 탐색 · 스포트라이트). `DietPromptCard` 새 모양, 아이콘 noodle · meat · skewer.
 - 2026-11-25 흐름 3: 메뉴판 찍기(촬영 탭 · 카메라 · 사진 확인 · 분석 중 · 실패)와 식당 선택 시트(`discovery/RestaurantPicker`)를 새 컴포넌트로. `HsDialog keepIsPrimary`(분석 취소 확인), `ScanHistoryCard` › 표시, 아이콘 clock · file · spark · hand 추가.
 - 2026-11-24 흐름 4: 판정 결과를 다시 구현. `results/` 아래 결과 카드 · 직원 소통 카드 시트(`StaffCardsSheet`) · 내 식단 보여주기(`ShowDietSheet`) · 기록 수정(`EditRecordSheet`) · 메뉴판 사진(`MenuPhotoViewer`), 직원 문장 7개 언어(`staffText.ts`). 식사 후기 시트(`reviews/MealReviewSheet`)도 새 컴포넌트로. 토스트는 body 포털(앱 틀이 `isolation: isolate`라 시트 위에 보이게). 옛 `OwnerCommunicationSheet` · `ProfileCommunicationSheet` · `SaveScanSheet` · `results/AnalysisInsights` · `CommunicationActions`는 이제 쓰지 않음(마지막 정리 단계에서 삭제). `ResultEvidence`는 저장한 메뉴 화면이 바뀔 때까지 남김.
