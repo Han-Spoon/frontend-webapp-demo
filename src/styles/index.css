@@ -60,9 +60,10 @@ textarea {
 }
 
 .eyebrow {
-  color: var(--brand-primary);
-  font-size: 10px;
-  font-weight: 800;
+  color: var(--hs-brand-700);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.3;
   letter-spacing: .16em;
 }
 

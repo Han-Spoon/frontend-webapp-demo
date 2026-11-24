@@ -1,0 +1,157 @@
+import type { AllText, CountText } from '../hs/text';
+import type { HsRisk } from '../hs/risk';
+
+/** 판정 결과(흐름 4) 화면 문구. 7개 언어를 모두 적는다. */
+export const R = {
+  screenTitle: { ko: '스캔 결과', en: 'Scan results', ar: 'نتائج المسح', 'zh-CN': '扫描结果', ja: 'スキャン結果', 'zh-TW': '掃描結果', es: 'Resultados' },
+  menuPhoto: { ko: '메뉴판 사진', en: 'Menu photo', ar: 'صورة القائمة', 'zh-CN': '菜单照片', ja: 'メニュー写真', 'zh-TW': '菜單照片', es: 'Foto del menú' },
+  editRecord: { ko: '기록 수정', en: 'Edit record', ar: 'تعديل السجل', 'zh-CN': '编辑记录', ja: '記録を編集', 'zh-TW': '編輯紀錄', es: 'Editar registro' },
+  guideTitle: { ko: '나를 위한 메뉴 가이드', en: 'Your menu guide', ar: 'دليل القائمة الخاص بك', 'zh-CN': '专属于我的菜单指南', ja: 'わたしのメニューガイド', 'zh-TW': '專屬於我的菜單指南', es: 'Tu guía del menú' },
+  noStoreChip: { ko: '식당 없이 스캔 · 식당 연결하기', en: 'No restaurant · Link a restaurant', ar: 'بدون مطعم · اربط مطعمًا', 'zh-CN': '未选餐厅 · 关联餐厅', ja: 'お店なしでスキャン · お店をつなぐ', 'zh-TW': '未選餐廳 · 連結餐廳', es: 'Sin restaurante · Vincular' },
+  appliedProfile: { ko: '적용된 내 식단 프로필', en: 'Applied dietary profile', ar: 'الملف الغذائي المطبق', 'zh-CN': '已应用的饮食档案', ja: '適用中の食事プロフィール', 'zh-TW': '已套用的飲食檔案', es: 'Perfil alimentario aplicado' },
+  basisAtScan: { ko: '판정 기준 식단', en: 'Diet used for this result', ar: 'النظام الغذائي المستخدم لهذه النتيجة', 'zh-CN': '本次判定所用的饮食', ja: 'この判定に使った食事条件', 'zh-TW': '本次判定所用的飲食', es: 'Dieta usada en este resultado' },
+  showMyDiet: { ko: '직원에게 내 식단 보여주기', en: 'Show staff my diet', ar: 'اعرض نظامي الغذائي على الموظف', 'zh-CN': '向店员出示我的饮食', ja: 'スタッフに食事条件を見せる', 'zh-TW': '向店員出示我的飲食', es: 'Mostrar mi dieta al personal' },
+  profileUnknown: {
+    ko: '내 식단 정보를 불러오지 못했어요. 아래 판정은 받은 그대로 보여 드려요. 먹기 전에 직원에게 재료를 확인하세요.',
+    en: 'We couldn’t load your dietary settings. The results below are shown as received. Check the ingredients with staff before eating.',
+    ar: 'تعذر تحميل إعداداتك الغذائية. النتائج أدناه معروضة كما وصلت. تحقق من المكونات مع الموظفين قبل الأكل.',
+    'zh-CN': '无法加载你的饮食设置。以下判定按收到的结果显示。用餐前请向店员确认食材。',
+    ja: '食事設定を読み込めませんでした。下の判定は受け取ったまま表示しています。食べる前にスタッフに材料を確認してください。',
+    'zh-TW': '無法載入你的飲食設定。以下判定按收到的結果顯示。用餐前請向店員確認食材。',
+    es: 'No pudimos cargar tus preferencias alimentarias. Los resultados se muestran tal como llegaron. Confirma los ingredientes con el personal antes de comer.',
+  },
+  basisUnknown: {
+    ko: '이 스캔 당시의 식단 조건은 확인할 수 없어요. 스캔 뒤에 바꾼 식단은 판정에 반영되지 않았어요.',
+    en: 'We can’t show the dietary settings used for this scan. Changes made after scanning are not reflected in these results.',
+    ar: 'لا يمكننا عرض الإعدادات الغذائية المستخدمة في هذا المسح. التغييرات بعد المسح لا تنعكس في هذه النتائج.',
+    'zh-CN': '无法确认这次扫描时的饮食条件。扫描后修改的饮食不会反映在判定中。',
+    ja: 'このスキャン時の食事条件は確認できません。スキャン後に変えた条件は判定に反映されていません。',
+    'zh-TW': '無法確認這次掃描時的飲食條件。掃描後修改的飲食不會反映在判定中。',
+    es: 'No podemos mostrar la dieta usada en este escaneo. Los cambios posteriores no se reflejan en estos resultados.',
+  },
+  rescanWithCurrent: { ko: '지금 식단으로 다시 스캔', en: 'Rescan with my current diet', ar: 'أعد المسح بنظامي الغذائي الحالي', 'zh-CN': '按当前饮食重新扫描', ja: '今の食事条件で再スキャン', 'zh-TW': '依目前飲食重新掃描', es: 'Volver a escanear con mi dieta actual' },
+  dietEmpty: {
+    ko: '설정된 식단 조건이 없어서 위험·주의 판정 없이 재료만 보여 드려요. 알레르기나 피하는 음식이 있다면 설정해 주세요.',
+    en: 'No dietary conditions are set, so we show ingredients without Danger or Caution labels. If you have allergies or foods you avoid, set them up.',
+    ar: 'لا توجد شروط غذائية محددة، لذلك نعرض المكونات دون تصنيف خطر أو تنبيه. إذا كانت لديك حساسية أو أطعمة تتجنبها، فحددها.',
+    'zh-CN': '尚未设置饮食条件，所以只显示食材，不显示危险或注意判定。如果你有过敏或忌口，请进行设置。',
+    ja: '食事の条件が設定されていないため、危険・注意の判定なしで材料だけを表示しています。アレルギーや避けたい食べ物があれば設定してください。',
+    'zh-TW': '尚未設定飲食條件，所以只顯示食材，不顯示危險或注意判定。如果你有過敏或忌口，請進行設定。',
+    es: 'No has indicado condiciones alimentarias, así que mostramos los ingredientes sin etiquetas de Peligro o Precaución. Si tienes alergias o evitas algún alimento, indícalo.',
+  },
+  noConditions: { ko: '설정된 식단 조건이 없어요.', en: 'No dietary conditions are set.', ar: 'لا توجد شروط غذائية محددة.', 'zh-CN': '尚未设置饮食条件。', ja: '食事の条件が設定されていません。', 'zh-TW': '尚未設定飲食條件。', es: 'No has indicado condiciones alimentarias.' },
+  setDiet: { ko: '식단 설정하기', en: 'Set up my diet', ar: 'حدد نظامي الغذائي', 'zh-CN': '设置饮食条件', ja: '食事の条件を設定', 'zh-TW': '設定飲食條件', es: 'Indicar mi dieta' },
+  filters: { ko: '결과 필터', en: 'Result filters', ar: 'مرشحات النتائج', 'zh-CN': '结果筛选', ja: '結果の絞り込み', 'zh-TW': '結果篩選', es: 'Filtros de resultados' },
+  all: { ko: '전체', en: 'All', ar: 'الكل', 'zh-CN': '全部', ja: 'すべて', 'zh-TW': '全部', es: 'Todos' },
+  related: { ko: '관련 재료', en: 'Related', ar: 'مكونات ذات صلة', 'zh-CN': '相关食材', ja: '関連する材料', 'zh-TW': '相關食材', es: 'Relacionados' },
+  myRelated: { ko: '내 식단과 관련된 재료', en: 'Ingredients related to my diet', ar: 'مكونات مرتبطة بنظامي الغذائي', 'zh-CN': '与我的饮食相关的食材', ja: '食事条件に関わる材料', 'zh-TW': '與我的飲食相關的食材', es: 'Ingredientes relacionados con mi dieta' },
+  likelyFirst: { ko: '가능성 높은 순', en: 'Most likely first', ar: 'الأكثر احتمالًا أولًا', 'zh-CN': '按可能性从高到低', ja: '可能性の高い順', 'zh-TW': '依可能性由高到低', es: 'Más probables primero' },
+  topLikely: { ko: '가능성이 높은 재료', en: 'Most likely ingredients', ar: 'المكونات الأكثر احتمالًا', 'zh-CN': '可能性较高的食材', ja: '可能性の高い材料', 'zh-TW': '可能性較高的食材', es: 'Ingredientes más probables' },
+  hidden: { ko: '숨은 재료', en: 'Hidden', ar: 'مكون خفي', 'zh-CN': '隐藏食材', ja: '隠れた材料', 'zh-TW': '隱藏食材', es: 'Oculto' },
+  main: { ko: '주재료', en: 'Main ingredient', ar: 'مكون رئيسي', 'zh-CN': '主料', ja: '主な材料', 'zh-TW': '主料', es: 'Principal' },
+  present: { ko: '들어 있음', en: 'Contains', ar: 'يحتوي', 'zh-CN': '含有', ja: '入っている', 'zh-TW': '含有', es: 'Lo lleva' },
+  absent: { ko: '없음', en: 'Not used', ar: 'غير موجود', 'zh-CN': '没有', ja: '入っていない', 'zh-TW': '沒有', es: 'No lo lleva' },
+  pending: { ko: '확인 전', en: 'Not checked', ar: 'لم يُتحقق بعد', 'zh-CN': '未确认', ja: '未確認', 'zh-TW': '未確認', es: 'Sin confirmar' },
+  spicy: { ko: '매운 메뉴', en: 'Spicy', ar: 'طبق حار', 'zh-CN': '辣味菜', ja: '辛いメニュー', 'zh-TW': '辣味菜', es: 'Picante' },
+  staffCards: { ko: '직원 소통 카드', en: 'Staff cards', ar: 'بطاقات الموظفين', 'zh-CN': '店员沟通卡', ja: 'スタッフ用カード', 'zh-TW': '店員溝通卡', es: 'Para el personal' },
+  more: { ko: '자세히 보기', en: 'Details', ar: 'التفاصيل', 'zh-CN': '查看详情', ja: '詳しく見る', 'zh-TW': '查看詳情', es: 'Ver más' },
+  less: { ko: '접기', en: 'Collapse', ar: 'طي', 'zh-CN': '收起', ja: '閉じる', 'zh-TW': '收合', es: 'Ver menos' },
+  inferred: { ko: '추정', en: 'estimated', ar: 'تقديري', 'zh-CN': '推测', ja: '推定', 'zh-TW': '推測', es: 'estimado' },
+  noPrice: { ko: '가격 확인 필요', en: 'Check the price', ar: 'يجب التحقق من السعر', 'zh-CN': '价格待确认', ja: '価格は要確認', 'zh-TW': '價格待確認', es: 'Consulta el precio' },
+  storyTitle: { ko: '메뉴를 골랐다면, 한식 이야기', en: 'Picked your dish? A little more Korea', ar: 'اخترت طبقك؟ المزيد عن كوريا', 'zh-CN': '选好菜了吗？再了解一点韩餐', ja: 'メニューを決めたら、韓国料理のお話', 'zh-TW': '選好菜了嗎？再認識一點韓食', es: '¿Ya elegiste? Un poco más de Corea' },
+  noticeGuide: { ko: '판정은 참고용이에요. 재료와 조리 환경은 매장에 꼭 확인하세요.', en: 'Results are a guide. Always confirm ingredients and preparation with the restaurant.', ar: 'النتائج إرشادية. تحقق دائمًا من المكونات وطريقة التحضير لدى المطعم.', 'zh-CN': '判定仅供参考。食材和烹饪环境请务必向店家确认。', ja: '判定は参考です。材料と調理環境は必ずお店に確認してください。', 'zh-TW': '判定僅供參考。食材和烹調環境請務必向店家確認。', es: 'Los resultados son orientativos. Confirma siempre los ingredientes y la preparación con el restaurante.' },
+  noticePercent: { ko: '%는 그 재료가 들어 있을 가능성이에요. 먹어도 안전할 확률이 아니에요.', en: 'The % is the chance the ingredient is in the dish, not the chance it is safe to eat.', ar: 'النسبة هي احتمال وجود المكون في الطبق، وليست احتمال أن يكون آمنًا للأكل.', 'zh-CN': '%是该食材可能含在菜里的概率，不是可以安全食用的概率。', ja: '%はその材料が入っている可能性です。食べても安全な確率ではありません。', 'zh-TW': '%是該食材可能含在菜裡的機率，不是可以安全食用的機率。', es: 'El % es la probabilidad de que el plato lleve ese ingrediente, no la de que sea seguro comerlo.' },
+  noticeFixedRate: { ko: '환산 가격은 고정 환율로 계산한 참고 가격이에요.', en: 'Converted prices use a fixed reference rate.', ar: 'الأسعار المحولة محسوبة بسعر صرف مرجعي ثابت.', 'zh-CN': '换算价格按固定汇率计算，仅供参考。', ja: '換算価格は固定レートで計算した参考価格です。', 'zh-TW': '換算價格依固定匯率計算，僅供參考。', es: 'Los precios convertidos usan un tipo de cambio fijo de referencia.' },
+  howToRead: { ko: '판정 읽는 법', en: 'How to read results', ar: 'كيف تقرأ النتائج', 'zh-CN': '如何看判定', ja: '判定の見方', 'zh-TW': '如何看判定', es: 'Cómo leer los resultados' },
+  noStoreTitle: { ko: '식당을 정하지 않고 스캔했어요', en: 'You scanned without a restaurant', ar: 'مسحت دون تحديد مطعم', 'zh-CN': '这次扫描没有选择餐厅', ja: 'お店を決めずにスキャンしました', 'zh-TW': '這次掃描沒有選擇餐廳', es: 'Escaneaste sin elegir restaurante' },
+  noStoreBody: {
+    ko: "식당이 없으면 '안전' 판정이 나오지 않아요. 식당을 연결하면 기록과 후기에 쓸 수 있어요(이미 나온 판정은 그대로).",
+    en: "Without a restaurant, no dish is marked 'Safe'. Link one to use this scan for records and reviews (current results stay the same).",
+    ar: "بدون مطعم لا يُصنَّف أي طبق 'آمن'. اربط مطعمًا لاستخدام هذا المسح في السجلات والمراجعات (تبقى النتائج الحالية كما هي).",
+    'zh-CN': "没有餐厅时不会出现'安全'判定。关联餐厅后可用于记录和评价（已有判定不变）。",
+    ja: "お店がないと『安全』の判定は出ません。お店をつなぐと記録とレビューに使えます（すでに出た判定はそのまま）。",
+    'zh-TW': "沒有餐廳時不會出現'安全'判定。連結餐廳後可用於紀錄和評價（已有判定不變）。",
+    es: "Sin restaurante ningún plato aparece como 'Seguro'. Vincúlalo para usar este escaneo en registros y reseñas (los resultados actuales no cambian).",
+  },
+  linkStore: { ko: '식당 연결하기', en: 'Link a restaurant', ar: 'اربط مطعمًا', 'zh-CN': '关联餐厅', ja: 'お店をつなぐ', 'zh-TW': '連結餐廳', es: 'Vincular restaurante' },
+  rescan: { ko: '다시 스캔', en: 'Scan again', ar: 'امسح مجددًا', 'zh-CN': '重新扫描', ja: '再スキャン', 'zh-TW': '重新掃描', es: 'Reescanear' },
+  writeReview: { ko: '식사 후기 남기기', en: 'Write a review', ar: 'أضف مراجعة', 'zh-CN': '写用餐评价', ja: '食事レビュー', 'zh-TW': '寫用餐評價', es: 'Dejar reseña' },
+  emptyFilter: { ko: '이 상태의 메뉴가 없어요', en: 'No dishes match this filter', ar: 'لا توجد أطباق بهذا التصنيف', 'zh-CN': '没有该状态的菜', ja: 'この状態のメニューはありません', 'zh-TW': '沒有該狀態的菜', es: 'Ningún plato coincide con este filtro' },
+  emptyAll: { ko: '분석된 메뉴가 없어요', en: 'No analyzed dishes', ar: 'لا توجد أطباق محللة', 'zh-CN': '没有分析出的菜', ja: '分析されたメニューがありません', 'zh-TW': '沒有分析出的菜', es: 'No hay platos analizados' },
+  emptyHint: { ko: '다른 필터를 선택하거나 다시 스캔해 주세요.', en: 'Choose another filter or scan again.', ar: 'اختر مرشحًا آخر أو أعد المسح.', 'zh-CN': '请选择其他筛选或重新扫描。', ja: '別の絞り込みを選ぶか、もう一度スキャンしてください。', 'zh-TW': '請選擇其他篩選或重新掃描。', es: 'Elige otro filtro o escanea de nuevo.' },
+  favoriteLoadError: { ko: '찜 목록을 불러오지 못했어요.', en: 'Could not load saved dishes.', ar: 'تعذر تحميل الأطباق المحفوظة.', 'zh-CN': '无法加载收藏的菜。', ja: 'お気に入りを読み込めませんでした。', 'zh-TW': '無法載入收藏的菜。', es: 'No pudimos cargar los platos guardados.' },
+  favoriteNotYet: { ko: '이 메뉴는 아직 찜할 수 없어요.', en: 'This dish can’t be saved yet.', ar: 'لا يمكن حفظ هذا الطبق بعد.', 'zh-CN': '这道菜暂时无法收藏。', ja: 'このメニューはまだお気に入りにできません。', 'zh-TW': '這道菜暫時無法收藏。', es: 'Este plato aún no se puede guardar.' },
+  favoriteError: { ko: '찜을 바꾸지 못했어요. 다시 시도해 주세요.', en: 'Could not update saved dishes. Please try again.', ar: 'تعذر تحديث الأطباق المحفوظة. حاول مرة أخرى.', 'zh-CN': '无法更改收藏，请重试。', ja: 'お気に入りを変更できませんでした。もう一度お試しください。', 'zh-TW': '無法變更收藏，請重試。', es: 'No pudimos actualizar tus guardados. Inténtalo de nuevo.' },
+  favoriteSaved: { ko: '찜한 메뉴에 담았어요', en: 'Saved to your dishes', ar: 'تم الحفظ في أطباقك', 'zh-CN': '已加入收藏', ja: 'お気に入りに追加しました', 'zh-TW': '已加入收藏', es: 'Guardado en tus platos' },
+  view: { ko: '보기', en: 'View', ar: 'عرض', 'zh-CN': '查看', ja: '見る', 'zh-TW': '查看', es: 'Ver' },
+} satisfies Record<string, AllText>;
+
+export const RN = {
+  description: {
+    ko: (n) => `메뉴 ${n}개를 내 식단 기준으로 살펴봤어요.`,
+    en: (n) => `We checked ${n} ${n === 1 ? 'dish' : 'dishes'} against your diet.`,
+    ar: (n) => `فحصنا ${n} طبقًا حسب نظامك الغذائي.`,
+    'zh-CN': (n) => `已按我的饮食查看了 ${n} 道菜。`,
+    ja: (n) => `${n}品のメニューを食事条件で確認しました。`,
+    'zh-TW': (n) => `已依我的飲食查看了 ${n} 道菜。`,
+    es: (n) => `Revisamos ${n} ${n === 1 ? 'plato' : 'platos'} según tu dieta.`,
+  },
+  descriptionAtScan: {
+    ko: (n) => `메뉴 ${n}개를 스캔 당시 식단 기준으로 살펴봤어요.`,
+    en: (n) => `We checked ${n} ${n === 1 ? 'dish' : 'dishes'} against your diet at scan time.`,
+    ar: (n) => `فحصنا ${n} طبقًا حسب نظامك الغذائي وقت المسح.`,
+    'zh-CN': (n) => `已按扫描时的饮食查看了 ${n} 道菜。`,
+    ja: (n) => `${n}品のメニューをスキャン時の食事条件で確認しました。`,
+    'zh-TW': (n) => `已依掃描時的飲食查看了 ${n} 道菜。`,
+    es: (n) => `Revisamos ${n} ${n === 1 ? 'plato' : 'platos'} según tu dieta al escanear.`,
+  },
+  descriptionPlain: {
+    ko: (n) => `메뉴 ${n}개를 살펴봤어요.`,
+    en: (n) => `We checked ${n} ${n === 1 ? 'dish' : 'dishes'}.`,
+    ar: (n) => `فحصنا ${n} طبقًا.`,
+    'zh-CN': (n) => `已查看 ${n} 道菜。`,
+    ja: (n) => `${n}品のメニューを確認しました。`,
+    'zh-TW': (n) => `已查看 ${n} 道菜。`,
+    es: (n) => `Revisamos ${n} ${n === 1 ? 'plato' : 'platos'}.`,
+  },
+  descriptionIngredients: {
+    ko: (n) => `메뉴 ${n}개의 재료를 정리했어요.`,
+    en: (n) => `Ingredients for ${n} ${n === 1 ? 'dish' : 'dishes'}.`,
+    ar: (n) => `مكونات ${n} طبقًا.`,
+    'zh-CN': (n) => `已整理 ${n} 道菜的食材。`,
+    ja: (n) => `${n}品のメニューの材料をまとめました。`,
+    'zh-TW': (n) => `已整理 ${n} 道菜的食材。`,
+    es: (n) => `Ingredientes de ${n} ${n === 1 ? 'plato' : 'platos'}.`,
+  },
+  count: {
+    ko: (n) => `${n}개`, en: (n) => `${n}`, ar: (n) => `${n}`, 'zh-CN': (n) => `${n}种`, ja: (n) => `${n}件`, 'zh-TW': (n) => `${n}種`, es: (n) => `${n}`,
+  },
+  outOf: {
+    ko: (n) => `관련 재료 ${n}개 중`, en: (n) => `of ${n} related`, ar: (n) => `من ${n} مكونًا ذا صلة`, 'zh-CN': (n) => `共 ${n} 种相关食材`, ja: (n) => `関連する材料 ${n}件中`, 'zh-TW': (n) => `共 ${n} 種相關食材`, es: (n) => `de ${n} relacionados`,
+  },
+  seeAll: {
+    ko: (n) => `관련 재료 ${n}개 모두 보기`, en: (n) => `See all ${n} related ingredients`, ar: (n) => `عرض كل المكونات ذات الصلة (${n})`, 'zh-CN': (n) => `查看全部 ${n} 种相关食材`, ja: (n) => `関連する材料 ${n}件をすべて見る`, 'zh-TW': (n) => `查看全部 ${n} 種相關食材`, es: (n) => `Ver los ${n} ingredientes relacionados`,
+  },
+  sheetTitle: {
+    ko: (n) => `관련 재료 ${n}개`, en: (n) => `${n} related ingredients`, ar: (n) => `${n} مكونًا ذا صلة`, 'zh-CN': (n) => `${n} 种相关食材`, ja: (n) => `関連する材料 ${n}件`, 'zh-TW': (n) => `${n} 種相關食材`, es: (n) => `${n} ingredientes relacionados`,
+  },
+  probability: {
+    ko: (n) => `포함 가능성 ${n}%`, en: (n) => `${n}% likely to be included`, ar: (n) => `احتمال الوجود ${n}%`, 'zh-CN': (n) => `含有可能性 ${n}%`, ja: (n) => `入っている可能性 ${n}%`, 'zh-TW': (n) => `含有可能性 ${n}%`, es: (n) => `${n}% de probabilidad de llevarlo`,
+  },
+} satisfies Record<string, CountText>;
+
+/** 서버 문장이 없을 때 판정별 기본 문장 */
+export const RISK_FALLBACK: Record<HsRisk, AllText> = {
+  safe: { ko: '확보한 정보에서 식단 충돌을 찾지 못했어요.', en: 'No dietary conflict was found in the available information.', ar: 'لم يظهر تعارض غذائي في المعلومات المتاحة.', 'zh-CN': '在现有信息中没有发现饮食冲突。', ja: '得られた情報では食事条件との衝突は見つかりませんでした。', 'zh-TW': '在現有資訊中沒有發現飲食衝突。', es: 'No encontramos conflictos con tu dieta en la información disponible.' },
+  caution: { ko: '재료나 조리법을 한 번 더 확인해 주세요.', en: 'Please check the ingredients or cooking method once more.', ar: 'يرجى التحقق من المكونات أو طريقة التحضير مرة أخرى.', 'zh-CN': '请再确认一次食材或做法。', ja: '材料や調理法をもう一度確認してください。', 'zh-TW': '請再確認一次食材或做法。', es: 'Vuelve a confirmar los ingredientes o la preparación.' },
+  danger: { ko: '식단 기준과 맞지 않아 피하는 게 좋아요.', en: 'This doesn’t fit your diet, so it’s best to avoid it.', ar: 'هذا لا يناسب نظامك الغذائي، لذا يُفضّل تجنبه.', 'zh-CN': '与你的饮食条件不符，最好避开。', ja: '食事条件に合わないため、避けたほうがよいです。', 'zh-TW': '與你的飲食條件不符，最好避開。', es: 'No encaja con tu dieta; es mejor evitarlo.' },
+  unknown: { ko: '이 메뉴는 판정하지 못했어요. 먹기 전에 직원에게 재료를 물어보세요.', en: 'We couldn’t assess this dish. Ask staff about the ingredients before eating.', ar: 'لم نتمكن من تقييم هذا الطبق. اسأل الموظف عن المكونات قبل تناوله.', 'zh-CN': '这道菜无法判定。用餐前请向店员询问食材。', ja: 'このメニューは判定できませんでした。食べる前にスタッフに材料を聞いてください。', 'zh-TW': '這道菜無法判定。用餐前請向店員詢問食材。', es: 'No pudimos evaluar este plato. Pregunta al personal por los ingredientes antes de comer.' },
+};
+
+/** 판정 읽는 법 시트: 판정별 설명 */
+export const RISK_GUIDE: Record<HsRisk, AllText> = {
+  safe: { ko: '확보한 정보에서 내 식단과 충돌하는 재료를 찾지 못했어요. 실제 재료와 조리 환경은 확인해 주세요.', en: 'No ingredient conflicting with your diet was found. Still confirm actual ingredients and preparation.', ar: 'لم يُعثر على مكون يتعارض مع نظامك الغذائي. تحقق مع ذلك من المكونات الفعلية وطريقة التحضير.', 'zh-CN': '在现有信息中没有发现与饮食冲突的食材。实际食材和烹饪环境仍请确认。', ja: '食事条件とぶつかる材料は見つかりませんでした。実際の材料と調理環境は確認してください。', 'zh-TW': '在現有資訊中沒有發現與飲食衝突的食材。實際食材和烹調環境仍請確認。', es: 'No encontramos ingredientes que choquen con tu dieta. Aun así, confirma los ingredientes y la preparación.' },
+  caution: { ko: '내 식단 재료가 들어갈 수 있어요. %는 그 재료가 들어 있을 가능성이에요. 주문 전에 직원에게 물어보세요.', en: 'An ingredient from your diet may be used. The % is the chance it is included. Ask staff before ordering.', ar: 'قد يُستخدم مكون يخص نظامك الغذائي. النسبة هي احتمال وجوده. اسأل الموظف قبل الطلب.', 'zh-CN': '可能含有与你饮食相关的食材。%是含有该食材的可能性。点餐前请询问店员。', ja: '食事条件に関わる材料が入っているかもしれません。%は入っている可能性です。注文前にスタッフに聞いてください。', 'zh-TW': '可能含有與你飲食相關的食材。%是含有該食材的可能性。點餐前請詢問店員。', es: 'Puede llevar un ingrediente de tu dieta. El % es la probabilidad de que lo lleve. Pregunta antes de pedir.' },
+  danger: { ko: '내 식단과 맞지 않는 재료가 들어 있어요. 피하는 게 좋아요.', en: 'It contains an ingredient that doesn’t fit your diet. It’s best to avoid it.', ar: 'يحتوي على مكون لا يناسب نظامك الغذائي. يُفضّل تجنبه.', 'zh-CN': '含有与你饮食不符的食材，最好避开。', ja: '食事条件に合わない材料が入っています。避けたほうがよいです。', 'zh-TW': '含有與你飲食不符的食材，最好避開。', es: 'Lleva un ingrediente que no encaja con tu dieta. Mejor evítalo.' },
+  unknown: { ko: '정보가 부족해 판정하지 못했어요. 먹기 전에 직원에게 재료를 물어보세요.', en: 'There wasn’t enough information to assess it. Ask staff about the ingredients before eating.', ar: 'لم تكن المعلومات كافية للتقييم. اسأل الموظف عن المكونات قبل الأكل.', 'zh-CN': '信息不足，无法判定。用餐前请向店员询问食材。', ja: '情報が足りず判定できませんでした。食べる前にスタッフに材料を聞いてください。', 'zh-TW': '資訊不足，無法判定。用餐前請向店員詢問食材。', es: 'No había información suficiente para evaluarlo. Pregunta al personal antes de comer.' },
+};

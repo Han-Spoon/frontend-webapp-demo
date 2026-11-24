@@ -1,122 +1,87 @@
-import { ArrowRight, Languages, MessageSquareText, ScanLine, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/brand/han-spoon-logo.svg';
 import type { Language } from '../types';
-import { createTranslator, LANGUAGE_OPTIONS } from '../locales';
+import { BowlTile, HsButton, HsIcon, LanguageButton, Logo, tx, type AllText, type HsIconName } from './hs';
 
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1718777791262-c66d11baaa3b?auto=format&fit=crop&w=1600&q=90';
-// Deepthi Clicks / Unsplash: https://unsplash.com/photos/-UUkXJIXgy4
+const T = {
+  eyebrow: { ko: 'AI 한식 메뉴 가이드', en: 'AI KOREAN MENU GUIDE', ar: 'دليل قوائم الطعام الكورية بالذكاء الاصطناعي', 'zh-CN': 'AI 韩餐菜单指南', ja: 'AI 韓国料理メニューガイド', 'zh-TW': 'AI 韓式菜單指南', es: 'GUÍA DE MENÚS COREANOS CON IA' },
+  headline: {
+    ko: '낯선 한식 메뉴도\n맛있는 발견으로!',
+    en: 'Unfamiliar Korean menus,\ndelicious discoveries!',
+    ar: 'قوائم كورية غير مألوفة\nتتحول إلى اكتشافات لذيذة!',
+    'zh-CN': '陌生的韩餐菜单，\n也能变成美味发现！',
+    ja: '見慣れない韓国料理も\nおいしい発見に！',
+    'zh-TW': '陌生的韓式菜單，\n也能變成美味發現！',
+    es: '¡Menús coreanos desconocidos,\ndescubrimientos deliciosos!',
+  },
+  body: {
+    ko: '메뉴판 한 장이면 번역부터 내 식단 확인,\n식당에서 필요한 말까지 준비해드려요.',
+    en: 'One menu photo gives you translations, a check against your diet,\nand the words you need at the table.',
+    ar: 'صورة واحدة للقائمة تمنحك الترجمة والتحقق من نظامك الغذائي\nوالعبارات التي تحتاجها في المطعم.',
+    'zh-CN': '只需一张菜单照片，就能翻译、核对饮食需求，\n还能准备好在餐厅要说的话。',
+    ja: 'メニュー1枚で翻訳から食事条件の確認、\nお店で必要なひと言まで準備します。',
+    'zh-TW': '只要一張菜單照片，就能翻譯、核對飲食需求，\n還能準備好在餐廳要說的話。',
+    es: 'Con una foto del menú obtienes la traducción, la revisión según tu dieta\ny las frases que necesitas en el restaurante.',
+  },
+  features: { ko: '한스푼 주요 기능', en: 'Han Spoon features', ar: 'مزايا هان سبون', 'zh-CN': 'Han Spoon 主要功能', ja: 'Han Spoon の主な機能', 'zh-TW': 'Han Spoon 主要功能', es: 'Funciones de Han Spoon' },
+  start: { ko: '한스푼 시작하기', en: 'Start with Han Spoon', ar: 'ابدأ مع هان سبون', 'zh-CN': '开始使用 Han Spoon', ja: 'Han Spoon をはじめる', 'zh-TW': '開始使用 Han Spoon', es: 'Empezar con Han Spoon' },
+} satisfies Record<string, AllText>;
 
-export function LandingScreen({
-  language,
-  setLanguage,
-}: {
-  language: Language;
-  setLanguage: (language: Language) => void;
-}) {
+const FEATURES: Array<{ icon: HsIconName; label: AllText }> = [
+  { icon: 'translate', label: { ko: '메뉴 번역', en: 'Translate', ar: 'ترجمة', 'zh-CN': '菜单翻译', ja: 'メニュー翻訳', 'zh-TW': '菜單翻譯', es: 'Traducir' } },
+  { icon: 'bowl', label: { ko: '식단 확인', en: 'Check diet', ar: 'تحقق غذائي', 'zh-CN': '饮食确认', ja: '食事チェック', 'zh-TW': '飲食確認', es: 'Revisar dieta' } },
+  { icon: 'message', label: { ko: '직원 소통', en: 'Talk to staff', ar: 'تواصل', 'zh-CN': '与店员沟通', ja: 'スタッフと会話', 'zh-TW': '與店員溝通', es: 'Hablar al personal' } },
+];
+
+/** 버블 9개: [left, top, size, 색, 애니메이션, 주기, 시작] (390 폭 기준) */
+const BUBBLES: Array<[number, number, number, string, 'drift' | 'float', number, number]> = [
+  [196, 118, 168, 'rgba(255,255,255,0.72)', 'drift', 7, 0],
+  [36, 146, 112, 'var(--hs-mint-200)', 'float', 6, -1.5],
+  [300, 86, 72, 'rgba(60,203,142,0.35)', 'float', 5.5, -0.8],
+  [150, 256, 48, 'rgba(244,119,59,0.85)', 'float', 4.8, -2],
+  [286, 246, 92, 'rgba(255,255,255,0.55)', 'drift', 6.5, -3],
+  [104, 104, 28, 'var(--hs-brand-700)', 'float', 5, -1],
+  [334, 196, 18, 'var(--hs-orange-500)', 'float', 4.2, -0.5],
+  [58, 292, 38, 'rgba(255,255,255,0.8)', 'float', 5.8, -2.4],
+  [238, 322, 22, 'var(--hs-mint-200)', 'float', 4.6, -1.2],
+];
+
+/** 흐름 1 ① 랜딩 */
+export function LandingScreen({ language, setLanguage }: { language: Language; setLanguage: (language: Language) => void }) {
   const navigate = useNavigate();
-  const t = createTranslator(language);
-
   return (
-    <div className="relative h-dvh max-w-full overflow-x-hidden overflow-y-auto bg-soy-ink text-white">
-      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-brand-green-900" />
-        <img
-          src={HERO_IMAGE}
-          alt=""
-          className="h-[46%] w-full object-cover object-[center_48%] opacity-95"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,31,23,.08)_0%,rgba(12,34,26,.18)_20%,rgba(14,37,28,.85)_44%,#12251d_61%,#12251d_100%)]" />
-        <div className="absolute -end-20 bottom-28 size-64 rounded-full bg-brand-orange-500/20 blur-3xl" />
-        <div className="absolute -start-24 bottom-0 size-72 rounded-full bg-brand-green-500/25 blur-3xl" />
+    <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="relative h-[392px] overflow-hidden rounded-b-[56px] bg-hs-mint-100">
+          <div aria-hidden="true" className="absolute inset-0">
+            {BUBBLES.map(([left, top, size, color, kind, duration, delay], index) => (
+              <span
+                key={index}
+                className={`absolute rounded-hs-pill motion-reduce:animate-none ${kind === 'drift' ? 'animate-hs-drift' : 'animate-hs-float'}`}
+                style={{ left: `${(left / 390) * 100}%`, top, width: size, height: size, background: color, animationDuration: `${duration}s`, animationDelay: `${delay}s` }}
+              />
+            ))}
+          </div>
+          <div className="relative flex items-center justify-between px-5 pt-[max(18px,env(safe-area-inset-top))]">
+            <Logo height={30} />
+            <LanguageButton language={language} setLanguage={setLanguage} />
+          </div>
+        </div>
+        <div className="px-6 pt-[26px]">
+          <p className="text-[12px] font-black tracking-[0.06em] text-hs-brand-700">{tx(language, T.eyebrow)}</p>
+          <h1 className="mt-2 whitespace-pre-line text-[30px] leading-[1.25] font-black tracking-[-0.02em]">{tx(language, T.headline)}</h1>
+          <p className="mt-2.5 whitespace-pre-line text-[15px] leading-[1.55] text-hs-ink-500">{tx(language, T.body)}</p>
+        </div>
+        <ul aria-label={tx(language, T.features)} className="mx-6 mt-[22px] mb-6 grid grid-cols-3 gap-2 rounded-3xl bg-hs-surface-100 px-2 py-4">
+          {FEATURES.map((feature) => (
+            <li key={feature.icon} className="flex flex-col items-center gap-2 text-center">
+              <BowlTile className="h-12 w-[52px] bg-hs-mint-100 text-hs-brand-700"><HsIcon name={feature.icon} size={24} strokeWidth={2.1} /></BowlTile>
+              <span className="text-[13px] font-extrabold">{tx(language, feature.label)}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-
-      <div className="relative z-10 flex min-h-full flex-col px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <header className="flex min-w-0 items-center justify-between gap-3">
-          <span className="inline-flex rounded-2xl bg-rice-white/95 px-3 py-2 shadow-lg backdrop-blur">
-            <img
-              src={logo}
-              alt={t('한스푼', 'Han Spoon', 'هان سبون')}
-              className="h-auto w-[108px]"
-            />
-          </span>
-
-          <label className="relative flex min-h-11 items-center gap-2 rounded-full border border-white/25 bg-soy-ink/55 px-3 text-sm font-bold text-white shadow-lg backdrop-blur-md">
-            <Languages className="size-4" aria-hidden="true" />
-            <select
-              aria-label={t('언어 선택', 'Choose language', 'اختر اللغة')}
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as Language)}
-              className="appearance-none bg-transparent pe-4 outline-none"
-            >
-              {LANGUAGE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value} className="text-soy-ink">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute end-3 text-[10px] text-white/70">▾</span>
-          </label>
-        </header>
-
-        <main className="mt-auto pt-6">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-extrabold tracking-[.14em] text-white/90 backdrop-blur-md">
-            <span className="size-1.5 rounded-full bg-brand-orange-500" />
-            {t('한식 메뉴 가이드', 'YOUR TASTE, YOUR KOREA', 'ذوقك، كوريا الخاصة بك')}
-          </div>
-
-          <h1 className="max-w-[370px] whitespace-pre-line break-words text-[38px] font-extrabold leading-[1.08] tracking-[-0.045em]">
-            {t(
-              '낯선 한식 메뉴도,\n맛있는 발견으로.',
-              'Discover Korean food,\none menu at a time.',
-              'اكتشف الطعام الكوري\nإلى اكتشاف شهي.',
-            )}
-          </h1>
-          <p className="mt-4 max-w-[350px] text-[15px] font-medium leading-6 text-white/72">
-            {t(
-              '메뉴판 한 장이면 번역부터 내 식단 확인, 식당에서 필요한 말까지 준비해드려요.',
-              'One menu photo gives you translations, dietary guidance, and the words you need at the table.',
-              'صورة واحدة للقائمة تمنحك الترجمة وإرشادات النظام الغذائي والعبارات التي تحتاجها.',
-            )}
-          </p>
-
-          <p className="mt-4 max-w-[350px] text-sm leading-6 text-white/80">
-            {t(
-              '한식 메뉴를 내 식단 기준으로 살펴보세요. 재료의 포함 여부와 확인이 필요한 정보를 구분하고, 궁금한 점은 직원에게 물어볼 수 있어요.',
-              'Explore Korean dishes with your dietary needs in mind. See ingredient information and what still needs checking, then ask staff your questions.',
-              'استكشف الأطباق الكورية وفق احتياجاتك الغذائية. اطّلع على معلومات المكونات وما يحتاج إلى تحقق، ثم اسأل الموظفين.',
-            )}
-          </p>
-          <div className="mt-6 grid grid-cols-3 gap-2" aria-label={t('한스푼 주요 기능', 'Han Spoon highlights', 'مزايا هان سبون')}>
-            {[
-              [ScanLine, t('메뉴 번역', 'Translate', 'ترجمة')],
-              [ShieldCheck, t('식단 확인', 'Check', 'تحقق')],
-              [MessageSquareText, t('직원 소통', 'Communicate', 'تواصل')],
-            ].map(([Icon, label]) => {
-              const FeatureIcon = Icon as typeof ScanLine;
-              return (
-                <div key={String(label)} className="rounded-[20px] border border-white/12 bg-white/[.08] p-3 backdrop-blur-md">
-                  <FeatureIcon className="mb-2 size-4 text-[#8ad6b3]" aria-hidden="true" />
-                  <p className="text-[11px] font-bold text-white/90">{String(label)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </main>
-
-        <footer className="mt-5">
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="group flex min-h-15 w-full items-center justify-between rounded-full bg-rice-white py-2 ps-6 pe-2 text-start font-extrabold text-soy-ink shadow-[0_18px_48px_rgba(0,0,0,.28)]"
-          >
-            <span className="min-w-0 break-words">{t('한스푼 시작하기', 'Start with Han Spoon', 'ابدأ مع هان سبون')}</span>
-            <span className="flex size-12 items-center justify-center rounded-full bg-brand-primary text-white transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5">
-              <ArrowRight className="size-5 rtl:rotate-180" aria-hidden="true" />
-            </span>
-          </button>
-        </footer>
+      <div className="flex-none bg-hs-surface-0 px-5 pt-3 pb-[max(28px,env(safe-area-inset-bottom))]">
+        <HsButton size="cta" onClick={() => navigate('/login')}>{tx(language, T.start)}</HsButton>
       </div>
     </div>
   );

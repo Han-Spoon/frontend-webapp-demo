@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, ChevronDown, CircleAlert, CircleDashed, Clock, Database, Loader2, ScanText, Search, ShieldCheck } from 'lucide-react';
-import { appliedScanProfile, deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan } from '../../api/scan';
+import { appliedScanProfile, deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan, type ScanRecordResponse } from '../../api/scan';
 import { ApiError } from '../../api/user';
 import type { StoreSummary } from '../../api/store';
 import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../types';
@@ -13,7 +13,7 @@ interface AnalyzingScreenProps {
   image: PendingMenuImage | null;
   userProfile: UserProfile | null;
   fixedResults?: boolean;
-  onComplete: (scanId: string | null, menus: MenuAnalysis[], store: StoreSummary | null, appliedProfile: UserProfile | null) => void;
+  onComplete: (scanId: string | null, menus: MenuAnalysis[], store: StoreSummary | null, appliedProfile: UserProfile | null, meta?: { title?: string | null; scannedAt?: string | null; record?: ScanRecordResponse | null }) => void;
   onRetryWithNewImage: () => void;
   onCancel: () => void;
 }
@@ -171,7 +171,7 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
             activeScanId.current = null;
             // 방금 시작한 스캔: 스냅샷이 없으면 지금 식단이 판정 기준.
             const appliedProfile = appliedScanProfile(result.dietSnapshot, userProfile, result.locale ?? language) ?? userProfile;
-            onComplete(scanId, (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, appliedProfile)), result.record?.store ?? result.store ?? null, appliedProfile);
+            onComplete(scanId, (result.menus ?? []).map((menu, index) => mapMenuResult(menu, index, result.locale ?? language, appliedProfile)), result.record?.store ?? result.store ?? null, appliedProfile, { title: result.title, scannedAt: result.scannedAt, record: result.record ?? null });
             return;
           }
           if (status === 'needs_retake') {

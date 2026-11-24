@@ -15,6 +15,10 @@ export interface ResultSession {
   profile?: UserProfile | null;
   /** 판정 당시 식단 모름(서버 기록의 dietSnapshot null) */
   profileUnknown: boolean;
+  /** 기록 이름(서버 title · 기기 기록 title) */
+  title?: string | null;
+  /** 스캔 시각(ISO). 없으면 결과를 연 시각. */
+  scannedAt?: string | null;
   /** 방금 찍은 메뉴판 사진의 임시 주소(blob). 결과 화면을 떠나면 해제. */
   photoUrl: string | null;
 }
