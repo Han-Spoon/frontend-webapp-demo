@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, ChevronDown, CircleAlert, CircleDashed, Clock, Database, Loader2, ScanText, Search, ShieldCheck } from 'lucide-react';
 import { appliedScanProfile, deleteScan, getScanResult, mapMenuResult, normalizeScanStatus, startScan, type ScanRecordResponse } from '../../api/scan';
 import { ApiError } from '../../api/user';
 import type { StoreSummary } from '../../api/store';
 import type { Language, MenuAnalysis, PendingMenuImage, UserProfile } from '../types';
-import { createTranslator, translateText, type LocalizedText } from '../locales';
+import { translateText, type LocalizedText } from '../locales';
 import { FILMING_MENUS } from '../results/filmingFixtures';
-import { ConfirmDialog } from './common/ConfirmDialog';
+import { HsButton, HsDialog, HsIcon, HsLinkButton, tx, type AllText, type HsIconName } from './hs';
 
 interface AnalyzingScreenProps {
   language: Language;
@@ -56,6 +55,42 @@ const RETAKE_TIPS: LocalizedText[] = [
   },
 ];
 
+const A = {
+  analyzing: { ko: '메뉴판 분석 중', en: 'Analyzing the menu', ar: 'جار تحليل القائمة', 'zh-CN': '正在分析菜单', ja: 'メニューを分析中', 'zh-TW': '正在分析菜單', es: 'Analizando el menú' },
+  checking: { ko: '필요한 정보를 차근차근 확인하고 있어요', en: 'We’re checking everything step by step', ar: 'نتحقق من المعلومات خطوة بخطوة', 'zh-CN': '正在一步步确认所需信息', ja: '必要な情報を一つずつ確認しています', 'zh-TW': '正在一步步確認所需資訊', es: 'Revisamos todo paso a paso' },
+  soon: { ko: '결과가 나오면 바로 보여 드릴게요.', en: 'We’ll show the result as soon as it’s ready.', ar: 'سنعرض النتيجة فور جاهزيتها.', 'zh-CN': '结果一出来就会马上显示。', ja: '結果が出たらすぐにお見せします。', 'zh-TW': '結果一出來就會馬上顯示。', es: 'Te mostraremos el resultado en cuanto esté listo.' },
+  slow: { ko: '평소보다 오래 걸리고 있어요. 조금만 더 기다려 주세요.', en: 'This is taking longer than usual. Please wait a little longer.', ar: 'يستغرق هذا وقتًا أطول من المعتاد. يرجى الانتظار قليلًا.', 'zh-CN': '比平时花的时间更长。请再稍等一下。', ja: 'いつもより時間がかかっています。もう少しお待ちください。', 'zh-TW': '比平時花的時間更長。請再稍等一下。', es: 'Está tardando más de lo normal. Espera un poco más.' },
+  order: { ko: '이런 순서로 확인해요', en: 'What we check, in order', ar: 'ما نتحقق منه بالترتيب', 'zh-CN': '我们按以下顺序检查', ja: 'この順番で確認します', 'zh-TW': '我們依以下順序檢查', es: 'Lo que revisamos, en orden' },
+  step1: { ko: '메뉴 이름과 설명을 읽고 있어요', en: 'Reading dish names and descriptions', ar: 'نقرأ أسماء الأطباق وأوصافها', 'zh-CN': '正在读取菜名和说明', ja: 'メニュー名と説明を読んでいます', 'zh-TW': '正在讀取菜名和說明', es: 'Leyendo nombres y descripciones' },
+  step2: { ko: '조리법과 재료 정보를 찾고 있어요', en: 'Finding recipes and ingredients', ar: 'نبحث عن طرق الطهي والمكونات', 'zh-CN': '正在查找做法和食材信息', ja: '調理法と材料の情報を探しています', 'zh-TW': '正在查找做法和食材資訊', es: 'Buscando recetas e ingredientes' },
+  step3: { ko: '육수와 소스 속 숨은 재료도 확인하고 있어요', en: 'Checking hidden ingredients in broths and sauces', ar: 'نتحقق من المكونات الخفية في المرق والصلصات', 'zh-CN': '也在确认汤底和酱料里的隐藏食材', ja: 'だしやソースに隠れた材料も確認しています', 'zh-TW': '也在確認湯底和醬料裡的隱藏食材', es: 'Revisando ingredientes ocultos en caldos y salsas' },
+  step4: { ko: '내 식단 기준과 비교하고 있어요', en: 'Comparing with your diet', ar: 'نقارن مع نظامك الغذائي', 'zh-CN': '正在与我的饮食条件比较', ja: '食事条件と比べています', 'zh-TW': '正在與我的飲食條件比較', es: 'Comparando con tu dieta' },
+  details: { ko: '분석 과정 자세히 보기', en: 'How the analysis works', ar: 'كيف يعمل التحليل', 'zh-CN': '查看分析过程', ja: '分析の流れを詳しく見る', 'zh-TW': '查看分析過程', es: 'Cómo funciona el análisis' },
+  howTitle: { ko: '어떻게 확인하나요?', en: 'How do we check?', ar: 'كيف نتحقق؟', 'zh-CN': '我们如何检查？', ja: 'どうやって確認するの？', 'zh-TW': '我們如何檢查？', es: '¿Cómo lo revisamos?' },
+  howBody: { ko: '사진 속 글자를 읽고, 메뉴마다 흔히 들어가는 재료를 찾아요. 육수·소스처럼 겉으로 안 보이는 재료도 살펴보고, 내 식단과 겹치는지 비교해요. 가게 직원이 답한 기록이 있으면 함께 반영해요.', en: 'We read the text in your photo and look up the ingredients each dish usually has, including hidden ones like broths and sauces, then compare them with your diet. Staff answers recorded for the restaurant are included too.', ar: 'نقرأ النص في صورتك ونبحث عن المكونات المعتادة لكل طبق، بما فيها المخفية مثل المرق والصلصات، ثم نقارنها بنظامك الغذائي. ونضيف إجابات الموظفين المسجلة إن وجدت.', 'zh-CN': '我们会读取照片里的文字，查找每道菜常用的食材，也会查看汤底、酱料等看不见的食材，再与我的饮食比较。如有店员回答的记录，也会一并参考。', ja: '写真の文字を読み、メニューごとによく使われる材料を探します。だし・ソースのように見えない材料も確認し、食事条件と重なるか比べます。お店のスタッフが答えた記録があれば合わせて反映します。', 'zh-TW': '我們會讀取照片裡的文字，查找每道菜常用的食材，也會查看湯底、醬料等看不見的食材，再與我的飲食比較。如有店員回答的紀錄，也會一併參考。', es: 'Leemos el texto de la foto y buscamos los ingredientes habituales de cada plato, incluidos los ocultos como caldos y salsas, y los comparamos con tu dieta. Si el personal ha respondido antes, también lo tenemos en cuenta.' },
+  noPercent: { ko: '단계마다 얼마나 진행됐는지는 알 수 없어서 퍼센트는 보여 드리지 않아요.', en: 'We can’t tell how far each step has gone, so we don’t show a percentage.', ar: 'لا يمكننا معرفة مدى تقدّم كل خطوة، لذلك لا نعرض نسبة مئوية.', 'zh-CN': '无法知道每个步骤进行到哪里，所以不显示百分比。', ja: '各段階の進み具合はわからないため、パーセントは表示しません。', 'zh-TW': '無法知道每個步驟進行到哪裡，所以不顯示百分比。', es: 'No sabemos cuánto avanza cada paso, así que no mostramos porcentajes.' },
+  cancel: { ko: '분석 취소', en: 'Cancel analysis', ar: 'إلغاء التحليل', 'zh-CN': '取消分析', ja: '分析をキャンセル', 'zh-TW': '取消分析', es: 'Cancelar análisis' },
+  cancelTitle: { ko: '분석을 취소할까요?', en: 'Cancel the analysis?', ar: 'هل تريد إلغاء التحليل؟', 'zh-CN': '要取消分析吗？', ja: '分析をキャンセルしますか？', 'zh-TW': '要取消分析嗎？', es: '¿Cancelar el análisis?' },
+  cancelBody: { ko: '이 사진의 분석 화면에서 나가요.', en: 'You’ll leave this photo’s analysis.', ar: 'ستغادر تحليل هذه الصورة.', 'zh-CN': '将离开这张照片的分析画面。', ja: 'この写真の分析画面を終了します。', 'zh-TW': '將離開這張照片的分析畫面。', es: 'Saldrás del análisis de esta foto.' },
+  keep: { ko: '계속 분석', en: 'Keep analyzing', ar: 'متابعة التحليل', 'zh-CN': '继续分析', ja: '分析を続ける', 'zh-TW': '繼續分析', es: 'Seguir analizando' },
+  failed: { ko: '분석하지 못했어요', en: 'Couldn’t analyze the menu', ar: 'تعذر تحليل القائمة', 'zh-CN': '未能完成分析', ja: '分析できませんでした', 'zh-TW': '未能完成分析', es: 'No pudimos analizar el menú' },
+  retakeTitle: { ko: '다시 찍어 주세요', en: 'Please retake the photo', ar: 'يرجى إعادة التصوير', 'zh-CN': '请重新拍摄', ja: 'もう一度撮ってください', 'zh-TW': '請重新拍攝', es: 'Vuelve a hacer la foto' },
+  retakeBody: { ko: '이 사진으로는 메뉴를 확인하기 어려워요.', en: 'It’s hard to read the menu from this photo.', ar: 'يصعب قراءة القائمة من هذه الصورة.', 'zh-CN': '这张照片难以识别菜单。', ja: 'この写真ではメニューを確認しにくいです。', 'zh-TW': '這張照片難以辨識菜單。', es: 'Es difícil leer el menú en esta foto.' },
+  tryThis: { ko: '이렇게 찍어 보세요', en: 'Try this', ar: 'جرّب ما يلي', 'zh-CN': '可以这样拍', ja: 'こう撮ってみてください', 'zh-TW': '可以這樣拍', es: 'Prueba así' },
+  newPhoto: { ko: '새 사진으로 다시 시도', en: 'Try a new photo', ar: 'حاول بصورة جديدة', 'zh-CN': '换张新照片重试', ja: '新しい写真でもう一度', 'zh-TW': '換張新照片重試', es: 'Probar con otra foto' },
+  retry: { ko: '다시 시도', en: 'Try again', ar: 'حاول مرة أخرى', 'zh-CN': '重试', ja: '再試行', 'zh-TW': '重試', es: 'Reintentar' },
+  home: { ko: '홈으로', en: 'Go home', ar: 'إلى الرئيسية', 'zh-CN': '回到首页', ja: 'ホームへ', 'zh-TW': '回到首頁', es: 'Ir al inicio' },
+  photoAlt: { ko: '분석 중인 메뉴판', en: 'Menu being analyzed', ar: 'القائمة قيد التحليل', 'zh-CN': '正在分析的菜单', ja: '分析中のメニュー', 'zh-TW': '正在分析的菜單', es: 'Menú en análisis' },
+} satisfies Record<string, AllText>;
+
+const STEPS: Array<{ icon: HsIconName; text: AllText }> = [
+  { icon: 'file', text: A.step1 },
+  { icon: 'search', text: A.step2 },
+  { icon: 'bowl', text: A.step3 },
+  { icon: 'shield', text: A.step4 },
+];
+const TIP_ICONS: HsIconName[] = ['scan', 'spark', 'hand'];
+
 /** 서버 한국어 문장 목록의 빈 값 제거(배열이 아니면 빈 목록) */
 function cleanSentences(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim() !== '').map(item => item.trim()) : [];
@@ -73,7 +108,6 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
   const [retakeSuggestions, setRetakeSuggestions] = useState<string[]>([]);
   const activeScanId = useRef<string | null>(null);
 
-  const t = createTranslator(language);
   const tr = (text: LocalizedText) => translateText(language, text);
   // 진행 중 서버 스캔은 취소 시 삭제.
   const cancel = () => {
@@ -81,25 +115,6 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
     activeScanId.current = null;
     onCancel();
   };
-  const cancelDialog = confirmCancel && (
-    <ConfirmDialog
-      language={language}
-      title={t('분석을 취소할까요?', 'Cancel the analysis?', 'هل تريد إلغاء التحليل؟')}
-      description={t('이 사진의 분석 화면에서 나가요.', 'You will leave this photo’s analysis.', 'ستغادر تحليل هذه الصورة.')}
-      cancelLabel={t('계속 분석', 'Keep analyzing', 'متابعة التحليل')}
-      confirmLabel={t('분석 취소', 'Cancel analysis', 'إلغاء التحليل')}
-      onCancel={() => setConfirmCancel(false)}
-      onConfirm={cancel}
-    />
-  );
-
-  const steps = [
-    { icon: ScanText, label: t('메뉴 이름과 설명을 읽고 있어요', 'Reading menu names and descriptions', 'جار قراءة أسماء الأطباق وأوصافها') },
-    { icon: Search, label: t('조리법과 재료 정보를 찾고 있어요', 'Finding cooking and ingredient information', 'جار البحث عن معلومات الطهي والمكونات') },
-    { icon: Database, label: t('육수와 소스 속 숨은 재료도 확인하고 있어요', 'Checking hidden ingredients in broths and sauces', 'جار التحقق من المكونات المخفية في المرق والصلصات') },
-    { icon: ShieldCheck, label: t('내 식단 기준과 비교하고 있어요', 'Comparing with your dietary profile', 'جار المقارنة مع ملفك الغذائي') },
-  ];
-
   const scanFailureMessage = (failureCode?: string | null) => {
     switch (failureCode) {
       case 'OCR_SERVICE_ERROR':
@@ -227,155 +242,112 @@ export function AnalyzingScreen({ language, image, userProfile, fixedResults = f
     return () => window.clearTimeout(timer);
   }, [phase, attempt]);
 
-  // 재촬영 안내(needs_retake). 서버 이유·제안은 번역 없는 한국어라 한국어 사용자에게만.
-  if (phase === 'retake') {
-    const serverTips = language === 'ko';
+  const cancelDialog = confirmCancel && (
+    <HsDialog
+      language={language}
+      title={tx(language, A.cancelTitle)}
+      description={tx(language, A.cancelBody)}
+      cancelLabel={tx(language, A.keep)}
+      confirmLabel={tx(language, A.cancel)}
+      keepIsPrimary
+      onCancel={() => setConfirmCancel(false)}
+      onConfirm={cancel}
+    />
+  );
+
+  // F3-07 분석 실패 · 재촬영 안내(needs_retake). 서버 이유 · 제안은 번역 없는 한국어라 한국어 사용자에게만.
+  if (phase === 'retake' || phase === 'failed') {
+    const retake = phase === 'retake';
+    const serverTips = retake && language === 'ko';
     const reasons = serverTips ? retakeReasons : [];
     const tips = serverTips && retakeSuggestions.length > 0 ? retakeSuggestions : RETAKE_TIPS.map(tr);
+    const newPhoto = retake || retryRequiresNewUpload;
     return (
-      <div className="flex h-dvh flex-col bg-surface-base">
-        <div className="relative flex h-16 flex-shrink-0 items-center justify-center border-b border-border-warm bg-surface-raised/95 px-5">
-          <h1 className="text-base font-bold text-soy-ink">{tr({ ko: '다시 찍어 주세요', en: 'Please retake the photo', ar: 'يرجى إعادة التصوير', 'zh-CN': '请重新拍摄', ja: 'もう一度撮ってください', 'zh-TW': '請重新拍攝', es: 'Vuelve a hacer la foto' })}</h1>
-        </div>
-        <div className="flex-1 overflow-y-auto px-5 py-8">
-          <div className="mx-auto w-full max-w-sm">
-            <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl border border-border-warm bg-surface-raised shadow-[var(--shadow-card)]">
-              <Camera className="size-7 text-brand-accent" aria-hidden="true" />
-            </div>
-            <p className="text-center text-lg font-bold leading-relaxed text-soy-ink">
-              {tr({ ko: '이 사진으로는 메뉴를 확인하기 어려워요.', en: 'It’s hard to check the menu from this photo.', ar: 'يصعب فحص القائمة من هذه الصورة.', 'zh-CN': '这张照片难以识别菜单。', ja: 'この写真ではメニューを確認しにくいです。', 'zh-TW': '這張照片難以辨識菜單。', es: 'Es difícil revisar el menú con esta foto.' })}
-            </p>
+      <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <header role="alert" className="rounded-b-[56px] bg-hs-coral-100 px-6 pt-10 pb-8 text-center">
+            <span aria-hidden="true" className="mx-auto flex h-[84px] w-24 items-center justify-center rounded-t-[30px] rounded-b-[44px] bg-hs-surface-0 text-hs-coral-700">
+              <HsIcon name={retake ? 'scan' : 'file'} size={34} />
+            </span>
+            <h1 className="mt-5 hs-title-lg">{tx(language, retake ? A.retakeTitle : A.failed)}</h1>
+            <p className="mt-2 text-[14px] leading-[1.5] font-bold text-hs-coral-700">{retake ? tx(language, A.retakeBody) : errorMessage}</p>
             {reasons.length > 0 && (
-              <ul lang="ko" className="mt-3 space-y-1 text-center text-sm leading-6 text-text-secondary">
+              <ul lang="ko" className="mt-2 space-y-0.5 text-[13px] font-semibold text-hs-ink-700">
                 {reasons.map(reason => <li key={reason}>{reason}</li>)}
               </ul>
             )}
-            <div className="mt-6 rounded-[var(--radius-card)] border border-border-warm bg-surface-raised p-4 shadow-[var(--shadow-card)]">
-              <h2 className="text-sm font-extrabold text-text-primary">{tr({ ko: '이렇게 찍어 보세요', en: 'Try this', ar: 'جرّب ما يلي', 'zh-CN': '可以这样拍', ja: 'こう撮ってみてください', 'zh-TW': '可以這樣拍', es: 'Prueba así' })}</h2>
-              <ul lang={serverTips ? 'ko' : undefined} className="mt-3 space-y-2">
-                {tips.map((tip, index) => (
-                  <li key={tip} className="flex gap-3 text-sm leading-6 text-text-primary">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-xs font-bold tabular-nums text-text-secondary" aria-hidden="true">{index + 1}</span>
-                    <span className="min-w-0 flex-1">{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div className="flex-shrink-0 space-y-2 border-t border-border-warm bg-surface-raised/95 px-5 py-3">
-          <button
-            type="button"
-            onClick={onRetryWithNewImage}
-            className="min-h-12 w-full rounded-xl bg-brand-primary font-bold text-white shadow-sm hover:bg-brand-primary-hover"
-          >
-            {t('다시 촬영', 'Retake', 'إعادة التصوير')}
-          </button>
-          <button
-            type="button"
-            onClick={cancel}
-            className="min-h-12 w-full rounded-[18px] border border-border-warm bg-surface-raised text-sm font-bold text-text-primary hover:bg-surface-subtle"
-          >
-            {t('홈으로', 'Home', 'الرئيسية')}
-          </button>
+          </header>
+          <section className="px-5 pt-6 pb-6">
+            <h2 className="mb-2.5 px-1 text-[13px] font-extrabold text-hs-ink-500">{tx(language, A.tryThis)}</h2>
+            <ul lang={serverTips && retakeSuggestions.length > 0 ? 'ko' : undefined} className="space-y-1 rounded-hs-2xl border-[1.5px] border-hs-line-200 p-3">
+              {tips.map((tip, index) => (
+                <li key={tip} className="flex min-h-12 items-center gap-3 px-1 py-1.5">
+                  <span aria-hidden="true" className="flex h-9 w-10 flex-none items-center justify-center rounded-t-[12px] rounded-b-[18px] bg-hs-coral-100 text-hs-coral-700">
+                    <HsIcon name={TIP_ICONS[index] ?? 'alert'} size={18} />
+                  </span>
+                  <span className="min-w-0 flex-1 text-[14px] leading-[1.45] font-extrabold">{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </main>
+        <div className="flex flex-none flex-col items-center gap-1 px-5 pt-2 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <HsButton variant="primary" size="cta" onClick={newPhoto ? onRetryWithNewImage : () => setAttempt((a) => a + 1)}>{tx(language, newPhoto ? A.newPhoto : A.retry)}</HsButton>
+          <HsLinkButton className="px-4 text-hs-ink-500!" onClick={cancel}>{tx(language, A.home)}</HsLinkButton>
         </div>
       </div>
     );
   }
 
+  // F3-05 분석 중 · F3-06 오래 걸림
   return (
-    <div className="flex h-dvh flex-col bg-surface-base">
-      <div className="relative flex h-16 flex-shrink-0 items-center justify-center border-b border-border-warm bg-surface-raised/95 px-5">
-        <h1 className="text-base font-bold text-soy-ink">
-          {phase === 'failed'
-            ? tr({ ko: '분석하지 못했어요', en: 'Couldn’t analyze the menu', ar: 'تعذر تحليل القائمة', 'zh-CN': '未能完成分析', ja: '分析できませんでした', 'zh-TW': '未能完成分析', es: 'No pudimos analizar el menú' })
-            : t('메뉴판 분석 중', 'Analyzing menu', 'جار تحليل القائمة')}
-        </h1>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-6">
-        <div className="relative mx-auto mb-5 aspect-[3/4] w-full max-w-[300px] overflow-hidden rounded-[24px] border border-border-warm bg-surface-raised shadow-[var(--shadow-card)]">
-          {image ? (
-            <img src={image.previewUrl} alt={t('분석 중인 메뉴판', 'Menu being analyzed', 'القائمة قيد التحليل')} className="w-full h-full object-cover" />
-          ) : (
-            <div className="flex size-full items-center justify-center text-text-secondary">
-              <span className="text-6xl">📋</span>
-            </div>
-          )}
-          {phase === 'analyzing' && (
-            <div className="animate-scan-line pointer-events-none absolute inset-x-5 top-[12%] h-0.5 rounded-full bg-brand-primary shadow-[0_0_12px_rgba(23,100,73,0.35)]" aria-hidden="true" />
-          )}
-        </div>
-
-        <div className="mx-auto w-full max-w-sm">
-          {phase === 'analyzing' ? (
-            <>
-              <div className="mb-4 text-center">
-                <Loader2 className="mx-auto mb-3 size-7 animate-spin text-brand-primary" />
-                <p className="text-base font-extrabold text-text-primary">{t('필요한 정보를 차근차근 확인하고 있어요', 'We are carefully checking the information', 'نتحقق من المعلومات بعناية')}</p>
-                <p className="mt-1 text-xs leading-5 text-text-secondary">{tr({ ko: '결과가 나오면 바로 보여 드릴게요.', en: 'We’ll show the result as soon as it’s ready.', ar: 'سنعرض النتيجة فور جاهزيتها.', 'zh-CN': '结果一出来就会马上显示。', ja: '結果が出たらすぐにお見せします。', 'zh-TW': '結果一出來就會馬上顯示。', es: 'Te mostraremos el resultado en cuanto esté listo.' })}</p>
-              </div>
-              <div role="status" aria-live="polite">
-                {slow && (
-                  <p className="mb-3 flex items-start gap-2 rounded-xl border border-border-warm bg-surface-raised px-3.5 py-3 text-sm leading-5 text-text-primary">
-                    <Clock className="mt-0.5 size-4 shrink-0 text-text-secondary" aria-hidden="true" />
-                    {tr({ ko: '평소보다 오래 걸리고 있어요. 조금만 더 기다려 주세요.', en: 'This is taking longer than usual. Please wait a little longer.', ar: 'يستغرق هذا وقتًا أطول من المعتاد. يرجى الانتظار قليلًا.', 'zh-CN': '比平时花的时间更长。请再稍等一下。', ja: 'いつもより時間がかかっています。もう少しお待ちください。', 'zh-TW': '比平常花的時間更長。請再稍等一下。', es: 'Está tardando más de lo habitual. Espera un poco más.' })}
-                  </p>
-                )}
-              </div>
-              <p className="mb-2 px-1 text-xs font-bold text-text-secondary">{tr({ ko: '이런 순서로 확인해요', en: 'What we check, in order', ar: 'ما نتحقق منه بالترتيب', 'zh-CN': '我们按以下顺序检查', ja: 'この順番で確認します', 'zh-TW': '我們依以下順序檢查', es: 'Lo que revisamos, en orden' })}</p>
-              <ol className="space-y-2 rounded-[var(--radius-card)] border border-border-warm bg-surface-raised p-3 shadow-[var(--shadow-card)]">
-                {steps.map(({ icon: Icon, label }, index) => (
-                  <li key={label} className="flex min-h-14 items-center gap-3 rounded-xl px-3 py-2">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-text-secondary"><Icon className="size-4" aria-hidden="true" /></span>
-                    <span className="min-w-0 flex-1 text-sm font-semibold leading-5 text-text-primary">{label}</span>
-                    <span className="text-xs font-bold tabular-nums text-text-tertiary">{index + 1}</span>
-                  </li>
-                ))}
-              </ol>
-
-              <button onClick={() => setShowDetails((current) => !current)} aria-expanded={showDetails} className="mt-3 flex min-h-11 w-full items-center justify-between rounded-xl border border-border-warm bg-surface-raised px-3.5 text-sm font-bold text-text-secondary hover:bg-surface-subtle">
-                <span>{t('분석 과정 자세히 보기', 'See how analysis works', 'عرض تفاصيل عملية التحليل')}</span>
-                <ChevronDown className={`size-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
-              </button>
-              {showDetails && (
-                <div className="mt-2 rounded-xl border border-border-warm bg-surface-subtle p-4 text-xs leading-5 text-text-secondary">
-                  <div className="mb-2 flex items-center gap-2 font-extrabold text-text-primary"><CircleDashed className="size-4 text-brand-primary" aria-hidden="true" />{tr({ ko: '어떻게 확인하나요?', en: 'How do we check?', ar: 'كيف نتحقق؟', 'zh-CN': '我们如何检查？', ja: 'どうやって確認するの？', 'zh-TW': '我們如何檢查？', es: '¿Cómo lo revisamos?' })}</div>
-                  <p>{tr({ ko: '사진 속 글자를 읽고, 메뉴마다 흔히 들어가는 재료를 찾아요. 육수·소스처럼 겉으로 안 보이는 재료도 살펴보고, 내 식단과 겹치는지 비교해요. 가게 직원이 답한 기록이 있으면 함께 반영해요.', en: 'We read the text in your photo and look up the ingredients each dish usually contains. We also look for hidden ingredients, like those in broths and sauces, and compare them with your diet. If restaurant staff have answered before, we use that too.', ar: 'نقرأ النص في صورتك ونبحث عن المكونات المعتادة لكل طبق. ونبحث أيضًا عن المكونات غير الظاهرة مثل مكونات المرق والصلصات، ونقارنها بنظامك الغذائي. وإذا أجاب موظفو المطعم من قبل، نأخذ إجاباتهم في الاعتبار.', 'zh-CN': '我们会读取照片中的文字，查找每道菜常用的食材，也会检查汤底、酱料等看不见的食材，并与你的饮食限制比对。如果店员以前回答过，也会一起参考。', ja: '写真の文字を読み取り、料理ごとによく使われる材料を調べます。だしやソースのように見えない材料も確認し、あなたの食事制限と照らし合わせます。お店のスタッフの回答記録があれば、それも反映します。', 'zh-TW': '我們會讀取照片中的文字，查找每道菜常用的食材，也會檢查湯底、醬料等看不見的食材，並與你的飲食限制比對。如果店員以前回答過，也會一起參考。', es: 'Leemos el texto de tu foto y buscamos los ingredientes habituales de cada plato. También revisamos ingredientes que no se ven, como los de caldos y salsas, y los comparamos con tu dieta. Si el personal del restaurante ya respondió antes, también lo tenemos en cuenta.' })}</p>
-                  <p className="mt-2">{tr({ ko: '단계마다 얼마나 진행됐는지는 알 수 없어서 퍼센트는 보여 드리지 않아요.', en: 'We can’t tell how far each step has gone, so we don’t show a percentage.', ar: 'لا يمكننا معرفة مدى تقدّم كل خطوة، لذلك لا نعرض نسبة مئوية.', 'zh-CN': '我们无法得知每一步的进度，所以不显示百分比。', ja: '各段階の進み具合はわからないため、パーセントは表示しません。', 'zh-TW': '我們無法得知每一步的進度，所以不顯示百分比。', es: 'No podemos saber cuánto ha avanzado cada paso, así que no mostramos un porcentaje.' })}</p>
-                  {/* TODO: 서버 단계 상태 제공 시 항목별 진행 상태 연결 */}
-                </div>
-              )}
-            </>
-          ) : (
-            <div role="alert" className="rounded-[20px] border border-border-warm bg-surface-raised px-5 py-5 text-center shadow-[var(--shadow-card)]">
-              <CircleAlert className="mx-auto mb-2 size-6 text-text-secondary" aria-hidden="true" />
-              <p className="text-sm font-semibold leading-6 text-text-primary">{errorMessage}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-shrink-0 space-y-2 border-t border-border-warm bg-surface-raised/95 px-5 py-3">
-        {phase === 'failed' && (
-          <button
-            type="button"
-            onClick={retryRequiresNewUpload ? onRetryWithNewImage : () => setAttempt((a) => a + 1)}
-            className="min-h-12 w-full rounded-xl bg-brand-primary font-bold text-white shadow-sm hover:bg-brand-primary-hover"
-          >
-            {retryRequiresNewUpload
-              ? t('새 사진으로 다시 시도', 'Try a new photo', 'المحاولة بصورة جديدة')
-              : t('다시 시도', 'Retry', 'إعادة المحاولة')}
+    <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
+      <main className="min-h-0 flex-1 overflow-y-auto">
+        <header className="rounded-b-[56px] bg-hs-mint-100 px-6 pt-7 pb-8 text-center">
+          <div className="relative mx-auto flex aspect-[210/230] w-[210px] items-center justify-center overflow-hidden rounded-[32px] bg-hs-ink-900">
+            {image && <img src={image.previewUrl} alt={tx(language, A.photoAlt)} className="max-h-full max-w-full object-contain" />}
+            <div className="animate-scan-line pointer-events-none absolute inset-x-2 top-[12%] h-[3px] rounded-hs-pill bg-hs-safe-500 shadow-[0_0_14px_4px_rgba(24,160,88,0.45)] motion-reduce:hidden" aria-hidden="true" />
+          </div>
+          <h1 className="mt-6 inline-flex items-center gap-2 hs-title-lg">
+            <span className="size-6 animate-spin rounded-hs-pill border-[3px] border-hs-safe-500/30 border-t-hs-safe-500 motion-reduce:animate-none" aria-hidden="true" />
+            {tx(language, A.analyzing)}
+          </h1>
+          <p className="mt-2 text-[14px] leading-[1.5] font-semibold text-hs-ink-700">{tx(language, A.checking)}<span className="block">{tx(language, A.soon)}</span></p>
+          <div role="status" aria-live="polite">
+            {slow && (
+              <p className="mt-4 flex items-start gap-2 rounded-hs-lg bg-hs-surface-0/70 px-4 py-3 text-start text-[13px] leading-[1.5] font-bold">
+                <HsIcon name="clock" size={16} strokeWidth={2.4} className="mt-0.5 flex-none" />
+                {tx(language, A.slow)}
+              </p>
+            )}
+          </div>
+        </header>
+        <section className="px-5 pt-6 pb-6">
+          <h2 className="mb-2.5 px-1 text-[13px] font-extrabold text-hs-ink-500">{tx(language, A.order)}</h2>
+          <ol className="space-y-1 rounded-hs-2xl border-[1.5px] border-hs-line-200 p-3">
+            {STEPS.map((step, index) => (
+              <li key={step.icon} className="flex min-h-12 items-center gap-3 px-1 py-1.5">
+                <span aria-hidden="true" className="flex h-9 w-10 flex-none items-center justify-center rounded-t-[12px] rounded-b-[18px] bg-hs-mint-100 text-hs-brand-700"><HsIcon name={step.icon} size={18} /></span>
+                <span className="min-w-0 flex-1 text-[14px] leading-[1.45] font-extrabold">{tx(language, step.text)}</span>
+                <span dir="ltr" className="flex-none text-[12px] font-extrabold text-hs-ink-500">{index + 1}</span>
+              </li>
+            ))}
+          </ol>
+          <button type="button" onClick={() => setShowDetails((current) => !current)} aria-expanded={showDetails} aria-controls="analysis-details" className="mt-3 flex min-h-12 w-full items-center justify-between rounded-hs-lg bg-hs-surface-100 px-4 text-[14px] font-black">
+            {tx(language, A.details)}
+            <HsIcon name={showDetails ? 'chevronUp' : 'chevronDown'} size={18} strokeWidth={2.4} />
           </button>
-        )}
-        {/* 분석 중: 확인 뒤 취소 / 실패 뒤: 바로 홈 */}
-        <button
-          type="button"
-          onClick={phase === 'failed' ? cancel : () => setConfirmCancel(true)}
-          className="min-h-12 w-full rounded-[18px] border border-border-warm bg-surface-raised text-sm font-bold text-text-primary hover:bg-surface-subtle"
-        >
-          {phase === 'failed' ? t('홈으로', 'Home', 'الرئيسية') : t('취소', 'Cancel', 'إلغاء')}
-        </button>
+          {showDetails && (
+            <div id="analysis-details" className="mt-2 rounded-hs-lg bg-hs-surface-100 px-4 py-3.5 text-[13px] leading-[1.6] font-semibold text-hs-ink-700">
+              <p className="mb-1.5 flex items-center gap-1.5 font-black text-hs-ink-900"><HsIcon name="alert" size={15} strokeWidth={2.4} className="text-hs-brand-700" />{tx(language, A.howTitle)}</p>
+              <p>{tx(language, A.howBody)}</p>
+              <p className="mt-2">{tx(language, A.noPercent)}</p>
+            </div>
+          )}
+        </section>
+      </main>
+      <div className="flex flex-none justify-center px-5 pt-2 pb-[max(16px,env(safe-area-inset-bottom))]">
+        <HsButton variant="outline" size="md" className="px-6" onClick={() => setConfirmCancel(true)}>{tx(language, A.cancel)}</HsButton>
       </div>
       {cancelDialog}
     </div>
