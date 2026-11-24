@@ -1,5 +1,11 @@
 # 변경 기록
 
+## 2026-11-25 — 홈 배너 한 방향 순환 · 내 주변 용산구 · 큐레이션 전체 검색 (#78)
+
+- 홈 한스푼 저널 배너: 마지막 카드 뒤에 첫 카드 복사본(스크린리더에서 숨김)을 두고 거기까지 앞으로 넘긴 뒤 첫 카드로 조용히 옮겨, 되감기 없이 한 방향으로만 넘어감. 직접 넘겨도 같음.
+- 홈 가게 탐색 '내 주변'을 용산구 가게 3곳(삼각지 국밥 · 용산 백반집 · 이태원 숯불갈비, 하드코딩)으로. 누르면 용산·삼각지 중심 지도.
+- 큐레이션 검색은 고른 태그와 상관없이 전체 칼럼에서 찾음. 검색 중에는 태그 칩을 숨기고, 빈 결과 안내를 '다른 말로 찾아보세요.'로.
+
 ## 2026-11-25 — 새 테마 전환 뒤 옛 파일 정리 (#76)
 
 - 진입점에서 닿지 않는 옛 파일 삭제: `PartnerMenuScreen` · `demo/partnerMenus`, `OwnerCommunicationSheet` · `ProfileCommunicationSheet`, `common/ModalSheet` · `discovery/BottomSheet`, `discovery/LiveHomeDiscovery` · `RestaurantRecommendations` · `restaurantPhotos`, `results/AnalysisInsights` · `CommunicationActions` · `SaveScanSheet`, `figma/ImageWithFallback`, `constants/menuNames`, `consent.css`, `styles/globals.css`.

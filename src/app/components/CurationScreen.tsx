@@ -22,7 +22,7 @@ const T = {
   categories: { ko: '칼럼 종류', en: 'Column categories', ar: 'فئات المقالات', 'zh-CN': '专栏分类', ja: 'コラムの種類', 'zh-TW': '專欄分類', es: 'Categorías' },
   found: { ko: '찾은 이야기', en: 'Stories found', ar: 'القصص التي وجدناها', 'zh-CN': '找到的故事', ja: '見つかった話', 'zh-TW': '找到的故事', es: 'Historias encontradas' },
   noResult: { ko: '찾는 이야기가 없어요', en: 'No stories found', ar: 'لم نجد قصصًا', 'zh-CN': '没有找到故事', ja: '話が見つかりません', 'zh-TW': '沒有找到故事', es: 'No encontramos historias' },
-  noResultBody: { ko: '다른 말로 찾아보거나 칼럼 종류를 바꿔 보세요.', en: 'Try other words or another category.', ar: 'جرّب كلمات أخرى أو فئة أخرى.', 'zh-CN': '换个词或分类试试。', ja: '別の言葉やコラムの種類で探してみてください。', 'zh-TW': '換個詞或分類試試。', es: 'Prueba con otras palabras u otra categoría.' },
+  noResultBody: { ko: '다른 말로 찾아보세요.', en: 'Try searching with other words.', ar: 'جرّب البحث بكلمات أخرى.', 'zh-CN': '换个词搜索试试。', ja: '別の言葉で探してみてください。', 'zh-TW': '換個詞搜尋試試。', es: 'Prueba a buscar con otras palabras.' },
   showAll: { ko: '전체 보기', en: 'Show all', ar: 'عرض الكل', 'zh-CN': '查看全部', ja: 'すべて表示', 'zh-TW': '查看全部', es: 'Ver todo' },
   slide: { ko: '신규 칼럼 넘기기', en: 'Browse new columns', ar: 'تصفح المقالات الجديدة', 'zh-CN': '浏览最新专栏', ja: '新着コラムを切り替える', 'zh-TW': '瀏覽最新專欄', es: 'Ver columnas nuevas' },
 } satisfies Record<string, AllText>;
@@ -54,8 +54,8 @@ export function CurationScreen({ language, onMyPage }: { language: Language; onM
   const filtered = useMemo(() => {
     const words = query.trim().toLocaleLowerCase();
     return CURATION_ARTICLES.filter((article) => {
-      if (tag !== 'all' && article.tag !== tag) return false;
-      if (!words) return true;
+      // 검색은 고른 태그와 상관없이 전체 칼럼에서 찾는다(태그는 검색어가 없을 때만).
+      if (!words) return tag === 'all' || article.tag === tag;
       const text = [article.title, article.subtitle, article.excerpt].flatMap((item) => item ? [translateText(language, item), item.ko, item.en] : []).join(' ').toLocaleLowerCase();
       return text.includes(words);
     });
@@ -109,8 +109,7 @@ export function CurationScreen({ language, onMyPage }: { language: Language; onM
 
         {searching ? (
           <section aria-labelledby="curation-found" className="pt-4">
-            {chips}
-            <h2 id="curation-found" className="mx-5 mt-5 text-[16px] font-black">
+            <h2 id="curation-found" className="mx-5 mt-1 text-[16px] font-black">
               {tx(language, T.found)} <span dir="ltr" className="text-hs-brand-700">{txn(language, COUNT, filtered.length)}</span>
             </h2>
             {list}
