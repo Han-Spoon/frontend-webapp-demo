@@ -1,36 +1,34 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Languages, LockKeyhole, LogIn, ScanLine, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Languages, LockKeyhole, LogIn, ScanLine } from 'lucide-react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/brand/han-spoon-logo.svg';
 import type { Language } from '../types';
 import { googleLogin } from '../../api/auth';
 import { createTranslator, LANGUAGE_LOCALES, LANGUAGE_OPTIONS } from '../locales';
 
 const LOGIN_IMAGE =
   'https://commons.wikimedia.org/wiki/Special:FilePath/Samgyeopsal%20table.jpg?width=1200';
+const GOOGLE_BUTTON_SCALE = 1.25;
+const googleButtonWidthForViewport = () =>
+  Math.floor(Math.min(350, window.innerWidth - 48) / GOOGLE_BUTTON_SCALE);
 
 interface LoginScreenProps {
   onLogin: (hasProfile: boolean) => Promise<void> | void;
   language: Language;
   setLanguage: (language: Language) => void;
   demoMode: boolean;
-  onTryDemo: () => void;
   onExitDemo: () => void;
 }
 
-export function LoginScreen({ onLogin, language, setLanguage, demoMode, onTryDemo, onExitDemo }: LoginScreenProps) {
+export function LoginScreen({ onLogin, language, setLanguage, demoMode, onExitDemo }: LoginScreenProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [googleButtonWidth, setGoogleButtonWidth] = useState(() =>
-    Math.min(336, Math.max(240, window.innerWidth - 48)),
-  );
+  const [googleButtonWidth, setGoogleButtonWidth] = useState(googleButtonWidthForViewport);
   const t = createTranslator(language);
 
   useEffect(() => {
-    const resize = () =>
-      setGoogleButtonWidth(Math.min(336, Math.max(240, window.innerWidth - 48)));
+    const resize = () => setGoogleButtonWidth(googleButtonWidthForViewport());
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
   }, []);
@@ -80,7 +78,7 @@ export function LoginScreen({ onLogin, language, setLanguage, demoMode, onTryDem
 
   return (
     <div className="relative h-dvh overflow-y-auto bg-brand-green-900 text-soy-ink" aria-busy={isLoading}>
-      <section className="relative min-h-[285px] overflow-hidden px-5 pb-16 pt-[max(1rem,env(safe-area-inset-top))] text-white">
+      <section className="relative min-h-[235px] overflow-hidden px-5 pb-16 pt-[max(1rem,env(safe-area-inset-top))] text-white">
         <img
           src={LOGIN_IMAGE}
           alt=""
@@ -114,16 +112,10 @@ export function LoginScreen({ onLogin, language, setLanguage, demoMode, onTryDem
             <span className="pointer-events-none absolute end-3 text-[10px] text-white/70">▾</span>
           </label>
         </div>
-
-        <div className="relative z-10 mt-14">
-          <span className="inline-flex rounded-2xl bg-rice-white/95 px-3 py-2 shadow-lg">
-            <img src={logo} alt={t('한스푼', 'Han Spoon', 'هان سبون')} className="h-auto w-[112px]" />
-          </span>
-        </div>
       </section>
 
-      <main className="relative z-20 -mt-10 min-h-[calc(100dvh-245px)] rounded-t-[36px] bg-rice-white px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8 shadow-[0_-20px_60px_rgba(3,24,15,.18)]">
-        <div className="mx-auto max-w-[350px]">
+      <main className="relative z-20 -mt-10 flex min-h-[calc(100dvh-195px)] flex-col rounded-t-[36px] bg-rice-white px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8 shadow-[0_-20px_60px_rgba(3,24,15,.18)]">
+        <div className="my-auto w-full max-w-[350px] self-center">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <p className="mb-2 text-[10px] font-extrabold tracking-[.15em] text-brand-primary">
@@ -160,38 +152,18 @@ export function LoginScreen({ onLogin, language, setLanguage, demoMode, onTryDem
             )}
           </p>
 
-          {!demoMode && <div className="my-6 rounded-[22px] bg-brand-primary-soft p-4">
-            <div className="flex items-start gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rice-white text-brand-primary shadow-sm">
-                <ShieldCheck className="size-4" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-extrabold text-brand-green-900">
-                  {t('Google로만 로그인해요', 'Google sign-in only', 'تسجيل الدخول عبر Google فقط')}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-text-secondary">
-                  {t(
-                    '이메일 비밀번호를 새로 만들 필요 없이 기존 Google 인증 흐름을 사용해요.',
-                    'Use Google’s existing authentication flow without creating another password.',
-                    'استخدم مصادقة Google الحالية دون إنشاء كلمة مرور أخرى.',
-                  )}
-                </p>
-              </div>
-            </div>
-          </div>}
-
-          {!demoMode && <div className="flex min-h-14 w-full items-center justify-center">
+          {!demoMode && <div className="mt-8 flex min-h-16 w-full items-center justify-center">
             {isLoading ? (
               <button
                 disabled
                 aria-live="polite"
-                className="flex h-14 w-full items-center justify-center gap-3 rounded-full bg-brand-primary text-white opacity-70"
+                className="flex h-16 w-full items-center justify-center gap-3 rounded-full bg-brand-primary text-white opacity-70"
               >
                 <LogIn className="size-5" />
                 <span className="font-bold">{t('로그인 중...', 'Signing in...', 'جارٍ تسجيل الدخول...')}</span>
               </button>
             ) : (
-              <div className="overflow-hidden rounded-full shadow-[0_10px_26px_rgba(23,100,73,.12)]">
+              <div className="shrink-0 scale-[1.25] overflow-hidden rounded-full shadow-[0_10px_26px_rgba(23,100,73,.12)]">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
@@ -207,9 +179,6 @@ export function LoginScreen({ onLogin, language, setLanguage, demoMode, onTryDem
             )}
           </div>}
 
-          <button type="button" onClick={onTryDemo} className="mt-5 min-h-14 w-full rounded-full bg-brand-primary px-5 text-sm font-extrabold text-white shadow-[0_10px_26px_rgba(23,100,73,.15)]">
-            {t('로그인 없이 시연하기', 'Explore the demo without signing in', 'جرّب العرض دون تسجيل الدخول')}
-          </button>
           {demoMode && <button type="button" onClick={onExitDemo} className="mt-3 min-h-11 w-full text-sm font-bold text-brand-green-700 underline">
             {t('Google 로그인으로 전환', 'Switch to Google sign-in', 'التبديل إلى تسجيل الدخول باستخدام Google')}
           </button>}

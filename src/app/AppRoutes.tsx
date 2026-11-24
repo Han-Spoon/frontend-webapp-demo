@@ -8,7 +8,7 @@ import { LandingScreen } from './components/LandingScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { writeDemo } from './demo/storage';
 import type { Account } from './hooks/useAccount';
-import { EMPTY_RESULT, type ResultSessionHandle } from './hooks/useResultSession';
+import type { ResultSessionHandle } from './hooks/useResultSession';
 import type { ScanHistory } from './hooks/useScanHistory';
 import { lazyScreen } from './lazyScreen';
 import type { Language } from './locales';
@@ -70,14 +70,6 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  const startDemo = () => {
-    account.beginDemo();
-    scanHistory.clearServerHistory();
-    showResult(EMPTY_RESULT);
-    setSelectedStore(null);
-    navigate('/terms?demo=1');
-  };
-
   // 기록 열기: 서버 상세 조회 → 결과 화면.
   const openHistory = async (item: HistoryItem) => {
     clearPhoto();
@@ -136,7 +128,6 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
             setLanguage={setLanguage}
             onLogin={account.completeLogin}
             demoMode={demoMode}
-            onTryDemo={startDemo}
             onExitDemo={account.exitDemo}
           />
         }

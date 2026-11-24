@@ -89,8 +89,6 @@ const dictionary: Record<string, string> = {
   '한스푼 시작하기': 'Empezar con Han Spoon',
   '한국의 맛을\n편안하게 만나보세요.': 'Descubre la comida coreana\ncon confianza.',
   '별도 회원가입 없이 Google 계정 하나로 시작할 수 있어요.': 'Empieza con una cuenta de Google, sin registro adicional.',
-  'Google로만 로그인해요': 'Solo inicio de sesión con Google',
-  '이메일 비밀번호를 새로 만들 필요 없이 기존 Google 인증 흐름을 사용해요.': 'Usa la autenticación de Google sin crear otra contraseña.',
   '로그인 후 개인정보와 식단 정보는 내 프로필에서 관리할 수 있어요.': 'Después de iniciar sesión, gestiona tu información personal y alimentaria desde tu perfil.',
   '마이페이지': 'Mi cuenta',
   '매운 음식 비선호': 'Evitar comida picante',
