@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Language } from '../../locales';
-import { HsButton } from './Button';
 import { HsIcon, type HsIconName } from './icons';
 import { BowlTile } from './RiskBadge';
 import { HS_TEXT, tx } from './text';
@@ -25,9 +24,9 @@ export function OfflineBanner({ language, onRetry, force = false, className = ''
   const online = useOnline();
   if (online && !force) return null;
   return (
-    <div role="status" className={`flex min-h-12 items-center gap-2 rounded-2xl bg-hs-ink-900 py-1.5 ps-3.5 pe-1.5 text-[13px] font-extrabold text-hs-surface-0 ${className}`}>
+    <div role="status" className={`flex min-h-[54px] items-center gap-2.5 rounded-[18px] bg-hs-ink-900 py-2.5 ps-3.5 pe-2.5 text-[13px] font-bold text-hs-surface-0 ${className}`}>
       <HsIcon name="offline" size={18} className="flex-none" />
-      <span className="min-w-0 flex-1 leading-[1.35]">{tx(language, HS_TEXT.offline)}</span>
+      <span className="min-w-0 flex-1 leading-[1.4]">{tx(language, HS_TEXT.offline)}</span>
       <button type="button" onClick={onRetry ?? (() => window.location.reload())} className="h-[34px] min-w-11 flex-none rounded-hs-pill bg-hs-surface-0 px-3 text-[12px] font-black text-hs-ink-900">
         {tx(language, HS_TEXT.retry)}
       </button>
@@ -53,17 +52,18 @@ export function EmptyState({ icon = 'scan', title, description, action, tone = '
   );
 }
 
-/** 불러오기 실패: 연한 빨강 테두리 상자 + 경고 아이콘 + [다시 시도](outline) */
+/** 불러오기 실패(C-03): 연한 빨강 테두리 흰 상자 + 그릇 모양 경고 아이콘 + 제목 + 설명 + [↻ 다시 시도](초록 테두리) */
 export function ErrorState({ language, title, description, onRetry, className = '' }: { language: Language; title: string; description?: ReactNode; onRetry?: () => void; className?: string }) {
   return (
-    <div role="alert" className={`rounded-3xl border-[1.5px] border-[#F2B8B3] bg-hs-surface-0 px-5 py-[22px] text-center ${className}`}>
-      <BowlTile className="mx-auto h-12 w-[52px] bg-hs-danger-100 text-hs-danger-700"><HsIcon name="alert" size={22} strokeWidth={2.4} /></BowlTile>
-      <h3 className="mt-3 text-[16px] font-black text-hs-ink-900">{title}</h3>
-      {description && <p className="mt-1 text-[13px] font-semibold text-hs-ink-500">{description}</p>}
+    <div role="alert" className={`rounded-3xl border-[1.5px] border-[#F6CFCB] bg-hs-surface-0 px-[18px] pt-5 pb-[18px] text-center ${className}`}>
+      <BowlTile className="mx-auto size-12 bg-[#FFE9E7] text-hs-danger-700"><HsIcon name="alert" size={22} strokeWidth={2.4} /></BowlTile>
+      <h3 className="mt-3 text-[15px] font-black text-hs-ink-900">{title}</h3>
+      {description && <p className="mt-1 text-[12px] leading-[1.5] font-semibold text-hs-ink-500">{description}</p>}
       {onRetry && (
-        <div className="mt-4 flex justify-center">
-          <HsButton variant="outline" size="md" onClick={onRetry}>{tx(language, HS_TEXT.retry)}</HsButton>
-        </div>
+        <button type="button" onClick={onRetry} className="mt-3.5 inline-flex h-11 items-center gap-1.5 rounded-hs-pill border-[1.5px] border-hs-brand-700 bg-hs-surface-0 px-5 text-[14px] font-black text-hs-brand-700">
+          <HsIcon name="refresh" size={16} strokeWidth={2.6} />
+          {tx(language, HS_TEXT.retry)}
+        </button>
       )}
     </div>
   );

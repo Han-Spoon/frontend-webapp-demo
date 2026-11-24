@@ -12,7 +12,7 @@ import { useStoreCandidates, type StoreCoordinates, type StoreLocationStatus, ty
 import { StoreMap } from './discovery/StoreMap';
 import { FOOD_CATEGORY_LABELS, FOOD_CATEGORY_ORDER, foodCategoryOf, type FoodCategoryId } from './discovery/foodCategories';
 import { MealReviewSheet } from './reviews/MealReviewSheet';
-import { BottomNav, EmptyState, ErrorState, HsButton, HsIcon, HsIconButton, PillTabs, SearchField, SkeletonCard, StoreCard, tx, useToast, type AllText } from './hs';
+import { BottomNav, EmptyState, ErrorState, OfflineBanner, HsButton, HsIcon, HsIconButton, PillTabs, SearchField, SkeletonCard, StoreCard, tx, useToast, type AllText } from './hs';
 import { BowlTile } from './hs/RiskBadge';
 import { FLIP_RTL } from './hs/icons';
 import { txn, type CountText } from './hs/text';
@@ -548,6 +548,7 @@ export function StoreMapView({
               </button>
             ))}
           </div>
+          <OfflineBanner language={language} onRetry={retrySearch} className="mt-1" />
         </div>
 
         {/* 위치를 아직 모를 때(F2-07) */}

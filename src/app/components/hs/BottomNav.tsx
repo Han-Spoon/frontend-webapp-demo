@@ -6,7 +6,7 @@ import { tx, type AllText } from './text';
 
 const ITEMS: Array<{ path: string; icon: HsIconName; label: AllText }> = [
   { path: '/home', icon: 'home', label: { ko: '홈', en: 'Home', ar: 'الرئيسية', 'zh-CN': '首页', ja: 'ホーム', 'zh-TW': '首頁', es: 'Inicio' } },
-  { path: '/curation', icon: 'book', label: { ko: '큐레이션', en: 'Curation', ar: 'مقالات', 'zh-CN': '精选', ja: 'キュレーション', 'zh-TW': '精選', es: 'Artículos' } },
+  { path: '/curation', icon: 'book', label: { ko: '큐레이션', en: 'Curation', ar: 'مقالات', 'zh-CN': '精选', ja: 'コラム', 'zh-TW': '精選', es: 'Artículos' } },
   { path: '/map', icon: 'pin', label: { ko: '지도', en: 'Map', ar: 'الخريطة', 'zh-CN': '地图', ja: '地図', 'zh-TW': '地圖', es: 'Mapa' } },
   { path: '/cards', icon: 'cards', label: { ko: '카드', en: 'Cards', ar: 'بطاقات', 'zh-CN': '卡片', ja: 'カード', 'zh-TW': '卡片', es: 'Tarjetas' } },
 ];
@@ -26,7 +26,7 @@ export function BottomNav({ language }: { language: Language }) {
         type="button"
         onClick={() => navigate(entry.path)}
         aria-current={on ? 'page' : undefined}
-        className={`flex min-h-11 min-w-14 flex-1 flex-col items-center gap-[3px] text-[12px] ${on ? 'font-extrabold text-hs-brand-700' : 'font-bold text-hs-ink-500'}`}
+        className={`flex min-h-11 min-w-14 flex-1 flex-col items-center gap-[3px] whitespace-nowrap text-[12px] ${on ? 'font-extrabold text-hs-brand-700' : 'font-bold text-hs-ink-500'}`}
       >
         <HsIcon name={entry.icon} size={24} className={on ? '' : 'text-hs-ink-400'} />
         {tx(language, entry.label)}

@@ -114,7 +114,6 @@ export function HomeScreen({
 
   return (
     <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
-      <OfflineBanner language={language} />
       <main className="min-h-0 flex-1 overflow-y-auto pb-8">
         <header className="relative overflow-hidden rounded-b-[56px] bg-hs-mint-100 px-5 pt-[18px] pb-[60px]">
           <div className="flex items-center justify-between">
@@ -126,6 +125,7 @@ export function HomeScreen({
           </div>
           <p className="mt-5 text-[11px] font-black tracking-[0.06em] text-hs-brand-700">{tx(language, H.eyebrow)}</p>
           <h1 className="mt-1.5 text-[28px] leading-[1.22] font-black tracking-[-0.01em] whitespace-pre-line">{tx(language, H.title)}</h1>
+          <OfflineBanner language={language} className="mt-4" />
         </header>
 
         {/* 한스푼 저널: 가로로 넘기는 이야기 카드 */}
