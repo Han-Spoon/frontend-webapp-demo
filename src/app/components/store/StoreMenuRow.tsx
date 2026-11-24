@@ -50,8 +50,9 @@ export function StoreMenuRow({ language, menu }: { language: Language; menu: Sto
   return (
     <li className="flex gap-3.5 border-b-[1.5px] border-hs-line-200 py-4">
       {menu.imageUrl && !photoFailed ? (
-        <div className={`${tile} flex items-center justify-center overflow-hidden bg-[#1F2623]`}>
-          <img src={menu.imageUrl} alt={menu.name} loading="lazy" onError={() => setPhotoFailed(true)} className="h-full w-full object-contain" />
+        // 정사각형을 여백 없이 채움(cover, 가장자리 잘림)
+        <div className={`${tile} overflow-hidden bg-hs-surface-100`}>
+          <img src={menu.imageUrl} alt={menu.name} loading="lazy" onError={() => setPhotoFailed(true)} className="h-full w-full object-cover" />
         </div>
       ) : (
         <NoPhotoTile language={language} className={tile} />
