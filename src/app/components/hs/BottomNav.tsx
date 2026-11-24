@@ -34,7 +34,8 @@ export function BottomNav({ language }: { language: Language }) {
     );
   };
   return (
-    <nav className="relative z-10 flex h-[84px] flex-none items-start justify-around border-t-[1.5px] border-hs-line-200 bg-hs-surface-0 px-2 pt-2.5 pb-[env(safe-area-inset-bottom)]">
+    // 높이: 위아래 여백 같게(12px) + 홈 인디케이터 영역
+    <nav className="relative z-10 flex h-[calc(69px+env(safe-area-inset-bottom))] flex-none items-start justify-around border-t-[1.5px] border-hs-line-200 bg-hs-surface-0 px-2 pt-2.5 pb-[env(safe-area-inset-bottom)]">
       {item(ITEMS[0])}
       {item(ITEMS[1])}
       <div className="flex flex-1 justify-center">
