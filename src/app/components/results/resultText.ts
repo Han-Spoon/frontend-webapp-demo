@@ -9,6 +9,15 @@ export const R = {
   guideTitle: { ko: '나를 위한 메뉴 가이드', en: 'Your menu guide', ar: 'دليل القائمة الخاص بك', 'zh-CN': '专属于我的菜单指南', ja: 'わたしのメニューガイド', 'zh-TW': '專屬於我的菜單指南', es: 'Tu guía del menú' },
   noStoreChip: { ko: '식당 없이 스캔 · 식당 연결하기', en: 'No restaurant · Link a restaurant', ar: 'بدون مطعم · اربط مطعمًا', 'zh-CN': '未选餐厅 · 关联餐厅', ja: 'お店なしでスキャン · お店をつなぐ', 'zh-TW': '未選餐廳 · 連結餐廳', es: 'Sin restaurante · Vincular' },
   appliedProfile: { ko: '적용된 내 식단 프로필', en: 'Applied dietary profile', ar: 'الملف الغذائي المطبق', 'zh-CN': '已应用的饮食档案', ja: '適用中の食事プロフィール', 'zh-TW': '已套用的飲食檔案', es: 'Perfil alimentario aplicado' },
+  demoProfileNote: {
+    ko: '시연용 예시 식단(비건 · 새우 알레르기) 기준 결과예요. 내 식단과 다를 수 있어요.',
+    en: 'This demo result uses a sample diet (vegan · shrimp allergy). It may differ from your diet.',
+    ar: 'تستخدم هذه النتيجة التجريبية نظاماً غذائياً نموذجياً (نباتي صرف · حساسية روبيان). قد يختلف عن نظامك الغذائي.',
+    'zh-CN': '这是按演示用示例饮食（纯素 · 虾类过敏）得出的结果，可能与你的饮食不同。',
+    ja: 'デモ用のサンプル食事(ヴィーガン・エビアレルギー)にもとづく結果です。あなたの食事とは異なる場合があります。',
+    'zh-TW': '這是依示範用範例飲食（純素 · 蝦類過敏）得出的結果，可能與你的飲食不同。',
+    es: 'Este resultado de demostración usa una dieta de ejemplo (vegana · alergia a la gamba). Puede ser distinta de la tuya.',
+  },
   basisAtScan: { ko: '판정 기준 식단', en: 'Diet used for this result', ar: 'النظام الغذائي المستخدم لهذه النتيجة', 'zh-CN': '本次判定所用的饮食', ja: 'この判定に使った食事条件', 'zh-TW': '本次判定所用的飲食', es: 'Dieta usada en este resultado' },
   showMyDiet: { ko: '직원에게 내 식단 보여주기', en: 'Show staff my diet', ar: 'اعرض نظامي الغذائي على الموظف', 'zh-CN': '向店员出示我的饮食', ja: 'スタッフに食事条件を見せる', 'zh-TW': '向店員出示我的飲食', es: 'Mostrar mi dieta al personal' },
   profileUnknown: {

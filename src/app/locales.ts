@@ -8,13 +8,13 @@ export type NewLanguage = Exclude<Language, BaseLanguage>;
 export type LocalizedText = Record<BaseLanguage, string> & Partial<Record<NewLanguage, string>>;
 
 export const LANGUAGE_OPTIONS: Array<{ value: Language; label: string; sub: LocalizedText }> = [
-  { value: 'ko', label: '한국어', sub: { ko: '한국어', en: 'Korean', ar: 'الكورية', 'zh-TW': '韓文' } },
-  { value: 'en', label: 'English', sub: { ko: '영어', en: 'English', ar: 'الإنجليزية', 'zh-TW': '英文' } },
-  { value: 'ar', label: 'العربية', sub: { ko: '아랍어', en: 'Arabic', ar: 'العربية', 'zh-TW': '阿拉伯文' } },
-  { value: 'zh-CN', label: '简体中文', sub: { ko: '중국어 간체', en: 'Chinese (Simplified)', ar: 'الصينية المبسطة', 'zh-TW': '簡體中文' } },
-  { value: 'ja', label: '日本語', sub: { ko: '일본어', en: 'Japanese', ar: 'اليابانية', 'zh-TW': '日文' } },
-  { value: 'zh-TW', label: '繁體中文', sub: { ko: '중국어 번체', en: 'Chinese (Traditional)', ar: 'الصينية التقليدية', 'zh-TW': '繁體中文' } },
-  { value: 'es', label: 'Español', sub: { ko: '스페인어', en: 'Spanish', ar: 'الإسبانية', 'zh-TW': '西班牙文' } },
+  { value: 'ko', label: '한국어', sub: { ko: '한국어', en: 'Korean', ar: 'الكورية', 'zh-CN': '韩语', ja: '韓国語', 'zh-TW': '韓文', es: 'Coreano' } },
+  { value: 'en', label: 'English', sub: { ko: '영어', en: 'English', ar: 'الإنجليزية', 'zh-CN': '英语', ja: '英語', 'zh-TW': '英文', es: 'Inglés' } },
+  { value: 'ar', label: 'العربية', sub: { ko: '아랍어', en: 'Arabic', ar: 'العربية', 'zh-CN': '阿拉伯语', ja: 'アラビア語', 'zh-TW': '阿拉伯文', es: 'Árabe' } },
+  { value: 'zh-CN', label: '简体中文', sub: { ko: '중국어 간체', en: 'Chinese (Simplified)', ar: 'الصينية المبسطة', 'zh-CN': '简体中文', ja: '中国語(簡体字)', 'zh-TW': '簡體中文', es: 'Chino simplificado' } },
+  { value: 'ja', label: '日本語', sub: { ko: '일본어', en: 'Japanese', ar: 'اليابانية', 'zh-CN': '日语', ja: '日本語', 'zh-TW': '日文', es: 'Japonés' } },
+  { value: 'zh-TW', label: '繁體中文', sub: { ko: '중국어 번체', en: 'Chinese (Traditional)', ar: 'الصينية التقليدية', 'zh-CN': '繁体中文', ja: '中国語(繁体字)', 'zh-TW': '繁體中文', es: 'Chino tradicional' } },
+  { value: 'es', label: 'Español', sub: { ko: '스페인어', en: 'Spanish', ar: 'الإسبانية', 'zh-CN': '西班牙语', ja: 'スペイン語', 'zh-TW': '西班牙文', es: 'Español' } },
 ];
 
 export const LANGUAGE_LOCALES: Record<Language, string> = {

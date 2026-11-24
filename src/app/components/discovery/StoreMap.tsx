@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createTranslator, type Language } from '../../locales';
+import { translateText, type Language } from '../../locales';
 import { loadNaverMaps, onNaverMapsAuthFailure } from '../../../lib/naverMap';
 import { useMapLanguage } from '../../../lib/mapLanguage';
 
@@ -42,7 +42,6 @@ export function StoreMap({
   focusOffsetY?: number;
   className?: string;
 }) {
-  const t = createTranslator(language);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<naver.maps.Map | null>(null);
   const markersRef = useRef<naver.maps.Marker[]>([]);
@@ -250,11 +249,7 @@ export function StoreMap({
         role="status"
         className={`${className} flex items-center justify-center bg-surface-subtle px-4 text-center text-xs text-text-secondary`}
       >
-        {t(
-          '지도를 불러오지 못했어요. 아래 목록에서 찾아주세요.',
-          'Map unavailable — pick from the list below.',
-          'تعذر تحميل الخريطة. اختر من القائمة أدناه.',
-        )}
+        {translateText(language, MAP_TEXT.unavailable)}
       </div>
     );
   }
@@ -270,6 +265,12 @@ function demoPinTop(y: number, insets?: { top: number; bottom: number }) {
   return `calc(${top}px + (100% - ${top + insets.bottom}px) * ${((percent - 28) / 45).toFixed(3)})`;
 }
 
+const MAP_TEXT = {
+  demoBadge: { ko: '시연용 위치 개요', en: 'Demo location overview', ar: 'خريطة مواقع تجريبية', 'zh-CN': '演示用位置概览', ja: 'デモ用の位置概要', 'zh-TW': '示範用位置概覽', es: 'Mapa de ubicaciones de demostración' },
+  demoLabel: { ko: '시연용 식당 위치 개요', en: 'Demo restaurant location overview', ar: 'نظرة عامة على مواقع المطاعم التجريبية', 'zh-CN': '演示用餐厅位置概览', ja: 'デモ用の飲食店の位置概要', 'zh-TW': '示範用餐廳位置概覽', es: 'Mapa de restaurantes de demostración' },
+  unavailable: { ko: '지도를 불러오지 못했어요. 아래 목록에서 찾아주세요.', en: 'Map unavailable — pick from the list below.', ar: 'تعذر تحميل الخريطة. اختر من القائمة أدناه.', 'zh-CN': '地图加载失败。请在下方列表中查找。', ja: '地図を読み込めませんでした。下のリストから探してください。', 'zh-TW': '無法載入地圖，請從下方清單中選擇。', es: 'No se pudo cargar el mapa. Búscalo en la lista de abajo.' },
+};
+
 function DemoStoreMap({ language, stores, selectedId, onSelect, insets, className }: {
   insets?: { top: number; bottom: number };
   language: Language;
@@ -278,7 +279,6 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, insets, classNam
   onSelect?: (store: MapStore) => void;
   className: string;
 }) {
-  const t = createTranslator(language);
   const coordinates = useMemo(() => {
     const latitudes = stores.map(store => store.lat);
     const longitudes = stores.map(store => store.lng);
@@ -295,7 +295,7 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, insets, classNam
     }));
   }, [stores]);
 
-  return <div className={`${className} relative isolate overflow-hidden bg-[#EEF3F0]`} role="group" aria-label={t('시연용 식당 위치 개요', 'Demo restaurant location overview', 'نظرة عامة على مواقع المطاعم التجريبية')}>
+  return <div className={`${className} relative isolate overflow-hidden bg-[#EEF3F0]`} role="group" aria-label={translateText(language, MAP_TEXT.demoLabel)}>
     {/* 강 · 공원 · 길(디자인 보드의 지도 그림) */}
     <div className="pointer-events-none absolute inset-0" aria-hidden="true">
       <div className="absolute -inset-x-10 top-[30%] h-[70px] -rotate-12 bg-[#DCEBF5]" />
@@ -307,7 +307,7 @@ function DemoStoreMap({ language, stores, selectedId, onSelect, insets, classNam
       <div className="absolute -inset-y-10 start-[31%] w-3 rotate-[10deg] bg-white" />
       <div className="absolute -inset-y-10 start-[72%] w-2.5 -rotate-6 bg-white" />
     </div>
-    <span style={{ top: (insets?.top ?? 0) + 8 }} className="absolute end-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-hs-ink-500 shadow-sm">{t('시연용 위치 개요', 'Demo location overview', 'خريطة مواقع تجريبية')}</span>
+    <span style={{ top: (insets?.top ?? 0) + 8 }} className="absolute end-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-hs-ink-500 shadow-sm">{translateText(language, MAP_TEXT.demoBadge)}</span>
     {coordinates.map(({ store, x, y }) => {
       const selected = store.id === selectedId;
       // 버튼 = 핀 자리(22px, 좌표가 가운데). 이름표 · 선택 말풍선은 그 위아래로.

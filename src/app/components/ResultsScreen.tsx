@@ -11,7 +11,7 @@ import { CURATION_ARTICLES, tagLabel } from '../constants/curation';
 import { menuPrice } from '../demo/currency';
 import { useDemoValue } from '../demo/storage';
 import { RESTAURANTS } from '../demo/restaurants';
-import { FILMING_PROFILE } from '../results/filmingFixtures';
+import { FILMING_PROFILE } from '../results/filmingProfile';
 import { buildMenuResultViewModel, getProfileCommunicationItems, localizeMenuText } from '../results/resultViewModel';
 import { preparingLabel } from './FeaturePreparing';
 import {
@@ -305,6 +305,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
                 {dietEmpty && <HsLinkButton tone="brand" onClick={() => navigate('/onboarding', { state: { editSection: 'diet' } })}>{tx(language, R.setDiet)}</HsLinkButton>}
               </>
             )}
+            {filmingScenario && <p className="mt-2 text-[12px] leading-[1.5] font-semibold text-hs-ink-500">{tx(language, R.demoProfileNote)}</p>}
             {profileItems.length > 0 && (
               <HsButton variant="outline" size="lg" block icon="person" className="mt-3.5" onClick={() => setDietSheetOpen(true)}>{tx(language, R.showMyDiet)}</HsButton>
             )}
