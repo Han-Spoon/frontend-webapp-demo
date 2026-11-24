@@ -125,14 +125,14 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
     <Routes>
       <Route
         path="/"
-        element={<LandingScreen language={language} setLanguage={setLanguage} />}
+        element={<LandingScreen language={language} setLanguage={account.selectLanguage} />}
       />
       <Route
         path="/login"
         element={
           <LoginScreen
             language={language}
-            setLanguage={setLanguage}
+            setLanguage={account.selectLanguage}
             onLogin={account.completeLogin}
             demoMode={demoMode}
             onExitDemo={account.exitDemo}
@@ -148,7 +148,7 @@ export function AppRoutes({ account, language, scanHistory, session }: AppRoutes
         element={
           <OnboardingScreen
             language={language}
-            setLanguage={setLanguage}
+            setLanguage={account.selectLanguage}
             initialProfile={userProfile ?? undefined}
             onComplete={account.saveProfile}
           />
