@@ -3,7 +3,7 @@ import type { Language } from '../../locales';
 import { HsLinkButton } from './Button';
 import { CategoryTag, DietTag, type CurationCategory } from './Chip';
 import { HsIconButton } from './IconButton';
-import { HsIcon } from './icons';
+import { FLIP_RTL, HsIcon } from './icons';
 import { RiskCountBadge } from './RiskBadge';
 import { tx, txn, type AllText, type CountText } from './text';
 
@@ -123,7 +123,9 @@ export function ScanHistoryCard({ language, title, dateText, storeName, menuCoun
     <div className="rounded-hs-xl bg-hs-surface-0 py-3.5 ps-4 pe-2 shadow-hs-card">
       <div className="flex items-start gap-1">
         {titleSlot ?? (
-          <button type="button" onClick={onOpen} className="min-w-0 flex-1 py-1 text-start">
+          <button type="button" onClick={onOpen} className="relative min-w-0 flex-1 py-1 pe-8 text-start">
+            {/* ··· 메뉴가 없으면 오른쪽 위 › (최근에 살펴본 메뉴) */}
+            {!onMore && <HsIcon name="forward" size={18} strokeWidth={2.4} className={`absolute end-1.5 top-1 text-hs-ink-500 ${FLIP_RTL}`} />}
             <span className="block truncate text-[15px] font-black text-hs-ink-900">{title}</span>
             {(storeName || showDate) && (
               <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">

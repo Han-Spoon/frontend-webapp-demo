@@ -22,13 +22,18 @@ interface HsDialogProps {
   error?: string;
   /** 설명 아래 추가 내용(삭제할 기록 미리보기 등) */
   children?: ReactNode;
+  /**
+   * 그대로 두는 쪽이 주 버튼(분석 취소 확인: [분석 취소] soft · [계속 분석] 초록).
+   * 왼쪽에 행동(confirm, soft), 오른쪽에 취소(cancel, 주 버튼)를 둔다. 처음 초점 · Esc는 그대로 취소.
+   */
+  keepIsPrimary?: boolean;
 }
 
 /**
  * 가운데 확인 창(30 모서리, 그릇 모양 아이콘 56 + 제목 + 설명 + 두 버튼).
- * 왼쪽은 항상 [취소](soft). 처음 초점은 취소 버튼(위험한 동작이 기본 선택되지 않게).
+ * 왼쪽은 [취소](soft), `keepIsPrimary`면 왼쪽 행동 · 오른쪽 취소(주 버튼). 처음 초점은 취소 버튼(위험한 동작이 기본 선택되지 않게).
  */
-export function HsDialog({ language, title, description, cancelLabel, confirmLabel, onCancel, onConfirm, tone = 'brand', icon, busy = false, error, children }: HsDialogProps) {
+export function HsDialog({ language, title, description, cancelLabel, confirmLabel, onCancel, onConfirm, tone = 'brand', icon, busy = false, error, children, keepIsPrimary = false }: HsDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const returnFocus = useReturnFocus();
   const iconName = icon ?? (tone === 'danger' ? 'trash' : 'alert');
@@ -57,10 +62,17 @@ export function HsDialog({ language, title, description, cancelLabel, confirmLab
           )}
           {children}
           {error && <p role="alert" className="mt-3 text-[13px] font-bold text-hs-danger-700">{error}</p>}
-          <div className="mt-5 flex gap-2">
-            <HsButton ref={cancelRef} variant="soft" className="flex-1" onClick={onCancel} busy={busy}>{cancelLabel}</HsButton>
-            <HsButton variant={tone === 'danger' ? 'danger' : 'primary'} className="flex-1" onClick={onConfirm} busy={busy}>{confirmLabel}</HsButton>
-          </div>
+          {keepIsPrimary ? (
+            <div className="mt-5 flex gap-2">
+              <HsButton variant="soft" className="flex-1" onClick={onConfirm} busy={busy}>{confirmLabel}</HsButton>
+              <HsButton ref={cancelRef} variant="primary" className="flex-1" onClick={onCancel} busy={busy}>{cancelLabel}</HsButton>
+            </div>
+          ) : (
+            <div className="mt-5 flex gap-2">
+              <HsButton ref={cancelRef} variant="soft" className="flex-1" onClick={onCancel} busy={busy}>{cancelLabel}</HsButton>
+              <HsButton variant={tone === 'danger' ? 'danger' : 'primary'} className="flex-1" onClick={onConfirm} busy={busy}>{confirmLabel}</HsButton>
+            </div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
