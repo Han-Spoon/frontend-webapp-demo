@@ -300,11 +300,11 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
     return (
       <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
         {fileInputs}
-        <OfflineBanner language={language} />
         <div className="flex flex-none items-center gap-2 px-5 pt-[18px]">
           <HsIconButton icon="back" tone="soft" label={tx(language, HS_TEXT.back)} iconClassName={FLIP_RTL} onClick={backToStart} disabled={isUploading} />
           <h1 className="hs-title-sm">{tx(language, S.reviewTitle)}</h1>
         </div>
+        <OfflineBanner language={language} className="mx-5 mt-3 flex-none" />
         <main className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-4">
           <div className="relative flex aspect-[350/420] max-h-[56dvh] w-full items-center justify-center overflow-hidden rounded-[32px] bg-[#2A302D]">
             <img src={selectedImage.previewUrl} alt={tx(language, S.preview)} className="max-h-full max-w-full object-contain" />
@@ -365,6 +365,7 @@ export function ScanScreen({ language, onScan, onHistory, onMyPage, history, sel
             <StoreRow language={language} onClick={() => setRestaurantPicker(true)} className="mt-5" />
           )}
         </header>
+        <OfflineBanner language={language} className="mx-5 mt-3" />
 
         <section className="px-5 pt-5">
           <button

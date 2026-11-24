@@ -83,7 +83,6 @@ export function CurationScreen({ language, onMyPage }: { language: Language; onM
 
   return (
     <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
-      <OfflineBanner language={language} />
       <main className="min-h-0 flex-1 overflow-y-auto pb-8">
         <header className="relative overflow-hidden rounded-b-[44px] bg-hs-mint-100 pb-[22px]">
           <img src={symbol} alt="" aria-hidden="true" className="pointer-events-none absolute -end-[34px] top-10 w-[150px] opacity-[0.14]" />
@@ -106,6 +105,7 @@ export function CurationScreen({ language, onMyPage }: { language: Language; onM
             />
           </div>
         </header>
+        <OfflineBanner language={language} className="mx-5 mt-3" />
 
         {searching ? (
           <section aria-labelledby="curation-found" className="pt-4">

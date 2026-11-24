@@ -39,6 +39,7 @@ import {
   tx,
   txn,
   type HsRisk,
+  OfflineBanner,
 } from './hs';
 import { AllIngredientsSheet, ResultMenuCard } from './results/ResultMenuCard';
 import { EditRecordSheet, type EditRecordResult } from './results/EditRecordSheet';
@@ -309,6 +310,7 @@ export function ResultsScreen({ language, menus, userProfile: suppliedProfile, o
             )}
           </section>
         </header>
+        <OfflineBanner language={language} className="mx-5 mt-3" />
 
         {!demoMode && !liveFeatures.savedMenus && <p role="status" className="mx-5 mt-3 text-[12px] font-bold text-hs-ink-500">{preparingLabel(language)}</p>}
         {favoriteError && <InlineError className="mx-5 mt-3">{favoriteError}</InlineError>}

@@ -22,7 +22,7 @@ const T = {
   map: { ko: '지도에서 보기', en: 'View on map', ar: 'عرض على الخريطة', 'zh-CN': '在地图上查看', ja: '地図で見る', 'zh-TW': '在地圖上查看', es: 'Ver en el mapa' },
   notFound: { ko: '글을 찾을 수 없어요', en: 'Article not found', ar: 'المقال غير موجود', 'zh-CN': '找不到文章', ja: '記事が見つかりません', 'zh-TW': '找不到文章', es: 'No se encontró el artículo' },
   notFoundBody: { ko: '지워졌거나 주소가 바뀐 글이에요.', en: 'It may have been removed or moved.', ar: 'ربما تمت إزالته أو نقله.', 'zh-CN': '文章可能已删除或地址已变更。', ja: '削除されたか、アドレスが変わった可能性があります。', 'zh-TW': '文章可能已刪除或網址已變更。', es: 'Puede que se haya eliminado o movido.' },
-  toList: { ko: '큐레이션으로', en: 'Back to stories', ar: 'العودة إلى المقالات', 'zh-CN': '返回精选', ja: 'キュレーションへ', 'zh-TW': '返回精選', es: 'Volver a artículos' },
+  toList: { ko: '큐레이션으로', en: 'Back to stories', ar: 'العودة إلى المقالات', 'zh-CN': '返回精选', ja: 'コラム一覧へ', 'zh-TW': '返回精選', es: 'Volver a artículos' },
   savedToast: { ko: '가게를 저장했어요', en: 'Restaurant saved', ar: 'تم حفظ المطعم', 'zh-CN': '已收藏店铺', ja: 'お店を保存しました', 'zh-TW': '已收藏店家', es: 'Restaurante guardado' },
 } satisfies Record<string, AllText>;
 
@@ -80,7 +80,6 @@ export function CurationDetailScreen({ language }: { language: Language }) {
 
   return (
     <div className="flex h-dvh flex-col bg-hs-surface-0 text-hs-ink-900">
-      <OfflineBanner language={language} />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
         <div className="relative">
           <div className={`relative h-[330px] overflow-hidden rounded-b-[44px] ${CATEGORY_BG[article.tag]}`}>
@@ -92,6 +91,7 @@ export function CurationDetailScreen({ language }: { language: Language }) {
           </div>
         </div>
 
+        <OfflineBanner language={language} className="mx-5 mt-3" />
         <article className="px-6 pt-[22px]">
           <CategoryTag category={article.tag}>{tagLabel(article.tag, language)}</CategoryTag>
           <h1 className="mt-2.5 text-[28px] leading-[1.3] font-black tracking-[-0.02em]">{translateText(language, article.title)}</h1>

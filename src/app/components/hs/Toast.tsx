@@ -32,21 +32,23 @@ export function ToastProvider({ children, bottomOffset = 96 }: { children: React
     <ToastContext.Provider value={{ show }}>
       {children}
       {/* 앱 틀(.mobile-container)은 isolation: isolate라 시트(body 포털) 위에 보이도록 body로 뺀다. */}
-      {createPortal(<div aria-live="polite" role="status" className="pointer-events-none fixed inset-x-0 z-[60] mx-auto flex w-full max-w-[430px] justify-center px-5" style={{ bottom: `calc(${bottomOffset}px + env(safe-area-inset-bottom))` }}>
+      {createPortal(<div aria-live="polite" role="status" className="pointer-events-none fixed inset-x-0 z-[60] mx-auto flex w-full max-w-[430px] justify-center px-4" style={{ bottom: `calc(${bottomOffset}px + env(safe-area-inset-bottom))` }}>
         {toast && <ToastPill key={toast.id} item={toast} onDone={() => setToast(null)} />}
       </div>, document.body)}
     </ToastContext.Provider>
   );
 }
 
+/** 알림 한 줄(C-05): ink-900 20 모서리 + 그림자, 아이콘(성공 민트 ✓ · 실패 빨간 ! · 안내 연민트 !) + 글자 + 행동 하나 */
 export function ToastPill({ item, onDone }: { item: Omit<ToastItem, 'id'>; onDone?: () => void }) {
   return (
-    <div className="pointer-events-auto flex min-h-11 w-full items-center gap-2 rounded-hs-pill bg-hs-ink-900 py-1.5 ps-3.5 pe-2 text-[13px] font-extrabold text-hs-surface-0 animate-slide-up">
-      {item.tone === 'success' && <HsIcon name="check" size={16} strokeWidth={3} className="flex-none text-hs-safe-500" />}
-      {item.tone === 'error' && <HsIcon name="alert" size={16} strokeWidth={2.6} className="flex-none text-hs-danger-500" />}
+    <div className="pointer-events-auto flex min-h-[52px] w-full items-center gap-2.5 rounded-[20px] bg-hs-ink-900 py-2 ps-4 pe-2 text-[14px] leading-[1.4] font-extrabold text-hs-surface-0 shadow-[0_12px_30px_rgba(23,32,28,0.25)] animate-slide-up">
+      {item.tone === 'success' && <HsIcon name="check" size={18} strokeWidth={2.8} className="flex-none text-[#7BE0AE]" />}
+      {item.tone === 'error' && <HsIcon name="alert" size={18} strokeWidth={2.4} className="flex-none text-[#FF9A90]" />}
+      {item.tone === 'info' && <HsIcon name="alert" size={18} strokeWidth={2.4} className="flex-none text-hs-mint-200" />}
       <span className="min-w-0 flex-1">{item.message}</span>
       {item.action && (
-        <button type="button" onClick={() => { item.action?.onClick(); onDone?.(); }} className="h-[30px] flex-none rounded-hs-pill bg-white/15 px-2.5 text-[12px] font-extrabold">
+        <button type="button" onClick={() => { item.action?.onClick(); onDone?.(); }} className="h-8 min-w-11 flex-none rounded-hs-pill bg-white/15 px-2.5 text-[12px] font-black">
           {item.action.label}
         </button>
       )}
