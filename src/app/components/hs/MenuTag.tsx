@@ -58,7 +58,8 @@ export function MenuTags({ language, names, label, className = '' }: { language:
   const rest = names.length - shown;
   return (
     // 카드 버튼 안에도 들어가므로 span(목록 역할)으로 그린다.
-    <span ref={rowRef} className={`relative block ${className}`}>
+    // overflow-hidden: 폭 재기용 줄이 밖으로 삐져나가 화면 가로 스크롤이 생기지 않게
+    <span ref={rowRef} className={`relative block overflow-hidden ${className}`}>
       <span role="list" aria-label={label} className="flex min-w-0 gap-[5px] overflow-hidden">
         {candidates.slice(0, shown).map((name, index) => (
           <span role="listitem" key={`${name}-${index}`} className={`flex min-w-0 ${index === shown - 1 ? 'shrink' : 'flex-none'}`}><MenuTag name={name} className="min-w-0" /></span>
